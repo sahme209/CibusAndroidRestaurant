@@ -5,6 +5,7 @@ import okhttp3.Response
 
 /**
  * Injects "Authorization: Bearer {token}" on all API calls except auth endpoints.
+ * On 401, clears session and invokes RestaurantSessionCallbacks.on401.
  */
 class RestaurantAuthInterceptor(private val tokenStore: RestaurantTokenStore) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
@@ -21,6 +22,11 @@ class RestaurantAuthInterceptor(private val tokenStore: RestaurantTokenStore) : 
         } else {
             request
         }
-        return chain.proceed(newRequest)
+        val response = chain.proceed(newRequest)
+        if (response.code == 401) {
+            tokenStore.clear()
+            RestaurantSessionCallbacks.on401?.invoke()
+        }
+        return response
     }
 }

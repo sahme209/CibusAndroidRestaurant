@@ -1,6 +1,9 @@
 package com.cibus.restaurant.ui
 
+import android.os.Handler
+import android.os.Looper
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -9,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.cibus.restaurant.api.RestaurantSessionCallbacks
 import com.cibus.restaurant.api.RetrofitClient
 
 sealed class RestaurantRoute(val route: String) {
@@ -17,16 +21,40 @@ sealed class RestaurantRoute(val route: String) {
     data object Main : RestaurantRoute("main")
 }
 
+private fun navigateToLogin(navController: androidx.navigation.NavController) {
+    navController.navigate(RestaurantRoute.Login.route) {
+        popUpTo(0) { inclusive = true }
+    }
+}
+
 @Composable
 fun RestaurantApp() {
     val navController = rememberNavController()
     var isLoggedIn by remember { mutableStateOf(false) }
 
+    DisposableEffect(Unit) {
+        RestaurantSessionCallbacks.on401 = {
+            Handler(Looper.getMainLooper()).post {
+                isLoggedIn = false
+                navigateToLogin(navController)
+            }
+        }
+        onDispose { RestaurantSessionCallbacks.on401 = null }
+    }
+
     LaunchedEffect(Unit) {
-        if (RetrofitClient.getTokenStore().hasValidToken()) {
-            isLoggedIn = true
-            navController.navigate(RestaurantRoute.Main.route) {
-                popUpTo(0) { inclusive = true }
+        val store = RetrofitClient.getTokenStore()
+        if (store.hasValidToken()) {
+            var proceedToMain = true
+            try {
+                val resp = RetrofitClient.restaurantApi.getMe()
+                if (resp.code() == 401) proceedToMain = false
+            } catch (_: Exception) { }
+            if (proceedToMain) {
+                isLoggedIn = true
+                navController.navigate(RestaurantRoute.Main.route) {
+                    popUpTo(0) { inclusive = true }
+                }
             }
         }
     }

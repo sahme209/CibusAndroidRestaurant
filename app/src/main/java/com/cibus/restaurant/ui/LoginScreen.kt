@@ -62,6 +62,10 @@ fun LoginScreen(
                     RestaurantSignInRequest(email.trim(), password)
                 )
                 if (response.isSuccessful) {
+                    val data = response.body()?.data
+                    if (data != null) {
+                        RetrofitClient.getTokenStore().saveToken(data.accessToken)
+                    }
                     onLoginSuccess()
                 } else {
                     errorMessage = response.message() ?: "Login failed"

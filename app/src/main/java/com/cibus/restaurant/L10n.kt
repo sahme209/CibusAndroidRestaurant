@@ -38,7 +38,7 @@ object ResL10n {
     fun ntn(ctx: Context) = "NTN"
     fun pfaLicense(ctx: Context) = if (isUrdu(ctx)) "PFA license number" else "PFA license number"
     fun submit(ctx: Context) = if (isUrdu(ctx)) "Bhejo" else "Submit"
-    fun successMsg(ctx: Context) = if (isUrdu(ctx)) "Apply ho gaya. Hum call karenge." else "Done! We will call you."
+    fun successMsg(ctx: Context) = if (isUrdu(ctx)) "Application submit ho gayi. Hum contact karenge." else "Application submitted – we will contact you."
 
     fun errBasic(ctx: Context) = if (isUrdu(ctx)) "Sab zaroori fields bharo" else "Fill all fields"
     fun errPhone(ctx: Context) = if (isUrdu(ctx)) "10+ digit phone likho" else "Enter 10+ digit phone"

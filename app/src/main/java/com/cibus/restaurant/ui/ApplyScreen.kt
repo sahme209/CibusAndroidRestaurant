@@ -38,7 +38,7 @@ import com.google.gson.JsonObject
 import kotlinx.coroutines.launch
 
 @Composable
-fun ApplyScreen() {
+fun ApplyScreen(onBackToLogin: () -> Unit = {}) {
     val ctx = LocalContext.current
     var lang by remember { mutableStateOf(ctx.getAppLang()) }
     var partnerName by remember { mutableStateOf("") }
@@ -146,7 +146,13 @@ fun ApplyScreen() {
             OutlinedTextField(value = pfaLicenseNumber, onValueChange = { pfaLicenseNumber = it }, label = { Text(ResL10n.pfaLicense(ctx)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
 
             errorMessage?.let { Text(it, color = androidx.compose.material3.MaterialTheme.colorScheme.error, modifier = Modifier.padding(vertical = 8.dp)) }
-            successMessage?.let { Text(it, color = androidx.compose.material3.MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 8.dp)) }
+            successMessage?.let { msg ->
+                Text(msg, color = androidx.compose.material3.MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 8.dp))
+                Spacer(Modifier.height(8.dp))
+                TextButton(onClick = onBackToLogin) {
+                    Text(if (ctx.getAppLang() == AppLanguage.ROMAN_URDU) "Login par wapas" else "Back to Login")
+                }
+            }
             Spacer(Modifier.height(16.dp))
             Button(onClick = ::doApply, modifier = Modifier.fillMaxWidth(), enabled = !isLoading && successMessage == null) {
                 if (isLoading) CircularProgressIndicator(Modifier.height(24.dp).padding(8.dp)) else Text(ResL10n.submit(ctx))

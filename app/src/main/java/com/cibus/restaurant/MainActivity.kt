@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.cibus.restaurant.api.RetrofitClient
 import com.cibus.restaurant.ui.RestaurantApp
 import com.cibus.restaurant.ui.theme.CibusRestaurantTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        RetrofitClient.init(this)
         enableEdgeToEdge()
         setContent {
             CibusRestaurantTheme {

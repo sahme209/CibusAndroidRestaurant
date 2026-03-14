@@ -18,4 +18,9 @@ object CibusDimens {
     val btnMinHeight = 44.dp
     val iconSize = 20.dp
     val iconSizeSmall = 16.dp
+
+    /** Phase 104: Motion — primary button/action duration (ms). */
+    const val motionPrimaryDuration = 180
+    /** Row press feedback duration. */
+    const val motionRowDuration = 160
 }

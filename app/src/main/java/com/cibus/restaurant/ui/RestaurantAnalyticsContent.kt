@@ -237,6 +237,11 @@ fun RestaurantAnalyticsContent() {
             RiderPickupTimingCard(readyCount = readyCount)
         }
 
+        // Phase 125/126 — Kitchen capacity management + prep prediction
+        item {
+            KitchenCapacityManagementCard(preparingCount = preparingCount, readyCount = readyCount)
+        }
+
         item {
             Text(
                 "Suggestions",
@@ -458,5 +463,80 @@ private fun SuggestionCard(
             Text(body, fontSize = 12.sp, color = Color(0xFF6B6B6B))
         }
     }
+    }
+}
+
+/** Phase 125/126: Kitchen capacity management + prep prediction card. */
+@Composable
+private fun KitchenCapacityManagementCard(preparingCount: Int, readyCount: Int) {
+    if (preparingCount == 0) return
+    val capacityLabel = when {
+        preparingCount > 8 -> "Overloaded"
+        preparingCount > 5 -> "Strained"
+        preparingCount > 2 -> "Busy"
+        else -> "Optimal"
+    }
+    val capacityColor = when (capacityLabel) {
+        "Overloaded" -> Color(0xFFDC2626)
+        "Strained"   -> Color(0xFFEA580C)
+        "Busy"       -> Color(0xFFB45309)
+        else         -> Color(0xFF2D6A4F)
+    }
+    // Phase 126: Predict prep time for next order based on kitchen load
+    val prepPrediction = when {
+        preparingCount > 6 -> (12 * 1.5).toInt()
+        preparingCount > 3 -> (12 * 1.25).toInt()
+        else -> 12
+    }
+    val shouldThrottle = preparingCount > 7
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = capacityColor.copy(alpha = 0.06f)
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Whatshot, null, tint = capacityColor, modifier = Modifier.size(18.dp))
+                Text(
+                    "Kitchen: $capacityLabel · $preparingCount cooking",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1A1A1A)
+                )
+            }
+            // Capacity bar
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .background(Color(0xFFF5F5F5), RoundedCornerShape(2.dp))
+            ) {
+                androidx.compose.foundation.layout.Box(
+                    modifier = Modifier
+                        .fillMaxWidth(fraction = (preparingCount.toFloat() / 10f).coerceIn(0f, 1f))
+                        .height(4.dp)
+                        .background(capacityColor, RoundedCornerShape(2.dp))
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    "Next order: ~${prepPrediction} min prep",
+                    fontSize = 11.sp,
+                    color = Color(0xFF6B6B6B)
+                )
+                if (shouldThrottle) {
+                    Text(
+                        "⏸ Consider pausing new orders",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFFDC2626)
+                    )
+                }
+            }
+        }
     }
 }

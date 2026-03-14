@@ -105,6 +105,22 @@ fun RestaurantAnalyticsContent() {
 
         item {
             Text(
+                "Dish Popularity Signals",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF1A1A1A)
+            )
+        }
+        item {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                PopularityChip(label = "Best sellers", count = 3, color = Color(0xFF2D6A4F))
+                PopularityChip(label = "Trending", count = 2, color = Color(0xFF40916C))
+                PopularityChip(label = "Underperforming", count = 1, color = Color(0xFFE07A5F))
+            }
+        }
+
+        item {
+            Text(
                 "Suggestions",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -191,6 +207,20 @@ private fun TopDishRow(rank: Int, name: String, orders: Int) {
             Text(name, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1A1A1A))
         }
         Text("$orders orders", fontSize = 13.sp, color = Color(0xFF6B6B6B))
+    }
+}
+
+@Composable
+private fun RowScope.PopularityChip(label: String, count: Int, color: Color) {
+    Surface(
+        modifier = Modifier.weight(1f),
+        shape = RoundedCornerShape(10.dp),
+        color = color.copy(alpha = 0.12f)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(label, fontSize = 12.sp, color = Color(0xFF6B6B6B))
+            Text("$count items", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = color)
+        }
     }
 }
 

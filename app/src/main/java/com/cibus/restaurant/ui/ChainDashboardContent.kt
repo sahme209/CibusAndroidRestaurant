@@ -1,4 +1,5 @@
 package com.cibus.restaurant.ui
+import com.cibus.restaurant.ui.theme.*
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -63,7 +64,7 @@ fun ChainDashboardContent() {
             }
         }
         chain == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Color(0xFF2D6A4F))
+            CircularProgressIndicator(color = CibusGreenDark)
         }
         else -> LazyColumn(
             modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -165,7 +166,7 @@ fun ChainDashboardContent() {
                                     "Rs ${(metrics?.revenue ?: 0.0).toInt()}",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFF2D6A4F)
+                                    color = CibusGreenDark
                                 )
                             }
                         }
@@ -193,7 +194,7 @@ private fun RowScope.ChainMetricCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Icon(icon, null, tint = Color(0xFF2D6A4F), modifier = Modifier.size(18.dp))
+                Icon(icon, null, tint = CibusGreenDark, modifier = Modifier.size(18.dp))
                 Text(title, fontSize = 12.sp, color = Color(0xFF6B6B6B))
             }
             Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A1A))

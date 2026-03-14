@@ -1,4 +1,5 @@
 package com.cibus.restaurant.ui
+import com.cibus.restaurant.ui.theme.*
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -46,7 +47,7 @@ fun RestaurantPromotionsContent() {
                 )
                 Button(
                     onClick = { showCreateDialog = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2D6A4F)),
+                    colors = ButtonDefaults.buttonColors(containerColor = CibusGreenDark),
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Icon(Icons.Default.Add, null, Modifier.size(18.dp))
@@ -138,16 +139,16 @@ private fun PromotionCard(promo: RestaurantPromo) {
         ) {
             Surface(
                 shape = RoundedCornerShape(10.dp),
-                color = Color(0xFF2D6A4F).copy(alpha = 0.12f)
+                color = CibusGreenDark.copy(alpha = 0.12f)
             ) {
-                Icon(icon, null, tint = Color(0xFF2D6A4F), modifier = Modifier.padding(12.dp).size(24.dp))
+                Icon(icon, null, tint = CibusGreenDark, modifier = Modifier.padding(12.dp).size(24.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(promo.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A1A))
                 Text("Code: ${promo.code}", fontSize = 12.sp, color = Color(0xFF6B6B6B))
                 Text("Valid: ${promo.validUntil}", fontSize = 11.sp, color = Color(0xFF8E8E8E))
             }
-            Text(promo.value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2D6A4F))
+            Text(promo.value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = CibusGreenDark)
         }
     }
 }
@@ -161,9 +162,9 @@ private fun FeaturedDishRow(name: String, label: String) {
     ) {
         Column {
             Text(name, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1A1A1A))
-            Text(label, fontSize = 11.sp, color = Color(0xFF2D6A4F))
+            Text(label, fontSize = 11.sp, color = CibusGreenDark)
         }
-        Icon(Icons.Default.Star, null, tint = Color(0xFF2D6A4F), modifier = Modifier.size(20.dp))
+        Icon(Icons.Default.Star, null, tint = CibusGreenDark, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -259,7 +260,7 @@ private fun CreatePromotionDialog(
                                 )
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2D6A4F))
+                        colors = ButtonDefaults.buttonColors(containerColor = CibusGreenDark)
                     ) {
                         Text("Create")
                     }

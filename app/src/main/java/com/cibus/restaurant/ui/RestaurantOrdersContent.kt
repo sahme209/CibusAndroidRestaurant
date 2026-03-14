@@ -1,4 +1,5 @@
 package com.cibus.restaurant.ui
+import com.cibus.restaurant.ui.theme.*
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -172,7 +173,7 @@ fun RestaurantOrdersContent() {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(10.dp),
-                                color = if (readyForPickup > 0) Color(0xFFF59E0B).copy(alpha = 0.1f) else Color(0xFF2D6A4F).copy(alpha = 0.08f)
+                                color = if (readyForPickup > 0) Color(0xFFF59E0B).copy(alpha = 0.1f) else CibusGreenDark.copy(alpha = 0.08f)
                             ) {
                                 Row(
                                     modifier = Modifier.padding(12.dp),
@@ -183,7 +184,7 @@ fun RestaurantOrdersContent() {
                                         Text("new", style = MaterialTheme.typography.labelSmall, color = Color(0xFF6B6B6B))
                                     }
                                     if (preparing > 0) Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text("$preparing", fontWeight = FontWeight.Bold, color = Color(0xFF2D6A4F))
+                                        Text("$preparing", fontWeight = FontWeight.Bold, color = CibusGreenDark)
                                         Text("preparing", style = MaterialTheme.typography.labelSmall, color = Color(0xFF6B6B6B))
                                     }
                                     if (readyForPickup > 0) Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -269,7 +270,7 @@ private fun OrderCard(
                     Text(
                         "Rs ${order.total?.toInt() ?: 0}",
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF2D6A4F)
+                        color = CibusGreenDark
                     )
                 }
             }
@@ -299,7 +300,7 @@ private fun OrderCard(
                     Button(onClick = onAccept) { Text("Accept") }
                     Button(
                         onClick = onReject,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                        colors = ButtonDefaults.buttonColors(containerColor = CibusRed)
                     ) { Text("Reject") }
                 }
             }

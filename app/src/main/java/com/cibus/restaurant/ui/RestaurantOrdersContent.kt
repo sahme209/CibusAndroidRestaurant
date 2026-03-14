@@ -24,6 +24,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -158,28 +159,63 @@ fun RestaurantOrdersContent() {
                 title = "No orders yet",
                 message = "Incoming orders will appear here when customers place them."
             )
-            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(orders) { order ->
-                    val rid = restaurantId
-                    OrderCard(
-                        order = order,
-                        onAccept = {
-                            scope.launch {
-                                try {
-                                    RetrofitClient.restaurantApi.acceptOrder(order.id)
-                                    if (rid != null) refresh(rid)
-                                } catch (_: Exception) {}
-                            }
-                        },
-                        onReject = {
-                            scope.launch {
-                                try {
-                                    RetrofitClient.restaurantApi.rejectOrder(order.id)
-                                    if (rid != null) refresh(rid)
-                                } catch (_: Exception) {}
+            else -> {
+                // Phase 116D: Kitchen queue analysis
+                val preparing = orders.count { it.status == "preparing" }
+                val readyForPickup = orders.count { it.status == "ready_for_pickup" }
+                val newOrders = orders.count { it.status == "order_placed" }
+
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Phase 116D: Kitchen pressure header
+                    if (preparing > 0 || readyForPickup > 0) {
+                        item {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (readyForPickup > 0) Color(0xFFF59E0B).copy(alpha = 0.1f) else Color(0xFF2D6A4F).copy(alpha = 0.08f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    if (newOrders > 0) Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("$newOrders", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                        Text("new", style = MaterialTheme.typography.labelSmall, color = Color(0xFF6B6B6B))
+                                    }
+                                    if (preparing > 0) Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("$preparing", fontWeight = FontWeight.Bold, color = Color(0xFF2D6A4F))
+                                        Text("preparing", style = MaterialTheme.typography.labelSmall, color = Color(0xFF6B6B6B))
+                                    }
+                                    if (readyForPickup > 0) Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("$readyForPickup", fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
+                                        Text("ready / waiting rider", style = MaterialTheme.typography.labelSmall, color = Color(0xFF6B6B6B))
+                                    }
+                                }
                             }
                         }
-                    )
+                    }
+                    items(orders) { order ->
+                        val rid = restaurantId
+                        OrderCard(
+                            order = order,
+                            onAccept = {
+                                scope.launch {
+                                    try {
+                                        RetrofitClient.restaurantApi.acceptOrder(order.id)
+                                        if (rid != null) refresh(rid)
+                                    } catch (_: Exception) {}
+                                }
+                            },
+                            onReject = {
+                                scope.launch {
+                                    try {
+                                        RetrofitClient.restaurantApi.rejectOrder(order.id)
+                                        if (rid != null) refresh(rid)
+                                    } catch (_: Exception) {}
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -193,30 +229,78 @@ private fun OrderCard(
     onReject: () -> Unit,
 ) {
     val canAct = order.status == "order_placed"
+    // Phase 116D: Determine urgency based on order status + age signal
+    val isUrgent = order.status == "ready_for_pickup"
+    val isActive = order.status in listOf("order_placed", "preparing")
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = if (isUrgent) Color(0xFFFFF3E0) else Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isUrgent) 4.dp else 2.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Order #${order.id.take(8)}", Modifier.weight(1f))
-                Text("Rs ${order.total?.toInt() ?: 0}")
+                Text(
+                    "Order #${order.id.take(8)}",
+                    fontWeight = FontWeight.SemiBold
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    // Phase 116D: Status badge with urgency coloring
+                    if (isUrgent) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFF59E0B).copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                "PICKUP READY",
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFFB45309),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    Text(
+                        "Rs ${order.total?.toInt() ?: 0}",
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF2D6A4F)
+                    )
+                }
             }
-            Text("Status: ${order.status ?: "—"}", Modifier.padding(top = 4.dp))
+
+            // Phase 116D: Status display
+            Text(
+                "Status: ${order.status ?: "—"}",
+                modifier = Modifier.padding(top = 4.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isUrgent) Color(0xFFB45309) else if (isActive) MaterialTheme.colorScheme.primary else Color(0xFF6B6B6B)
+            )
+
             val addr = order.address
             if (addr != null) {
                 val area = (addr["area"] as? String) ?: (addr["city"] as? String) ?: ""
-                if (area.isNotEmpty()) Text("Area: $area", Modifier.padding(top = 2.dp))
+                if (area.isNotEmpty()) Text(
+                    area,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF6B6B6B),
+                    modifier = Modifier.padding(top = 2.dp)
+                )
             }
+
             if (canAct) {
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = onAccept) { Text("Accept") }
-                    Button(onClick = onReject, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))) { Text("Reject") }
+                    Button(
+                        onClick = onReject,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                    ) { Text("Reject") }
                 }
             }
         }

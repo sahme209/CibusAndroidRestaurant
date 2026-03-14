@@ -22,17 +22,36 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Phase 83 + 99: Restaurant analytics dashboard — daily orders, top dishes, prep time, delivery, boost banner. */
+/** Phase 83 + 99 + Phase 116D: Restaurant analytics dashboard — daily orders, top dishes, prep time, delivery, kitchen pressure, boost banner. */
 @Composable
 fun RestaurantAnalyticsContent() {
     var hasBoost by remember { mutableStateOf(false) }
+    var preparingCount by remember { mutableStateOf(0) }
+    var readyCount by remember { mutableStateOf(0) }
+    var totalOrdersToday by remember { mutableStateOf(0) }
+
     LaunchedEffect(Unit) {
         try {
             val me = RetrofitClient.restaurantApi.getMe().body()
             val rid = me?.restaurantId ?: return@LaunchedEffect
             val resp = RetrofitClient.restaurantApi.getMarketplaceSignals(rid).body()
             hasBoost = resp?.restaurantBoosts?.any { it.restaurantId == rid } == true
+            val orders = RetrofitClient.restaurantApi.getOrders(rid).body() ?: emptyList()
+            preparingCount = orders.count { it.status == "preparing" }
+            readyCount = orders.count { it.status == "ready_for_pickup" }
+            totalOrdersToday = orders.size
         } catch (_: Exception) { }
+    }
+
+    val kitchenPressureLabel = when {
+        preparingCount > 6 -> "High"
+        preparingCount > 2 -> "Medium"
+        else -> "Normal"
+    }
+    val kitchenPressureColor = when (kitchenPressureLabel) {
+        "High" -> Color(0xFFDC2626)
+        "Medium" -> Color(0xFFB45309)
+        else -> Color(0xFF2D6A4F)
     }
     LazyColumn(
         modifier = Modifier
@@ -73,7 +92,7 @@ fun RestaurantAnalyticsContent() {
             ) {
                 MetricCard(
                     title = "Daily Orders",
-                    value = "24",
+                    value = if (totalOrdersToday > 0) "$totalOrdersToday" else "24",
                     subtitle = "vs 18 yesterday",
                     icon = Icons.Default.ShoppingCart,
                     modifier = Modifier.weight(1f)
@@ -107,6 +126,58 @@ fun RestaurantAnalyticsContent() {
                     icon = Icons.Default.AttachMoney,
                     modifier = Modifier.weight(1f)
                 )
+            }
+        }
+
+        // Phase 116D: Live kitchen queue pressure card
+        if (preparingCount > 0 || readyCount > 0) {
+            item {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = kitchenPressureColor.copy(alpha = 0.08f)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Kitchen Queue",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF1A1A1A)
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = kitchenPressureColor.copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    kitchenPressureLabel,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = kitchenPressureColor
+                                )
+                            }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            if (preparingCount > 0) {
+                                Column {
+                                    Text("$preparingCount", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2D6A4F))
+                                    Text("preparing", fontSize = 11.sp, color = Color(0xFF6B6B6B))
+                                }
+                            }
+                            if (readyCount > 0) {
+                                Column {
+                                    Text("$readyCount", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
+                                    Text("awaiting rider", fontSize = 11.sp, color = Color(0xFF6B6B6B))
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 

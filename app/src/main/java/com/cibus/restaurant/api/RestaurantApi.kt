@@ -104,6 +104,23 @@ interface RestaurantApi {
 
     @PATCH("orders/{id}/status")
     suspend fun patchOrderStatus(@Path("id") orderId: String, @Body body: Map<String, Any>): Response<Unit>
+
+    // ── Claim / Verification ──────────────────────────────────────────────────
+
+    /** POST /restaurant-claims — submit a new claim for a public listing. */
+    @POST("restaurant-claims")
+    suspend fun submitClaim(@Body request: RestaurantClaimApiRequest): Response<okhttp3.ResponseBody>
+
+    /** POST /restaurant-claims/{id}/documents — acknowledge documents submitted. */
+    @POST("restaurant-claims/{id}/documents")
+    suspend fun acknowledgeDocuments(
+        @Path("id") claimId: String,
+        @Body body: Map<String, Any> = mapOf("acknowledged" to true)
+    ): Response<Unit>
+
+    /** GET /restaurant-claims/status — get verification status for current restaurant. */
+    @GET("restaurant-claims/status")
+    suspend fun getClaimStatus(): Response<ClaimStatusApiResponse>
 }
 data class RestaurantMenuResponse(
     val categories: List<Map<String, Any>> = emptyList(),
@@ -124,3 +141,36 @@ data class RestaurantOrderDto(
     val address: Map<String, Any>? = null,
     val items: List<Map<String, Any>>? = null,
 )
+
+// ── Claim DTOs ────────────────────────────────────────────────────────────────
+
+data class RestaurantClaimApiRequest(
+    @SerializedName("restaurantId")   val restaurantId: String,
+    @SerializedName("restaurantName") val restaurantName: String,
+    @SerializedName("ownerName")      val ownerName: String,
+    val role: String,
+    val email: String,
+    val phone: String,
+    val cnic: String,
+    @SerializedName("businessName")      val businessName: String?,
+    @SerializedName("ntnNumber")         val ntnNumber: String?,
+    @SerializedName("pfaLicenseNumber")  val pfaLicenseNumber: String?,
+    val notes: String?,
+    @SerializedName("confirmedAddress")  val confirmedAddress: String,
+    @SerializedName("payoutInfo")        val payoutInfo: PayoutInfoDto? = null
+)
+
+data class PayoutInfoDto(
+    @SerializedName("accountTitle")  val accountTitle: String,
+    @SerializedName("bankName")      val bankName: String,
+    val iban: String,
+    @SerializedName("jazzCashWallet") val jazzCashWallet: String? = null,
+    @SerializedName("easypaisaWallet") val easypaisaWallet: String? = null
+)
+
+data class ClaimStatusApiResponse(
+    val state: String? = null,
+    @SerializedName("claimId") val claimId: String? = null,
+    @SerializedName("reviewNote") val reviewNote: String? = null
+)
+

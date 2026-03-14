@@ -7,9 +7,7 @@ package com.cibus.restaurant.ui
 //   - "customer_deal_claimed" → Analytics tab (deal performance)
 // The existing tab switching mechanism handles all routing already.
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -19,7 +17,6 @@ import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -33,7 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.cibus.restaurant.api.RetrofitClient
 
 data class RestaurantTab(val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
@@ -85,22 +81,12 @@ fun RestaurantMainScreen(onLogout: () -> Unit = {}) {
                 selectedIndex == 3 && hasChain == true -> RestaurantMenuContent()
                 selectedIndex == 3 && hasChain != true -> RestaurantPromotionsContent()
                 selectedIndex == 4 && hasChain == true -> RestaurantPromotionsContent()
-                selectedIndex == 4 && hasChain != true -> settingsColumn(onLogout)
-                selectedIndex == 5 && hasChain == true -> settingsColumn(onLogout)
+                selectedIndex == 4 && hasChain != true -> RestaurantSettingsContent(onLogout)
+                selectedIndex == 5 && hasChain == true -> RestaurantSettingsContent(onLogout)
                 else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("${tabs.getOrNull(selectedIndex)?.title ?: ""} — coming soon")
                 }
             }
         }
     }
-}
-
-@Composable
-private fun settingsColumn(onLogout: () -> Unit) = Column(
-    modifier = Modifier.fillMaxSize(),
-    horizontalAlignment = Alignment.CenterHorizontally,
-    verticalArrangement = Arrangement.Center
-) {
-    Text("Settings — coming soon")
-    Button(onClick = onLogout) { Text("Sign Out") }
 }

@@ -105,6 +105,13 @@ interface RestaurantApi {
     @PATCH("orders/{id}/status")
     suspend fun patchOrderStatus(@Path("id") orderId: String, @Body body: Map<String, Any>): Response<Unit>
 
+    // ── Phase 130: Adaptive Onboarding ───────────────────────────────────────
+    @POST("restaurant/onboarding")
+    suspend fun submitOnboarding(@Body request: AdaptiveOnboardingRequest): Response<AdaptiveOnboardingResponse>
+
+    @GET("restaurant/onboarding/check-email")
+    suspend fun checkEmailAvailable(@Query("email") email: String): Response<Map<String, Boolean>>
+
     // ── Claim / Verification ──────────────────────────────────────────────────
 
     /** POST /restaurant-claims — submit a new claim for a public listing. */
@@ -142,7 +149,45 @@ data class RestaurantOrderDto(
     val items: List<Map<String, Any>>? = null,
 )
 
-// ── Claim DTOs ────────────────────────────────────────────────────────────────
+// ── Phase 130: Adaptive Onboarding DTOs ───────────────────────────────────────
+
+data class AdaptiveOnboardingRequest(
+    @SerializedName("partnerName")       val partnerName: String,
+    val email: String,
+    val password: String,
+    @SerializedName("restaurantName")    val restaurantName: String,
+    val address: String,
+    val city: String,
+    val sector: String,
+    val phone: String,
+    @SerializedName("cuisineType")       val cuisineType: String,
+    @SerializedName("integrationType")   val integrationType: String,
+    @SerializedName("posProvider")       val posProvider: String? = null,
+    @SerializedName("posApiEndpoint")    val posApiEndpoint: String? = null,
+    @SerializedName("posApiKey")         val posApiKey: String? = null,
+    @SerializedName("posWebhookUrl")     val posWebhookUrl: String? = null,
+    @SerializedName("openHours")         val openHours: Map<String, String>? = null,
+    @SerializedName("deliveryRadiusKm")  val deliveryRadiusKm: Int? = null,
+    @SerializedName("kitchenPrepMinutes") val kitchenPrepMinutes: Int? = null,
+)
+
+data class AdaptiveOnboardingData(
+    @SerializedName("access_token")    val accessToken: String,
+    @SerializedName("expires_in")      val expiresIn: Int? = 86400,
+    @SerializedName("restaurantId")    val restaurantId: String,
+    @SerializedName("restaurantName")  val restaurantName: String,
+    @SerializedName("partnerName")     val partnerName: String? = null,
+    val email: String,
+    @SerializedName("integrationType") val integrationType: String,
+    @SerializedName("webDashboardUrl") val webDashboardUrl: String? = null,
+)
+
+data class AdaptiveOnboardingResponse(
+    val success: Boolean? = true,
+    val message: String? = null,
+    val data: AdaptiveOnboardingData? = null,
+)
+
 
 data class RestaurantClaimApiRequest(
     @SerializedName("restaurantId")   val restaurantId: String,

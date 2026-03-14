@@ -23,6 +23,7 @@ sealed class RestaurantRoute(val route: String) {
     data object Login      : RestaurantRoute("login")
     data object Apply      : RestaurantRoute("apply")
     data object Onboarding : RestaurantRoute("onboarding")
+    data object Wizard     : RestaurantRoute("wizard")
     data object Claim      : RestaurantRoute("claim/{restaurantId}/{restaurantName}")
     data object Documents  : RestaurantRoute("documents/{claimId}")
     data object Status     : RestaurantRoute("status")
@@ -87,6 +88,7 @@ fun RestaurantApp() {
         composable(RestaurantRoute.Login.route) {
             LoginScreen(
                 onApplyClick = { navController.navigate(RestaurantRoute.Apply.route) },
+                onRegisterClick = { navController.navigate(RestaurantRoute.Wizard.route) },
                 onLoginSuccess = {
                     isLoggedIn = true
                     navController.navigate(RestaurantRoute.Onboarding.route) {
@@ -98,6 +100,20 @@ fun RestaurantApp() {
 
         composable(RestaurantRoute.Apply.route) {
             ApplyScreen(onBackToLogin = { navController.popBackStack() })
+        }
+
+        composable(RestaurantRoute.Wizard.route) {
+            AdaptiveOnboardingWizard(
+                onDismiss = { navController.popBackStack() },
+                onCompleted = { token, expiresIn ->
+                    RetrofitClient.getTokenStore().saveToken(token)
+                    isLoggedIn = true
+                    isOperational = true
+                    navController.navigate(RestaurantRoute.Main.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
 
         composable(RestaurantRoute.Onboarding.route) {

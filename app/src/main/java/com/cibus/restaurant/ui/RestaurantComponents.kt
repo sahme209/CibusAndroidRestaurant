@@ -3,7 +3,10 @@ package com.cibus.restaurant.ui
 // Phase 110: Light design alignment — shared reusable components for the Restaurant app,
 // aligned with the Cibus customer app design language.
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -11,9 +14,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cibus.restaurant.ui.theme.CibusDimens
@@ -131,4 +138,46 @@ fun RestaurantStatusBadge(
 @Composable
 fun RestaurantDivider(indent: androidx.compose.ui.unit.Dp = 0.dp, modifier: Modifier = Modifier) {
     HorizontalDivider(modifier = modifier.padding(start = indent), color = RestDivider, thickness = 0.8.dp)
+}
+
+// ── Premium Button Scale (WS1) ────────────────────────────────────────────────
+
+@Composable
+fun Modifier.restaurantButtonScale(
+    enabled: Boolean = true
+): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.96f else 1f,
+        animationSpec = com.cibus.restaurant.ui.theme.CibusMotion.buttonSpring,
+        label = "restaurant_btn_scale"
+    )
+    return this.scale(scale)
+}
+
+// ── Skeleton Card (WS7) ───────────────────────────────────────────────────────
+
+@Composable
+fun RestaurantSkeletonCard(modifier: Modifier = Modifier, height: Dp = 80.dp) {
+    val transition = rememberInfiniteTransition(label = "restaurant_shimmer")
+    val offset by transition.animateFloat(
+        initialValue = -500f, targetValue = 1500f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "restaurant_shimmer_offset"
+    )
+    val shimmerBrush = Brush.linearGradient(
+        colors = listOf(Color(0xFFE8E8E8), Color(0xFFF5F5F5), Color(0xFFE8E8E8)),
+        start = Offset(offset, 0f), end = Offset(offset + 500f, 0f)
+    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(RoundedCornerShape(12.dp))
+            .background(shimmerBrush)
+    )
 }

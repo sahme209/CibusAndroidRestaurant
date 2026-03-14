@@ -232,6 +232,11 @@ fun RestaurantAnalyticsContent() {
             QualityRiskCard(preparingCount = preparingCount, readyCount = readyCount)
         }
 
+        // Phase 122/G — Rider pickup timing hint
+        item {
+            RiderPickupTimingCard(readyCount = readyCount)
+        }
+
         item {
             Text(
                 "Suggestions",
@@ -389,6 +394,43 @@ private fun QualityRiskCard(preparingCount: Int, readyCount: Int) {
             Column {
                 Text("Quality risk level: ${qualityRisk.replaceFirstChar { it.uppercase() }}", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A1A))
                 Text(riskLabel, fontSize = 12.sp, color = Color(0xFF6B6B6B))
+            }
+        }
+    }
+}
+
+/** Phase 122/G: Rider pickup timing card — helps restaurants coordinate when to mark orders ready. */
+@Composable
+private fun RiderPickupTimingCard(readyCount: Int) {
+    if (readyCount == 0) return
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = Color(0xFF2D6A4F).copy(alpha = 0.07f)
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.DirectionsBike, null, tint = Color(0xFF2D6A4F), modifier = Modifier.size(22.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    "Rider Pickup Window",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1A1A1A)
+                )
+                Text(
+                    "$readyCount order${if (readyCount > 1) "s" else ""} awaiting pickup · Rider expected in 8–12 min",
+                    fontSize = 12.sp,
+                    color = Color(0xFF6B6B6B)
+                )
+                Text(
+                    "Keep food at temperature · Seal packaging",
+                    fontSize = 11.sp,
+                    color = Color(0xFF2D6A4F)
+                )
             }
         }
     }

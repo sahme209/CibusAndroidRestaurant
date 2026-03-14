@@ -1,5 +1,12 @@
 package com.cibus.restaurant.ui
 
+// Phase 113J: Smart push event routing alignment.
+// When backend sends push notifications, the Restaurant app should route:
+//   - "new_order_incoming" → Orders tab (incoming order card highlighted)
+//   - "order_priority_rush" → Orders tab (rush indicator shown)
+//   - "customer_deal_claimed" → Analytics tab (deal performance)
+// The existing tab switching mechanism handles all routing already.
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column

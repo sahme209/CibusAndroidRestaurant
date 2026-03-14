@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.cibus.restaurant.app-mergeDebugResources-48:/values-si/values-si.xml",
+            "outputFile": "com.cibus.restaurant.app-mergeDebugResources-49:/values-si/values-si.xml",
             "map": [
                 {
                     "source": "/Users/samirahmed/.gradle/caches/9.1.0/transforms/398861d60524fefbb58c876f943eeccc/transformed/core-1.13.1/res/values-si/values-si.xml",

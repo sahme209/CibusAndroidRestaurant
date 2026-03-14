@@ -1,5 +1,11 @@
 package com.cibus.restaurant.ui
 
+import com.cibus.restaurant.api.RetrofitClient
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,9 +22,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Phase 83: Restaurant analytics dashboard — daily orders, top dishes, prep time, delivery. */
+/** Phase 83 + 99: Restaurant analytics dashboard — daily orders, top dishes, prep time, delivery, boost banner. */
 @Composable
 fun RestaurantAnalyticsContent() {
+    var hasBoost by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        try {
+            val me = RetrofitClient.restaurantApi.getMe().body()
+            val rid = me?.restaurantId ?: return@LaunchedEffect
+            val resp = RetrofitClient.restaurantApi.getMarketplaceSignals(rid).body()
+            hasBoost = resp?.restaurantBoosts?.any { it.restaurantId == rid } == true
+        } catch (_: Exception) { }
+    }
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -33,7 +48,24 @@ fun RestaurantAnalyticsContent() {
                 color = Color(0xFF1A1A1A)
             )
         }
-
+        if (hasBoost) {
+            item {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFF2D6A4F).copy(alpha = 0.15f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(Icons.Default.TrendingUp, contentDescription = null, tint = Color(0xFF2D6A4F))
+                        Text("Visibility boost active — your restaurant is featured", fontSize = 14.sp, color = Color(0xFF1A1A1A))
+                    }
+                }
+            }
+        }
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -117,6 +149,11 @@ fun RestaurantAnalyticsContent() {
                 PopularityChip(label = "Trending", count = 2, color = Color(0xFF40916C))
                 PopularityChip(label = "Underperforming", count = 1, color = Color(0xFFE07A5F))
             }
+        }
+
+        // Phase 87: Restaurant loyalty visibility (Android)
+        item {
+            LoyaltyInfoCard()
         }
 
         item {
@@ -220,6 +257,31 @@ private fun RowScope.PopularityChip(label: String, count: Int, color: Color) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(label, fontSize = 12.sp, color = Color(0xFF6B6B6B))
             Text("$count items", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = color)
+        }
+    }
+}
+
+// Phase 87: Restaurant loyalty visibility (Android)
+@Composable
+private fun LoyaltyInfoCard() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = Color(0xFFF5F5F5)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(Icons.Default.CardGiftcard, null, tint = Color(0xFF2D6A4F), modifier = Modifier.size(24.dp))
+            Column {
+                Text("Cibus Loyalty", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A1A))
+                Text(
+                    "Your restaurant participates in Cibus Loyalty. Repeat customers earn points per order and get rewards like free delivery and discounts. Favourite restaurants earn 25% bonus points.",
+                    fontSize = 12.sp, color = Color(0xFF6B6B6B)
+                )
+            }
         }
     }
 }

@@ -4,7 +4,10 @@ import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.PATCH
+import retrofit2.http.Path
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 data class RestaurantSignInRequest(val email: String, val password: String)
 data class RestaurantApplyRequest(
@@ -34,7 +37,31 @@ data class RestaurantMeResponse(
     @SerializedName("partnerName") val partnerName: String? = null,
     val email: String? = null,
     @SerializedName("applicationStatus") val applicationStatus: String? = "approved",
+    @SerializedName("chainId") val chainId: String? = null,
+    @SerializedName("chainName") val chainName: String? = null,
 )
+
+data class ChainMeResponse(
+    val id: String,
+    val name: String,
+    val branches: List<ChainBranch>,
+)
+data class ChainBranch(
+    val id: String,
+    val name: String? = null,
+    val address: String? = null,
+    val city: String? = null,
+    val phone: String? = null,
+)
+
+data class ChainAnalyticsResponse(
+    val chainId: String,
+    @SerializedName("todayOrders") val todayOrders: Int = 0,
+    @SerializedName("todayRevenue") val todayRevenue: Double = 0.0,
+    val branches: Map<String, BranchMetrics> = emptyMap(),
+    @SerializedName("branchIds") val branchIds: List<String> = emptyList(),
+)
+data class BranchMetrics(val orders: Int = 0, val revenue: Double = 0.0, val name: String = "")
 
 interface RestaurantApi {
     @POST("restaurant/auth/sign-in")
@@ -45,4 +72,55 @@ interface RestaurantApi {
 
     @GET("restaurant/me")
     suspend fun getMe(): Response<RestaurantMeResponse>
+
+    @GET("chains/me")
+    suspend fun getChainsMe(): Response<ChainMeResponse>
+
+    @GET("chains/{id}/analytics")
+    suspend fun getChainAnalytics(@Path("id") chainId: String): Response<ChainAnalyticsResponse>
+
+    /** Phase 99: Marketplace signals — restaurant boosts. */
+    @GET("marketplace-signals")
+    suspend fun getMarketplaceSignals(@Query("restaurantId") restaurantId: String? = null): Response<MarketplaceSignalsRestaurantResponse>
+
+    /** Restaurant orders. Backend: GET /restaurants/:id/orders */
+    @GET("restaurants/{id}/orders")
+    suspend fun getOrders(@Path("id") restaurantId: String, @Query("limit") limit: Int = 50): Response<List<RestaurantOrderDto>>
+
+    @POST("orders/{id}/accept")
+    suspend fun acceptOrder(@Path("id") orderId: String): Response<Unit>
+
+    @POST("orders/{id}/reject")
+    suspend fun rejectOrder(@Path("id") orderId: String): Response<Unit>
+
+    @GET("restaurants/{id}/menu")
+    suspend fun getMenu(@Path("id") restaurantId: String): Response<RestaurantMenuResponse>
+
+    @PATCH("restaurants/{id}/menu")
+    suspend fun patchMenu(@Path("id") restaurantId: String, @Body body: Map<String, Any>): Response<Unit>
+
+    @PATCH("restaurants/{id}/availability")
+    suspend fun patchAvailability(@Path("id") restaurantId: String, @Body body: Map<String, String>): Response<Unit>
+
+    @PATCH("orders/{id}/status")
+    suspend fun patchOrderStatus(@Path("id") orderId: String, @Body body: Map<String, Any>): Response<Unit>
 }
+data class RestaurantMenuResponse(
+    val categories: List<Map<String, Any>> = emptyList(),
+    val menuStatus: String = "pending_partner_onboarding",
+)
+data class MarketplaceSignalsRestaurantResponse(
+    val dynamicPromotions: List<Any> = emptyList(),
+    val riderIncentives: List<Any> = emptyList(),
+    val restaurantBoosts: List<RestaurantBoostDto> = emptyList()
+)
+data class RestaurantBoostDto(val restaurantId: String = "", val boostUntil: Long? = null)
+
+data class RestaurantOrderDto(
+    val id: String = "",
+    val status: String? = null,
+    val total: Double? = null,
+    @SerializedName("restaurantName") val restaurantName: String? = null,
+    val address: Map<String, Any>? = null,
+    val items: List<Map<String, Any>>? = null,
+)

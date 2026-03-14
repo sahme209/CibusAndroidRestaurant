@@ -12,9 +12,10 @@ object CibusDimens {
     val spacing24 = 24.dp
     val spacing32 = 32.dp
     val minTapTarget = 44.dp
-    val screenHorizontal = 16.dp
+    val screenHorizontal = 20.dp
     val cardPadding = 16.dp
     val cardRadius = 16.dp
+    val sectionGap = 28.dp
     val btnMinHeight = 44.dp
     val iconSize = 20.dp
     val iconSizeSmall = 16.dp

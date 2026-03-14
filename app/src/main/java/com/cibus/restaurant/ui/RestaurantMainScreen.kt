@@ -51,22 +51,23 @@ fun RestaurantMainScreen(onLogout: () -> Unit = {}) {
             }
         }
     ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentAlignment = Alignment.Center
-        ) {
-            if (selectedIndex == 3) {
-                Column(
-                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            when (selectedIndex) {
+                0 -> RestaurantAnalyticsContent()
+                3 -> Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
                     Text("Settings — coming soon")
                     Button(onClick = onLogout) { Text("Sign Out") }
                 }
-            } else {
-                Text("${tabs[selectedIndex].title} — coming soon")
+                else -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("${tabs[selectedIndex].title} — coming soon")
+                }
             }
         }
     }

@@ -227,6 +227,11 @@ fun RestaurantAnalyticsContent() {
             LoyaltyInfoCard()
         }
 
+        // Phase 119 — Quality risk signal
+        item {
+            QualityRiskCard(preparingCount = preparingCount, readyCount = readyCount)
+        }
+
         item {
             Text(
                 "Suggestions",
@@ -352,6 +357,38 @@ private fun LoyaltyInfoCard() {
                     "Your restaurant participates in Cibus Loyalty. Repeat customers earn points per order and get rewards like free delivery and discounts. Favourite restaurants earn 25% bonus points.",
                     fontSize = 12.sp, color = Color(0xFF6B6B6B)
                 )
+            }
+        }
+    }
+}
+
+// Phase 119 — Restaurant quality risk signal card
+@Composable
+private fun QualityRiskCard(preparingCount: Int, readyCount: Int) {
+    val qualityRisk = when {
+        preparingCount > 8 || readyCount > 5 -> "high"
+        preparingCount > 4 || readyCount > 2 -> "medium"
+        else -> "low"
+    }
+    val (riskColor, riskLabel, riskIcon) = when (qualityRisk) {
+        "high"   -> Triple(Color(0xFFE53935), "High customer wait risk — consider pausing new orders", Icons.Default.Warning)
+        "medium" -> Triple(Color(0xFFF57C00), "Moderate queue pressure — monitor pickup readiness", Icons.Default.Info)
+        else     -> Triple(Color(0xFF2D6A4F), "Queue is healthy", Icons.Default.CheckCircle)
+    }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = riskColor.copy(alpha = 0.08f)
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(riskIcon, null, tint = riskColor, modifier = Modifier.size(22.dp))
+            Column {
+                Text("Quality risk level: ${qualityRisk.replaceFirstChar { it.uppercase() }}", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A1A))
+                Text(riskLabel, fontSize = 12.sp, color = Color(0xFF6B6B6B))
             }
         }
     }

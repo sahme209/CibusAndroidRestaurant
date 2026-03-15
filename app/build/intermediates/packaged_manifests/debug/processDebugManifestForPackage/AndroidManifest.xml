@@ -9,6 +9,7 @@
         android:targetSdkVersion="34" />
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <permission
         android:name="com.cibus.restaurant.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
@@ -17,7 +18,7 @@
     <uses-permission android:name="com.cibus.restaurant.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
 
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:appComponentFactory="androidx.core.app.CoreComponentFactory"
         android:debuggable="true"
         android:extractNativeLibs="false"
@@ -37,6 +38,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            TODO (MANUAL): Add Firebase/FCM dependencies to this app's build.gradle.kts
+            and register a FirebaseMessagingService here for push notifications.
+            See: https://firebase.google.com/docs/cloud-messaging/android/client
+        -->
         <activity
             android:name="androidx.compose.ui.tooling.PreviewActivity"
             android:exported="true" />

@@ -27,10 +27,13 @@ android {
     buildTypes {
         debug {
             buildConfigField("String", "BASE_URL", "\"https://api-vtadzgdqca-uc.a.run.app\"")
+            buildConfigField("Boolean", "DEBUG_LOGGING", "true")
         }
         release {
             buildConfigField("String", "BASE_URL", "\"https://api-vtadzgdqca-uc.a.run.app\"")
-            isMinifyEnabled = false
+            buildConfigField("Boolean", "DEBUG_LOGGING", "false")
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

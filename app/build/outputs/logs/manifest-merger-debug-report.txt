@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:2:1-25:12
-INJECTED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:2:1-25:12
-INJECTED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:2:1-25:12
-INJECTED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:2:1-25:12
+ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:2:1-32:12
+INJECTED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:2:1-32:12
+INJECTED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:2:1-32:12
+INJECTED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:2:1-32:12
 MERGED from [androidx.navigation:navigation-common:2.7.7] /Users/samirahmed/.gradle/caches/9.1.0/transforms/6931d32103150af092034efdc8a1a297/transformed/navigation-common-2.7.7/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.navigation:navigation-runtime:2.7.7] /Users/samirahmed/.gradle/caches/9.1.0/transforms/34225a12872925777e9aa1a89f0d63c3/transformed/navigation-runtime-2.7.7/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.navigation:navigation-common-ktx:2.7.7] /Users/samirahmed/.gradle/caches/9.1.0/transforms/10f2f3990342dbaa5925654a21c20620/transformed/navigation-common-ktx-2.7.7/AndroidManifest.xml:2:1-7:12
@@ -67,9 +67,13 @@ uses-permission#android.permission.INTERNET
 ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:4:5-67
 	android:name
 		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:4:22-64
+uses-permission#android.permission.POST_NOTIFICATIONS
+ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:5:5-77
+	android:name
+		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:5:22-74
 application
-ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:6:5-24:19
-INJECTED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:6:5-24:19
+ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:7:5-31:19
+INJECTED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:7:5-31:19
 MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] /Users/samirahmed/.gradle/caches/9.1.0/transforms/1b588fe6b5dc1edda705a86855b700db/transformed/ui-tooling-release/AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] /Users/samirahmed/.gradle/caches/9.1.0/transforms/1b588fe6b5dc1edda705a86855b700db/transformed/ui-tooling-release/AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.emoji2:emoji2:1.3.0] /Users/samirahmed/.gradle/caches/9.1.0/transforms/8ce91720c09960c58ab32bde04c061d1/transformed/emoji2-1.3.0/AndroidManifest.xml:23:5-33:19
@@ -89,37 +93,37 @@ MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/samirahmed/.gradle/c
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.13.1] /Users/samirahmed/.gradle/caches/9.1.0/transforms/398861d60524fefbb58c876f943eeccc/transformed/core-1.13.1/AndroidManifest.xml:28:18-86
 	android:supportsRtl
-		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:11:9-35
+		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:12:9-35
 	android:label
-		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:9:9-41
+		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:10:9-41
 	android:roundIcon
-		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:10:9-54
+		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:11:9-54
 	android:icon
-		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:8:9-43
+		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:9:9-43
 	android:allowBackup
-		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:7:9-35
+		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:8:9-36
 	android:theme
-		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:12:9-53
+		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:13:9-53
 activity#com.cibus.restaurant.MainActivity
-ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:14:9-23:20
+ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:15:9-24:20
 	android:windowSoftInputMode
-		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:18:13-55
+		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:19:13-55
 	android:exported
-		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:16:13-36
+		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:17:13-36
 	android:theme
-		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:17:13-57
+		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:18:13-57
 	android:name
-		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:15:13-41
+		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:16:13-41
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:19:13-22:29
+ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:20:13-23:29
 action#android.intent.action.MAIN
-ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:20:17-69
+ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:21:17-69
 	android:name
-		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:20:25-66
+		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:21:25-66
 category#android.intent.category.LAUNCHER
-ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:21:17-77
+ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:22:17-77
 	android:name
-		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:21:27-74
+		ADDED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml:22:27-74
 uses-sdk
 INJECTED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /Users/samirahmed/Desktop/CibusIOS&Android/CibusAndroidRestaurant/app/src/main/AndroidManifest.xml

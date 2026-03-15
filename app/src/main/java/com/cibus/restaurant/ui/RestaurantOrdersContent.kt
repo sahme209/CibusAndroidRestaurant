@@ -214,6 +214,22 @@ fun RestaurantOrdersContent() {
                                         if (rid != null) refresh(rid)
                                     } catch (_: Exception) {}
                                 }
+                            },
+                            onStartPreparing = {
+                                scope.launch {
+                                    try {
+                                        RetrofitClient.restaurantApi.patchOrderStatus(order.id, mapOf("status" to "preparing") as Map<String, Any>)
+                                        if (rid != null) refresh(rid)
+                                    } catch (_: Exception) {}
+                                }
+                            },
+                            onMarkReady = {
+                                scope.launch {
+                                    try {
+                                        RetrofitClient.restaurantApi.patchOrderStatus(order.id, mapOf("status" to "ready_for_pickup") as Map<String, Any>)
+                                        if (rid != null) refresh(rid)
+                                    } catch (_: Exception) {}
+                                }
                             }
                         )
                     }
@@ -228,11 +244,15 @@ private fun OrderCard(
     order: RestaurantOrderDto,
     onAccept: () -> Unit,
     onReject: () -> Unit,
+    onStartPreparing: () -> Unit = {},
+    onMarkReady: () -> Unit = {},
 ) {
-    val canAct = order.status == "order_placed"
-    // Phase 116D: Determine urgency based on order status + age signal
-    val isUrgent = order.status == "ready_for_pickup"
-    val isActive = order.status in listOf("order_placed", "preparing")
+    val status = order.status ?: ""
+    val canAct = status == "order_placed"
+    val isAccepted = status == "accepted"
+    val isPreparing = status == "preparing"
+    val isUrgent = status in listOf("ready_for_pickup", "dispatch_pending")
+    val isActive = status in listOf("order_placed", "accepted", "preparing")
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -252,7 +272,6 @@ private fun OrderCard(
                     fontWeight = FontWeight.SemiBold
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    // Phase 116D: Status badge with urgency coloring
                     if (isUrgent) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
@@ -275,9 +294,8 @@ private fun OrderCard(
                 }
             }
 
-            // Phase 116D: Status display
             Text(
-                "Status: ${order.status ?: "—"}",
+                "Status: ${status.replace("_", " ").replaceFirstChar { it.uppercase() }}",
                 modifier = Modifier.padding(top = 4.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = if (isUrgent) Color(0xFFB45309) else if (isActive) MaterialTheme.colorScheme.primary else Color(0xFF6B6B6B)
@@ -294,14 +312,33 @@ private fun OrderCard(
                 )
             }
 
-            if (canAct) {
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onAccept) { Text("Accept") }
+            // ── Status-driven action buttons ───────────────────────────────
+            when {
+                canAct -> {
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = onAccept) { Text("Accept") }
+                        Button(
+                            onClick = onReject,
+                            colors = ButtonDefaults.buttonColors(containerColor = CibusRed)
+                        ) { Text("Reject") }
+                    }
+                }
+                isAccepted -> {
+                    Spacer(Modifier.height(8.dp))
                     Button(
-                        onClick = onReject,
-                        colors = ButtonDefaults.buttonColors(containerColor = CibusRed)
-                    ) { Text("Reject") }
+                        onClick = onStartPreparing,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = CibusGreenDark)
+                    ) { Text("Start preparing") }
+                }
+                isPreparing -> {
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        onClick = onMarkReady,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF40916C))
+                    ) { Text("Mark ready for pickup") }
                 }
             }
         }

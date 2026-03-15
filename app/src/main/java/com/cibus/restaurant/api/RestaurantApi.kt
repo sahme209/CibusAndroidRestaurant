@@ -88,6 +88,10 @@ interface RestaurantApi {
     @GET("restaurants/{id}/orders")
     suspend fun getOrders(@Path("id") restaurantId: String, @Query("limit") limit: Int = 50): Response<List<RestaurantOrderDto>>
 
+    // Phase 200: Restaurant Payout Wallet
+    @GET("restaurant/wallet")
+    suspend fun getRestaurantWallet(): Response<RestaurantWalletResponse>
+
     @POST("orders/{id}/accept")
     suspend fun acceptOrder(@Path("id") orderId: String): Response<Unit>
 
@@ -357,3 +361,15 @@ data class MenuItemResponse(
     val success: Boolean = true,
     val categories: List<MenuCategoryDto> = emptyList(),
 )
+
+// Phase 200: Restaurant Wallet DTOs
+data class RestaurantWalletResponse(
+    @SerializedName("wallet") val wallet: Map<String, Any>? = null,
+    @SerializedName("walletBalance") val walletBalance: Double? = null,
+    @SerializedName("last30Revenue") val last30Revenue: Double? = null,
+    @SerializedName("pendingPayouts") val pendingPayouts: List<Map<String, Any>>? = null,
+    @SerializedName("completedPayouts") val completedPayouts: List<Map<String, Any>>? = null,
+) {
+    val pendingPayoutsCount: Int get() = pendingPayouts?.size ?: 0
+    val completedPayoutsCount: Int get() = completedPayouts?.size ?: 0
+}

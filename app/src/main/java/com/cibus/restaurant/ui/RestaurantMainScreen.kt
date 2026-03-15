@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.LocalOffer
@@ -49,6 +50,7 @@ fun RestaurantMainScreen(onLogout: () -> Unit = {}) {
         RestaurantTab("Orders", Icons.Default.Assignment),
         RestaurantTab("Menu", Icons.Default.MenuBook),
         RestaurantTab("Promotions", Icons.Default.LocalOffer),
+        RestaurantTab("Payouts", Icons.Default.AccountBalanceWallet),
         RestaurantTab("Settings", Icons.Default.Settings)
     )
     val tabs = if (hasChain == true) {
@@ -81,8 +83,10 @@ fun RestaurantMainScreen(onLogout: () -> Unit = {}) {
                 selectedIndex == 3 && hasChain == true -> RestaurantMenuContent()
                 selectedIndex == 3 && hasChain != true -> RestaurantPromotionsContent()
                 selectedIndex == 4 && hasChain == true -> RestaurantPromotionsContent()
-                selectedIndex == 4 && hasChain != true -> RestaurantSettingsContent(onLogout)
-                selectedIndex == 5 && hasChain == true -> RestaurantSettingsContent(onLogout)
+                selectedIndex == 4 && hasChain != true -> RestaurantPayoutsContent()
+                selectedIndex == 5 && hasChain == true -> RestaurantPayoutsContent()
+                selectedIndex == 5 && hasChain != true -> RestaurantSettingsContent(onLogout)
+                selectedIndex == 6 && hasChain == true -> RestaurantSettingsContent(onLogout)
                 else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("${tabs.getOrNull(selectedIndex)?.title ?: ""} — coming soon")
                 }

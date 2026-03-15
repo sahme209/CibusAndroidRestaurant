@@ -113,6 +113,10 @@ interface RestaurantApi {
     @GET("restaurant/onboarding/check-email")
     suspend fun checkEmailAvailable(@Query("email") email: String): Response<Map<String, Boolean>>
 
+    // ── Shop Partner Onboarding ───────────────────────────────────────────────
+    @POST("shop/onboarding")
+    suspend fun submitShopOnboarding(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<ShopOnboardingResponse>
+
     // ── Phase 140: Auto Discovery + Menu CRUD ────────────────────────────────
     @GET("restaurants/discover")
     suspend fun discoverRestaurants(
@@ -227,6 +231,13 @@ data class AdaptiveOnboardingResponse(
     val success: Boolean? = true,
     val message: String? = null,
     val data: AdaptiveOnboardingData? = null,
+)
+
+data class ShopOnboardingResponse(
+    @SerializedName("accessToken") val accessToken: String,
+    @SerializedName("expiresIn") val expiresIn: Int? = null,
+    @SerializedName("partnerId") val partnerId: String,
+    @SerializedName("shopId") val shopId: String,
 )
 
 

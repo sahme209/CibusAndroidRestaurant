@@ -80,6 +80,10 @@ fun AdaptiveOnboardingWizard(
     var step by remember { mutableStateOf(0) }
     val totalSteps = 7  // Phase 140: +1 for discovery step
 
+    // Partner type — restaurant or shop
+    var partnerType by remember { mutableStateOf("restaurant") }
+    var shopType by remember { mutableStateOf("grocery") }
+
     // Step 0 — Discovery (new in Phase 140)
     // Step 1 — Basic info
     var restaurantName by remember { mutableStateOf("") }
@@ -144,41 +148,68 @@ fun AdaptiveOnboardingWizard(
             step++
             scope.launch {
                 try {
-                    val menuItemsForBackend = if (menuItems.isNotEmpty())
-                        menuItems.map { item ->
-                            OnboardingMenuItemDto(name = item.name, price = item.price.toDoubleOrNull() ?: 0.0, category = item.category)
-                        } else null
-                    val req = AdaptiveOnboardingRequest(
-                        partnerName = ownerName,
-                        email = email,
-                        password = password,
-                        restaurantName = restaurantName,
-                        address = address,
-                        city = city.ifBlank { "Islamabad" },
-                        sector = sector,
-                        phone = phone.filter { it.isDigit() },
-                        cuisineType = cuisineType,
-                        integrationType = integrationType.name,
-                        posProvider = if (integrationType == IntegrationType.POS) posProvider else null,
-                        posApiEndpoint = if (integrationType == IntegrationType.POS) posApiEndpoint else null,
-                        posApiKey = if (integrationType == IntegrationType.POS) posApiKey else null,
-                        posWebhookUrl = if (integrationType == IntegrationType.POS && posWebhookUrl.isNotBlank()) posWebhookUrl else null,
-                        openHours = mapOf("open" to openHoursOpen, "close" to openHoursClose),
-                        deliveryRadiusKm = deliveryRadius.toInt(),
-                        kitchenPrepMinutes = kitchenPrep.toInt(),
-                        menuItems = menuItemsForBackend,
-                    )
-                    val resp = RetrofitClient.restaurantApi.submitOnboarding(req)
-                    val data = resp.body()?.data
-                    if (resp.isSuccessful && data != null) {
-                        completedAccessToken = data.accessToken
-                        completedExpiresIn = data.expiresIn?.toLong() ?: 86400L
-                        completedRestaurantName = data.restaurantName
-                        completedIntegrationType = data.integrationType
-                        completedMenuCount = menuItems.size
-                        completedWebUrl = data.webDashboardUrl
+                    if (partnerType == "shop") {
+                        // Shop partner: use lightweight shop onboarding endpoint
+                        val body = mapOf(
+                            "ownerName" to ownerName,
+                            "email" to email,
+                            "password" to password,
+                            "shopName" to restaurantName,
+                            "shopType" to shopType,
+                            "address" to address,
+                            "sector" to sector,
+                            "city" to city.ifBlank { "Islamabad" },
+                            "phone" to phone.filter { it.isDigit() },
+                        )
+                        val resp = RetrofitClient.restaurantApi.submitShopOnboarding(body)
+                        val data = resp.body()
+                        if (resp.isSuccessful && data != null) {
+                            completedAccessToken = data.accessToken
+                            completedExpiresIn = data.expiresIn?.toLong() ?: 86400L
+                            completedRestaurantName = restaurantName
+                            completedIntegrationType = "APP"
+                            completedMenuCount = 0
+                            completedWebUrl = null
+                        } else {
+                            submitError = resp.errorBody()?.string()?.take(120) ?: "Shop setup failed. Please try again."
+                        }
                     } else {
-                        submitError = resp.errorBody()?.string()?.take(120) ?: "Setup failed. Please try again."
+                        val menuItemsForBackend = if (menuItems.isNotEmpty())
+                            menuItems.map { item ->
+                                OnboardingMenuItemDto(name = item.name, price = item.price.toDoubleOrNull() ?: 0.0, category = item.category)
+                            } else null
+                        val req = AdaptiveOnboardingRequest(
+                            partnerName = ownerName,
+                            email = email,
+                            password = password,
+                            restaurantName = restaurantName,
+                            address = address,
+                            city = city.ifBlank { "Islamabad" },
+                            sector = sector,
+                            phone = phone.filter { it.isDigit() },
+                            cuisineType = cuisineType,
+                            integrationType = integrationType.name,
+                            posProvider = if (integrationType == IntegrationType.POS) posProvider else null,
+                            posApiEndpoint = if (integrationType == IntegrationType.POS) posApiEndpoint else null,
+                            posApiKey = if (integrationType == IntegrationType.POS) posApiKey else null,
+                            posWebhookUrl = if (integrationType == IntegrationType.POS && posWebhookUrl.isNotBlank()) posWebhookUrl else null,
+                            openHours = mapOf("open" to openHoursOpen, "close" to openHoursClose),
+                            deliveryRadiusKm = deliveryRadius.toInt(),
+                            kitchenPrepMinutes = kitchenPrep.toInt(),
+                            menuItems = menuItemsForBackend,
+                        )
+                        val resp = RetrofitClient.restaurantApi.submitOnboarding(req)
+                        val data = resp.body()?.data
+                        if (resp.isSuccessful && data != null) {
+                            completedAccessToken = data.accessToken
+                            completedExpiresIn = data.expiresIn?.toLong() ?: 86400L
+                            completedRestaurantName = data.restaurantName
+                            completedIntegrationType = data.integrationType
+                            completedMenuCount = menuItems.size
+                            completedWebUrl = data.webDashboardUrl
+                        } else {
+                            submitError = resp.errorBody()?.string()?.take(120) ?: "Setup failed. Please try again."
+                        }
                     }
                 } catch (e: Exception) {
                     submitError = e.message ?: "Network error. Please try again."
@@ -296,6 +327,8 @@ fun AdaptiveOnboardingWizard(
                             city = city, onCityChange = { city = it },
                             sector = sector, onSectorChange = { sector = it },
                             cuisineType = cuisineType, onCuisineChange = { cuisineType = it },
+                            partnerType = partnerType, onPartnerTypeChange = { partnerType = it },
+                            shopType = shopType, onShopTypeChange = { shopType = it },
                         )
                         2 -> Step1IntegrationTypeContent(selected = integrationType, onSelect = { integrationType = it })
                         3 -> Step2AdaptiveConfigContent(
@@ -379,10 +412,45 @@ private fun Step0BasicInfoContent(
     city: String, onCityChange: (String) -> Unit,
     sector: String, onSectorChange: (String) -> Unit,
     cuisineType: String, onCuisineChange: (String) -> Unit,
+    partnerType: String = "restaurant", onPartnerTypeChange: (String) -> Unit = {},
+    shopType: String = "grocery", onShopTypeChange: (String) -> Unit = {},
 ) {
-    OnboardingCard(title = "Restaurant", icon = "🍽️") {
-        OnboardingField("Restaurant name", restaurantName, onRestaurantNameChange)
-        DropdownPickerField("Cuisine type", cuisineType, CUISINE_TYPES, onCuisineChange)
+    val shopTypes = listOf("grocery", "bakery", "pharmacy", "convenience", "electronics", "clothing", "other")
+    val shopTypeLabels = listOf("Grocery", "Bakery", "Pharmacy", "Convenience Store", "Electronics", "Clothing", "Other")
+
+    // Business type selector
+    OnboardingCard(title = "Business Type", icon = "🏢") {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            listOf("restaurant" to "🍽️ Restaurant / Café", "shop" to "🛒 Shop / Store").forEach { (type, label) ->
+                val selected = partnerType == type
+                OutlinedButton(
+                    onClick = { onPartnerTypeChange(type) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = if (selected) Color(0xFF2D6A4F) else Color.White,
+                        contentColor = if (selected) Color.White else Color(0xFF2D6A4F)
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.5.dp, Color(0xFF2D6A4F)
+                    )
+                ) {
+                    Text(label, fontSize = 12.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
+                }
+            }
+        }
+        if (partnerType == "shop") {
+            DropdownPickerField("Shop type", shopTypeLabels.getOrElse(shopTypes.indexOf(shopType)) { shopType }, shopTypeLabels, { idx ->
+                onShopTypeChange(shopTypes.getOrElse(shopTypeLabels.indexOf(idx)) { "other" })
+            })
+        }
+    }
+
+    OnboardingCard(title = if (partnerType == "shop") "Shop" else "Restaurant", icon = if (partnerType == "shop") "🛒" else "🍽️") {
+        OnboardingField(if (partnerType == "shop") "Shop name" else "Restaurant name", restaurantName, onRestaurantNameChange)
+        if (partnerType == "restaurant") {
+            DropdownPickerField("Cuisine type", cuisineType, CUISINE_TYPES, onCuisineChange)
+        }
     }
 
     OnboardingCard(title = "Location", icon = "📍") {
@@ -427,7 +495,6 @@ private fun Step0BasicInfoContent(
                 Text("Email already registered. Sign in instead.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
             }
         }
-
         OnboardingField("Password", password, onPasswordChange, isPassword = true)
 
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

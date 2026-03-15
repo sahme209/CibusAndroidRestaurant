@@ -103,6 +103,10 @@ interface RestaurantApi {
     @PATCH("restaurants/{id}/availability")
     suspend fun patchAvailability(@Path("id") restaurantId: String, @Body body: Map<String, String>): Response<Unit>
 
+    /** Phase 150: PATCH /restaurant/me/throttle — restaurant self-pause ordering intake. */
+    @PATCH("restaurant/me/throttle")
+    suspend fun throttleOrdering(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<Unit>
+
     @PATCH("orders/{id}/status")
     suspend fun patchOrderStatus(@Path("id") orderId: String, @Body body: Map<String, Any>): Response<Unit>
 

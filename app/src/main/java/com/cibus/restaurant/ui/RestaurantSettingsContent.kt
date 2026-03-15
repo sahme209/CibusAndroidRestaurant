@@ -175,6 +175,9 @@ fun RestaurantSettingsContent(onLogout: () -> Unit) {
             }
         }
 
+        // Phase 150: Kitchen Load Throttle card
+        KitchenThrottleCard(restaurantId = restaurantId, scope = scope)
+
         // Notifications card
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -232,6 +235,72 @@ fun RestaurantSettingsContent(onLogout: () -> Unit) {
             shape = RoundedCornerShape(12.dp)
         ) {
             Text("Sign Out", fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+/** Phase 150: Kitchen load throttle card — allows restaurant to self-pause ordering. */
+@Composable
+private fun KitchenThrottleCard(restaurantId: String?, scope: kotlinx.coroutines.CoroutineScope) {
+    var orderingPaused by remember { mutableStateOf(false) }
+    var loading by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (orderingPaused) Color(0xFFFFF3CD) else MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(if (orderingPaused) "⏸" else "🍳", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Kitchen Load Control",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (orderingPaused) Color(0xFF7D5800) else MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Text(
+                if (orderingPaused)
+                    "New order intake paused — kitchen catching up. Tap Resume when ready."
+                else
+                    "Temporarily pause new orders when your kitchen is overloaded.",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (orderingPaused) Color(0xFF8A6400) else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = {
+                        val target = !orderingPaused
+                        loading = true
+                        scope.launch {
+                            try {
+                                val body = mapOf(
+                                    "paused" to target,
+                                    "reason" to if (target) "Kitchen busy — partner self-throttle" else ""
+                                )
+                                RetrofitClient.restaurantApi.throttleOrdering(body)
+                                orderingPaused = target
+                            } catch (_: Exception) {}
+                            loading = false
+                        }
+                    },
+                    enabled = !loading && restaurantId != null,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (orderingPaused) CibusGreenDark else Color(0xFFDC2626)
+                    )
+                ) {
+                    if (loading) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                    } else {
+                        Text(if (orderingPaused) "Resume Orders" else "Pause New Orders", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
         }
     }
 }

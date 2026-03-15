@@ -3,6 +3,7 @@ package com.cibus.restaurant.api
 import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.Path
@@ -112,6 +113,39 @@ interface RestaurantApi {
     @GET("restaurant/onboarding/check-email")
     suspend fun checkEmailAvailable(@Query("email") email: String): Response<Map<String, Boolean>>
 
+    // ── Phase 140: Auto Discovery + Menu CRUD ────────────────────────────────
+    @GET("restaurants/discover")
+    suspend fun discoverRestaurants(
+        @Query("q") query: String = "",
+        @Query("sector") sector: String = "",
+        @Query("city") city: String = "Islamabad",
+    ): Response<DiscoverRestaurantsResponse>
+
+    @GET("restaurants/discover/menu-suggestion")
+    suspend fun getMenuSuggestion(@Query("cuisineType") cuisineType: String): Response<MenuSuggestionResponse>
+
+    @GET("restaurants/{id}/menu")
+    suspend fun getMenuTyped(@Path("id") restaurantId: String): Response<MenuResponseDto>
+
+    @POST("restaurants/{id}/menu/import")
+    suspend fun importMenu(@Path("id") restaurantId: String, @Body request: MenuImportRequest): Response<MenuImportResponse>
+
+    @POST("restaurants/{id}/menu/item")
+    suspend fun addMenuItem(@Path("id") restaurantId: String, @Body request: AddMenuItemRequest): Response<MenuItemResponse>
+
+    @PATCH("restaurants/{id}/menu/item/{itemId}")
+    suspend fun updateMenuItem(
+        @Path("id") restaurantId: String,
+        @Path("itemId") itemId: String,
+        @Body request: MenuItemUpdateRequest,
+    ): Response<MenuItemResponse>
+
+    @DELETE("restaurants/{id}/menu/item/{itemId}")
+    suspend fun deleteMenuItem(@Path("id") restaurantId: String, @Path("itemId") itemId: String): Response<MenuItemResponse>
+
+    @POST("restaurants/{id}/menu/cleanup")
+    suspend fun cleanupMenu(@Path("id") restaurantId: String): Response<MenuItemResponse>
+
     // ── Claim / Verification ──────────────────────────────────────────────────
 
     /** POST /restaurant-claims — submit a new claim for a public listing. */
@@ -169,6 +203,13 @@ data class AdaptiveOnboardingRequest(
     @SerializedName("openHours")         val openHours: Map<String, String>? = null,
     @SerializedName("deliveryRadiusKm")  val deliveryRadiusKm: Int? = null,
     @SerializedName("kitchenPrepMinutes") val kitchenPrepMinutes: Int? = null,
+    @SerializedName("menuItems")         val menuItems: List<OnboardingMenuItemDto>? = null,
+)
+
+data class OnboardingMenuItemDto(
+    val name: String,
+    val price: Double,
+    val category: String,
 )
 
 data class AdaptiveOnboardingData(
@@ -219,3 +260,85 @@ data class ClaimStatusApiResponse(
     @SerializedName("reviewNote") val reviewNote: String? = null
 )
 
+// ── Phase 140: Auto Restaurant Discovery + Smart Menu Import ─────────────────
+
+data class DiscoveredRestaurantDto(
+    val id: String = "",
+    val name: String = "",
+    val cuisine: String = "",
+    val city: String = "",
+    val sector: String = "",
+    val address: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val rating: Double? = null,
+    val phone: String = "",
+    val source: String = "",
+    @SerializedName("menuCategoryCount") val menuCategoryCount: Int? = null,
+    @SerializedName("alreadyClaimed") val alreadyClaimed: Boolean? = null,
+)
+
+data class DiscoverRestaurantsResponse(
+    val results: List<DiscoveredRestaurantDto> = emptyList(),
+    val total: Int = 0,
+)
+
+data class MenuItemDto(
+    val id: String = "",
+    val name: String = "",
+    val description: String = "",
+    val price: Double = 0.0,
+    val available: Boolean = true,
+    @SerializedName("imageUrl") val imageUrl: String = "",
+    @SerializedName("isPopular") val isPopular: Boolean = false,
+)
+
+data class MenuCategoryDto(
+    val name: String = "",
+    val items: List<MenuItemDto> = emptyList(),
+)
+
+data class MenuResponseDto(
+    val categories: List<MenuCategoryDto> = emptyList(),
+    @SerializedName("menuStatus") val menuStatus: String = "pending_partner_onboarding",
+)
+
+data class MenuSuggestionResponse(
+    val source: String = "",
+    @SerializedName("cuisineType") val cuisineType: String = "",
+    val categories: List<MenuCategoryDto> = emptyList(),
+    @SerializedName("aiEnrichmentAvailable") val aiEnrichmentAvailable: Boolean = false,
+    val message: String = "",
+)
+
+data class MenuImportRequest(
+    val source: String,
+    @SerializedName("cuisineType") val cuisineType: String? = null,
+    val categories: List<MenuCategoryDto>? = null,
+    @SerializedName("replaceExisting") val replaceExisting: Boolean = false,
+)
+
+data class MenuImportResponse(
+    val success: Boolean = true,
+    @SerializedName("categoriesImported") val categoriesImported: Int = 0,
+    @SerializedName("totalItems") val totalItems: Int = 0,
+    val categories: List<MenuCategoryDto> = emptyList(),
+)
+
+data class AddMenuItemRequest(
+    @SerializedName("categoryName") val categoryName: String,
+    val item: MenuItemDto,
+)
+
+data class MenuItemUpdateRequest(
+    val name: String? = null,
+    val price: Double? = null,
+    val description: String? = null,
+    val available: Boolean? = null,
+    @SerializedName("isPopular") val isPopular: Boolean? = null,
+)
+
+data class MenuItemResponse(
+    val success: Boolean = true,
+    val categories: List<MenuCategoryDto> = emptyList(),
+)

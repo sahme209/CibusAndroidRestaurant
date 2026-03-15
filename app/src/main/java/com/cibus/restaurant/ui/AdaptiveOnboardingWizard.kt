@@ -34,6 +34,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cibus.restaurant.api.AdaptiveOnboardingRequest
+import com.cibus.restaurant.api.DiscoveredRestaurantDto
+import com.cibus.restaurant.api.OnboardingMenuItemDto
 import com.cibus.restaurant.api.RetrofitClient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -76,9 +78,10 @@ fun AdaptiveOnboardingWizard(
 ) {
     val scope = rememberCoroutineScope()
     var step by remember { mutableStateOf(0) }
-    val totalSteps = 6
+    val totalSteps = 7  // Phase 140: +1 for discovery step
 
-    // Step 0 — Basic info
+    // Step 0 — Discovery (new in Phase 140)
+    // Step 1 — Basic info
     var restaurantName by remember { mutableStateOf("") }
     var ownerName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -91,29 +94,29 @@ fun AdaptiveOnboardingWizard(
     var emailAvailable by remember { mutableStateOf(true) }
     var checkingEmail by remember { mutableStateOf(false) }
 
-    // Step 1 — Integration
+    // Step 2 — Integration
     var integrationType by remember { mutableStateOf(IntegrationType.APP) }
 
-    // Step 2 — POS config
+    // Step 3 — POS config
     var posProvider by remember { mutableStateOf("Other") }
     var posApiEndpoint by remember { mutableStateOf("") }
     var posApiKey by remember { mutableStateOf("") }
     var posWebhookUrl by remember { mutableStateOf("") }
 
-    // Step 3 — Menu
+    // Step 4 — Menu
     val menuItems = remember { mutableStateListOf<OnboardingMenuItem>() }
     var newItemName by remember { mutableStateOf("") }
     var newItemPrice by remember { mutableStateOf("") }
     var newItemCategory by remember { mutableStateOf("Mains") }
 
-    // Step 4 — Store
+    // Step 5 — Store
     var openHoursOpen by remember { mutableStateOf("09:00") }
     var openHoursClose by remember { mutableStateOf("23:00") }
     var deliveryRadius by remember { mutableStateOf(5f) }
     var kitchenPrep by remember { mutableStateOf(15f) }
     var storeAvailability by remember { mutableStateOf("open") }
 
-    // Step 5 — Submit
+    // Step 6 — Submit
     var submitting by remember { mutableStateOf(false) }
     var submitError by remember { mutableStateOf<String?>(null) }
     var completedAccessToken by remember { mutableStateOf<String?>(null) }
@@ -124,11 +127,12 @@ fun AdaptiveOnboardingWizard(
     var completedWebUrl by remember { mutableStateOf<String?>(null) }
 
     val canAdvance = when (step) {
-        0 -> restaurantName.isNotBlank() && ownerName.isNotBlank() && email.isNotBlank() &&
+        0 -> true  // discovery — always allowed to skip/continue
+        1 -> restaurantName.isNotBlank() && ownerName.isNotBlank() && email.isNotBlank() &&
              emailAvailable && password.isNotBlank() &&
              phone.filter { it.isDigit() }.length >= 10 && address.isNotBlank()
-        2 -> if (integrationType == IntegrationType.POS) posApiEndpoint.isNotBlank() && posApiKey.isNotBlank() else true
-        5 -> completedAccessToken != null
+        3 -> if (integrationType == IntegrationType.POS) posApiEndpoint.isNotBlank() && posApiKey.isNotBlank() else true
+        6 -> completedAccessToken != null
         else -> true
     }
 
@@ -140,6 +144,10 @@ fun AdaptiveOnboardingWizard(
             step++
             scope.launch {
                 try {
+                    val menuItemsForBackend = if (menuItems.isNotEmpty())
+                        menuItems.map { item ->
+                            OnboardingMenuItemDto(name = item.name, price = item.price.toDoubleOrNull() ?: 0.0, category = item.category)
+                        } else null
                     val req = AdaptiveOnboardingRequest(
                         partnerName = ownerName,
                         email = email,
@@ -158,6 +166,7 @@ fun AdaptiveOnboardingWizard(
                         openHours = mapOf("open" to openHoursOpen, "close" to openHoursClose),
                         deliveryRadiusKm = deliveryRadius.toInt(),
                         kitchenPrepMinutes = kitchenPrep.toInt(),
+                        menuItems = menuItemsForBackend,
                     )
                     val resp = RetrofitClient.restaurantApi.submitOnboarding(req)
                     val data = resp.body()?.data
@@ -247,7 +256,20 @@ fun AdaptiveOnboardingWizard(
                 val scrollState = rememberScrollState()
                 Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     when (currentStep) {
-                        0 -> Step0BasicInfoContent(
+                        0 -> RestaurantDiscoveryScreen(
+                            city = city,
+                            onSkip = { step++ },
+                            onSelected = { discovered ->
+                                if (discovered.name.isNotEmpty()) restaurantName = discovered.name
+                                if (discovered.address.isNotEmpty()) address = discovered.address
+                                if (discovered.phone.isNotEmpty()) phone = discovered.phone
+                                if (discovered.cuisine.isNotEmpty()) cuisineType = discovered.cuisine
+                                if (discovered.sector.isNotEmpty()) sector = discovered.sector
+                                if (discovered.city.isNotEmpty()) city = discovered.city
+                                step++
+                            }
+                        )
+                        1 -> Step0BasicInfoContent(
                             restaurantName = restaurantName, onRestaurantNameChange = { restaurantName = it },
                             ownerName = ownerName, onOwnerNameChange = { ownerName = it },
                             email = email, onEmailChange = { v ->
@@ -275,15 +297,15 @@ fun AdaptiveOnboardingWizard(
                             sector = sector, onSectorChange = { sector = it },
                             cuisineType = cuisineType, onCuisineChange = { cuisineType = it },
                         )
-                        1 -> Step1IntegrationTypeContent(selected = integrationType, onSelect = { integrationType = it })
-                        2 -> Step2AdaptiveConfigContent(
+                        2 -> Step1IntegrationTypeContent(selected = integrationType, onSelect = { integrationType = it })
+                        3 -> Step2AdaptiveConfigContent(
                             type = integrationType,
                             posProvider = posProvider, onPosProviderChange = { posProvider = it },
                             posApiEndpoint = posApiEndpoint, onPosEndpointChange = { posApiEndpoint = it },
                             posApiKey = posApiKey, onPosApiKeyChange = { posApiKey = it },
                             posWebhookUrl = posWebhookUrl, onPosWebhookChange = { posWebhookUrl = it },
                         )
-                        3 -> Step3MenuSetupContent(
+                        4 -> Step3MenuSetupContent(
                             items = menuItems,
                             newItemName = newItemName, onNewNameChange = { newItemName = it },
                             newItemPrice = newItemPrice, onNewPriceChange = { newItemPrice = it },
@@ -295,7 +317,7 @@ fun AdaptiveOnboardingWizard(
                                 }
                             },
                         )
-                        4 -> Step4StoreStatusContent(
+                        5 -> Step4StoreStatusContent(
                             openHoursOpen = openHoursOpen, onOpenChange = { openHoursOpen = it },
                             openHoursClose = openHoursClose, onCloseChange = { openHoursClose = it },
                             deliveryRadius = deliveryRadius, onRadiusChange = { deliveryRadius = it },

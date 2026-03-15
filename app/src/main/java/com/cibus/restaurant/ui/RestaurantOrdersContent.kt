@@ -114,6 +114,18 @@ fun RestaurantOrdersContent() {
         }
     }
 
+    // Auto-poll every 15 seconds so new orders surface without manual refresh
+    LaunchedEffect(restaurantId) {
+        val id = restaurantId ?: return@LaunchedEffect
+        while (true) {
+            kotlinx.coroutines.delay(15_000L)
+            try {
+                val ord = RetrofitClient.restaurantApi.getOrders(id)
+                if (ord.isSuccessful) orders = ord.body() ?: emptyList()
+            } catch (_: Exception) {}
+        }
+    }
+
     LaunchedEffect(Unit) {
         try {
             val me = RetrofitClient.restaurantApi.getMe()
@@ -197,38 +209,54 @@ fun RestaurantOrdersContent() {
                     }
                     items(orders) { order ->
                         val rid = restaurantId
+                        var actionLoading by remember(order.id) { mutableStateOf(false) }
+                        var actionError by remember(order.id) { mutableStateOf<String?>(null) }
                         OrderCard(
                             order = order,
+                            actionLoading = actionLoading,
+                            actionError = actionError,
                             onAccept = {
                                 scope.launch {
+                                    actionLoading = true; actionError = null
                                     try {
-                                        RetrofitClient.restaurantApi.acceptOrder(order.id)
-                                        if (rid != null) refresh(rid)
-                                    } catch (_: Exception) {}
+                                        val r = RetrofitClient.restaurantApi.acceptOrder(order.id)
+                                        if (r.isSuccessful) { if (rid != null) refresh(rid) }
+                                        else actionError = "Accept failed (${r.code()})"
+                                    } catch (e: Exception) { actionError = e.message ?: "Accept failed" }
+                                    finally { actionLoading = false }
                                 }
                             },
                             onReject = {
                                 scope.launch {
+                                    actionLoading = true; actionError = null
                                     try {
-                                        RetrofitClient.restaurantApi.rejectOrder(order.id)
-                                        if (rid != null) refresh(rid)
-                                    } catch (_: Exception) {}
+                                        val r = RetrofitClient.restaurantApi.rejectOrder(order.id)
+                                        if (r.isSuccessful) { if (rid != null) refresh(rid) }
+                                        else actionError = "Reject failed (${r.code()})"
+                                    } catch (e: Exception) { actionError = e.message ?: "Reject failed" }
+                                    finally { actionLoading = false }
                                 }
                             },
                             onStartPreparing = {
                                 scope.launch {
+                                    actionLoading = true; actionError = null
                                     try {
-                                        RetrofitClient.restaurantApi.patchOrderStatus(order.id, mapOf("status" to "preparing") as Map<String, Any>)
-                                        if (rid != null) refresh(rid)
-                                    } catch (_: Exception) {}
+                                        val r = RetrofitClient.restaurantApi.patchOrderStatus(order.id, mapOf("status" to "preparing") as Map<String, Any>)
+                                        if (r.isSuccessful) { if (rid != null) refresh(rid) }
+                                        else actionError = "Failed (${r.code()})"
+                                    } catch (e: Exception) { actionError = e.message ?: "Failed" }
+                                    finally { actionLoading = false }
                                 }
                             },
                             onMarkReady = {
                                 scope.launch {
+                                    actionLoading = true; actionError = null
                                     try {
-                                        RetrofitClient.restaurantApi.patchOrderStatus(order.id, mapOf("status" to "ready_for_pickup") as Map<String, Any>)
-                                        if (rid != null) refresh(rid)
-                                    } catch (_: Exception) {}
+                                        val r = RetrofitClient.restaurantApi.patchOrderStatus(order.id, mapOf("status" to "ready_for_pickup") as Map<String, Any>)
+                                        if (r.isSuccessful) { if (rid != null) refresh(rid) }
+                                        else actionError = "Failed (${r.code()})"
+                                    } catch (e: Exception) { actionError = e.message ?: "Failed" }
+                                    finally { actionLoading = false }
                                 }
                             }
                         )
@@ -246,6 +274,8 @@ private fun OrderCard(
     onReject: () -> Unit,
     onStartPreparing: () -> Unit = {},
     onMarkReady: () -> Unit = {},
+    actionLoading: Boolean = false,
+    actionError: String? = null,
 ) {
     val status = order.status ?: ""
     val canAct = status == "order_placed"
@@ -313,13 +343,22 @@ private fun OrderCard(
             }
 
             // ── Status-driven action buttons ───────────────────────────────
+            if (actionError != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(actionError, color = CibusRed, style = MaterialTheme.typography.labelSmall)
+            }
             when {
+                actionLoading -> {
+                    Spacer(Modifier.height(8.dp))
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp).align(Alignment.CenterHorizontally), color = CibusGreenDark, strokeWidth = 2.dp)
+                }
                 canAct -> {
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = onAccept) { Text("Accept") }
+                        Button(onClick = onAccept, enabled = !actionLoading) { Text("Accept") }
                         Button(
                             onClick = onReject,
+                            enabled = !actionLoading,
                             colors = ButtonDefaults.buttonColors(containerColor = CibusRed)
                         ) { Text("Reject") }
                     }
@@ -329,6 +368,7 @@ private fun OrderCard(
                     Button(
                         onClick = onStartPreparing,
                         modifier = Modifier.fillMaxWidth(),
+                        enabled = !actionLoading,
                         colors = ButtonDefaults.buttonColors(containerColor = CibusGreenDark)
                     ) { Text("Start preparing") }
                 }
@@ -337,6 +377,7 @@ private fun OrderCard(
                     Button(
                         onClick = onMarkReady,
                         modifier = Modifier.fillMaxWidth(),
+                        enabled = !actionLoading,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF40916C))
                     ) { Text("Mark ready for pickup") }
                 }

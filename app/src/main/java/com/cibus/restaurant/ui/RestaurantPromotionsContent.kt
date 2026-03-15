@@ -19,14 +19,7 @@ import androidx.compose.ui.window.Dialog
 /** Phase 84: Restaurant promotions dashboard — create discounts, combos, free delivery. */
 @Composable
 fun RestaurantPromotionsContent() {
-    var promotions by remember {
-        mutableStateOf(
-            listOf(
-                RestaurantPromo("p1", "20% Off Biryani", "BIRYANI20", "discount", "20%", "Mar 20"),
-                RestaurantPromo("p2", "Burger + Drink Combo", "COMBO1", "combo", "Rs 99", "Weekend")
-            )
-        )
-    }
+    var promotions by remember { mutableStateOf(listOf<RestaurantPromo>()) }
     var showCreateDialog by remember { mutableStateOf(false) }
 
     LazyColumn(
@@ -87,11 +80,12 @@ fun RestaurantPromotionsContent() {
                 shape = RoundedCornerShape(12.dp),
                 color = Color(0xFFF5F5F5)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    FeaturedDishRow(name = "Beef Cheese Burger", label = "Chef special")
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    FeaturedDishRow(name = "Chicken Biryani", label = "Recommended dish")
-                }
+                Text(
+                    "Featured dishes will be pulled from your menu once orders are live.",
+                    fontSize = 14.sp,
+                    color = CibusTextSecondary,
+                    modifier = Modifier.padding(16.dp)
+                )
             }
         }
 

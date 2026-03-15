@@ -105,15 +105,15 @@ fun RestaurantAnalyticsContent() {
             ) {
                 MetricCard(
                     title = "Daily Orders",
-                    value = if (totalOrdersToday > 0) "$totalOrdersToday" else "24",
-                    subtitle = "vs 18 yesterday",
+                    value = if (totalOrdersToday > 0) "$totalOrdersToday" else "—",
+                    subtitle = if (totalOrdersToday > 0) "Today" else "Not yet available",
                     icon = Icons.Default.ShoppingCart,
                     modifier = Modifier.weight(1f)
                 )
                 MetricCard(
                     title = "Avg Prep",
-                    value = "12 min",
-                    subtitle = "Target: 10 min",
+                    value = "—",
+                    subtitle = "Not yet available",
                     icon = Icons.Default.Timer,
                     modifier = Modifier.weight(1f)
                 )
@@ -127,15 +127,15 @@ fun RestaurantAnalyticsContent() {
             ) {
                 MetricCard(
                     title = "Delivery Time",
-                    value = "28 min",
-                    subtitle = "Average ETA",
+                    value = "—",
+                    subtitle = "Not yet available",
                     icon = Icons.Default.DeliveryDining,
                     modifier = Modifier.weight(1f)
                 )
                 MetricCard(
                     title = "Revenue",
-                    value = "Rs 18,500",
-                    subtitle = "Today",
+                    value = "—",
+                    subtitle = "Not yet available",
                     icon = Icons.Default.AttachMoney,
                     modifier = Modifier.weight(1f)
                 )
@@ -210,11 +210,11 @@ fun RestaurantAnalyticsContent() {
                 color = CibusSurfaceNeutral
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    TopDishRow(rank = 1, name = "Beef Cheese Burger", orders = 12)
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
-                    TopDishRow(rank = 2, name = "Chicken Biryani", orders = 9)
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
-                    TopDishRow(rank = 3, name = "Chocolate Ice Cream", orders = 7)
+                    Text(
+                        "Top dish data will be available once order analytics are configured.",
+                        fontSize = 14.sp,
+                        color = CibusTextSecondary
+                    )
                 }
             }
         }
@@ -228,62 +228,32 @@ fun RestaurantAnalyticsContent() {
             )
         }
         item {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                PopularityChip(label = "Best sellers", count = 3, color = CibusGreenDark)
-                PopularityChip(label = "Trending", count = 2, color = CibusGreenLight)
-                PopularityChip(label = "Underperforming", count = 1, color = CibusCoral)
+            Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), color = CibusSurfaceNeutral) {
+                Text(
+                    "Popularity signals will be available once order analytics are configured.",
+                    fontSize = 14.sp,
+                    color = CibusTextSecondary,
+                    modifier = Modifier.padding(16.dp)
+                )
             }
         }
 
-        // Phase 87: Restaurant loyalty visibility (Android)
-        item {
-            LoyaltyInfoCard()
-        }
-
-        // Phase 119 — Quality risk signal
-        item {
-            QualityRiskCard(preparingCount = preparingCount, readyCount = readyCount)
-        }
-
-        // Phase 122/G — Rider pickup timing hint
-        item {
-            RiderPickupTimingCard(readyCount = readyCount)
-        }
-
-        // Phase 125/126 — Kitchen capacity management + prep prediction
-        item {
-            KitchenCapacityManagementCard(preparingCount = preparingCount, readyCount = readyCount)
-        }
+        item { LoyaltyInfoCard() }
+        item { QualityRiskCard(preparingCount = preparingCount, readyCount = readyCount) }
+        item { RiderPickupTimingCard(readyCount = readyCount) }
+        item { KitchenCapacityManagementCard(preparingCount = preparingCount, readyCount = readyCount) }
 
         item {
-            Text(
-                "Suggestions",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = CibusHeaderCard
-            )
-        }
-
-        item {
-            SuggestionCard(
-                icon = Icons.Default.Star,
-                title = "Promote this dish",
-                body = "Beef Cheese Burger is trending. Consider a spotlight deal."
-            )
+            Text("Suggestions", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = CibusHeaderCard)
         }
         item {
-            SuggestionCard(
-                icon = Icons.Default.Timer,
-                title = "Improve prep time",
-                body = "Pizza category avg 22 min. Batch prep dough to save time."
-            )
+            SuggestionCard(icon = Icons.Default.Restaurant, title = "Add combo meals", body = "Combo deals drive 30% more orders. Try adding meal combinations to your menu.")
         }
         item {
-            SuggestionCard(
-                icon = Icons.Default.Restaurant,
-                title = "Add combo meals",
-                body = "Combo deals drive 30% more orders. Try burger + drink."
-            )
+            SuggestionCard(icon = Icons.Default.Timer, title = "Optimize prep time", body = "Faster prep times lead to better ratings. Review your menu for quick-prep options.")
+        }
+        item {
+            SuggestionCard(icon = Icons.Default.Star, title = "Promote top dishes", body = "Once your orders are live, spotlight your most popular dishes to drive repeat orders.")
         }
 
         item { Spacer(Modifier.height(24.dp)) }

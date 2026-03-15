@@ -77,7 +77,9 @@ fun PartnerOnboardingScreen(
                     onSearchChange = { searchText = it },
                     onClaim = {
                         val name = searchText.trim()
-                        val id = "search_${name.lowercase().replace(" ", "_")}"
+                        // Uses typed name as discovery key. Backend will attempt canonical match.
+                        // Unmatched claims are linkable via the portal enrichment review screen.
+                        val id = "discover_${name.lowercase().replace(" ", "_")}"
                         onClaimNavigate(id, name)
                     }
                 )

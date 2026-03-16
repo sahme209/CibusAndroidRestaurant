@@ -296,6 +296,7 @@ private fun OrderCard(
     val isReady      = status in listOf("ready_for_pickup", "dispatch_pending")
     val isRiderAssigned = status == "rider_assigned"
     val isRiderEnRoute  = status == "rider_en_route"
+    val isRiderArrived  = status == "rider_arrived" || order.riderArrivedAt != null
 
     var actionLoading by remember(order.id) { mutableStateOf(false) }
 
@@ -319,7 +320,7 @@ private fun OrderCard(
             containerColor = if (isNew) CibusRed.copy(alpha = 0.03f) else Color.White
         ),
         border = if (isNew) androidx.compose.foundation.BorderStroke(1.5.dp, CibusRed.copy(alpha = 0.25f))
-                 else if (isReady || isRiderAssigned || isRiderEnRoute) androidx.compose.foundation.BorderStroke(1.5.dp, CibusAmber.copy(alpha = 0.4f))
+                 else if (isReady || isRiderAssigned || isRiderEnRoute || isRiderArrived) androidx.compose.foundation.BorderStroke(1.5.dp, CibusAmber.copy(alpha = 0.4f))
                  else null,
         elevation = CardDefaults.cardElevation(defaultElevation = if (isNew) 3.dp else 1.dp)
     ) {
@@ -337,6 +338,13 @@ private fun OrderCard(
                             fontWeight = FontWeight.SemiBold,
                             color = CibusHeaderCard
                         )
+                        if (order.itemCount > 0) {
+                            Text(
+                                "${order.itemCount} item${if (order.itemCount != 1) "s" else ""}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = CibusTextSecondary
+                            )
+                        }
                         if (isNew) {
                             Surface(shape = RoundedCornerShape(4.dp), color = CibusRed) {
                                 Text("NEW", modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
@@ -381,16 +389,45 @@ private fun OrderCard(
                 Text(itemsSummary, style = MaterialTheme.typography.bodySmall, color = CibusTextSecondary, maxLines = 2)
             }
 
+            // ── Special instructions ───────────────────────────────────────
+            if (!order.specialInstructions.isNullOrBlank()) {
+                Surface(
+                    shape = RoundedCornerShape(7.dp),
+                    color = CibusAmber.copy(alpha = 0.08f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Icon(Icons.Default.Info, null, tint = CibusAmber, modifier = Modifier.size(12.dp).padding(top = 1.dp))
+                        Text(
+                            order.specialInstructions,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF92400E),
+                            maxLines = 2
+                        )
+                    }
+                }
+            }
+
             // ── Prep timer ─────────────────────────────────────────────────
             if (isPreparing && preparingAtMs != null) {
-                PrepTimerDisplay(preparingAtMs = preparingAtMs)
+                val warnMs = if (order.prepTimeMinutes != null) order.prepTimeMinutes * 60_000L else 15 * 60_000L
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PrepTimerDisplay(preparingAtMs = preparingAtMs, warnAfterMs = warnMs)
+                    if (order.prepTimeMinutes != null) {
+                        Text("/ ${order.prepTimeMinutes} min expected", style = MaterialTheme.typography.labelSmall, color = CibusTextSecondary)
+                    }
+                }
             }
 
             // ── Rider status ──────────────────────────────────────────────
-            if (isReady || isRiderAssigned || isRiderEnRoute) {
+            if (isReady || isRiderAssigned || isRiderEnRoute || isRiderArrived) {
+                val riderBg = if (isRiderArrived) CibusGreenDark.copy(alpha = 0.15f) else CibusGreenDark.copy(alpha = 0.07f)
                 Surface(
                     shape = RoundedCornerShape(7.dp),
-                    color = CibusGreenDark.copy(alpha = 0.07f)
+                    color = riderBg
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
@@ -398,21 +435,34 @@ private fun OrderCard(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Icon(
-                            if (isRiderEnRoute) Icons.Default.DirectionsBike else Icons.Default.DirectionsBike,
+                            Icons.Default.DirectionsBike,
                             null,
                             tint = CibusGreenDark,
                             modifier = Modifier.size(14.dp)
                         )
                         val riderName = order.riderName
                         if (!riderName.isNullOrEmpty()) {
+                            val riderStateText = when {
+                                isRiderArrived -> " • Arrived at restaurant"
+                                isRiderEnRoute -> " • En route to you"
+                                isRiderAssigned -> " • Assigned"
+                                else -> ""
+                            }
                             Text(
-                                "Rider: $riderName" + (if (isRiderEnRoute) " • En route" else if (isRiderAssigned) " • Assigned" else ""),
+                                "Rider: $riderName$riderStateText",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = CibusGreenDark
                             )
                         } else {
                             Text("Awaiting rider assignment…", style = MaterialTheme.typography.labelSmall, color = CibusTextSecondary)
+                        }
+                        if (isRiderArrived) {
+                            Spacer(Modifier.weight(1f))
+                            Surface(shape = RoundedCornerShape(4.dp), color = CibusGreenDark) {
+                                Text("ARRIVED", modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                    style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
                         }
                     }
                 }

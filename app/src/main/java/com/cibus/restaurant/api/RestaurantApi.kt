@@ -203,7 +203,14 @@ data class RestaurantOrderDto(
     @SerializedName("paymentMethod") val paymentMethod: String? = null,
     @SerializedName("preparingAt") val preparingAt: String? = null,
     @SerializedName("createdAt") val createdAt: String? = null,
-)
+    @SerializedName("specialInstructions") val specialInstructions: String? = null,
+    @SerializedName("prepTimeMinutes") val prepTimeMinutes: Int? = null,
+    @SerializedName("riderArrivedAt") val riderArrivedAt: String? = null,
+) {
+    val itemCount: Int get() = items?.sumOf { item ->
+        (item["quantity"] as? Double)?.toInt() ?: (item["quantity"] as? Int) ?: 1
+    } ?: 0
+}
 
 // ── Phase 130: Adaptive Onboarding DTOs ───────────────────────────────────────
 

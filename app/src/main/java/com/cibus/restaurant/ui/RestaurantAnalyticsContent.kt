@@ -44,12 +44,16 @@ fun RestaurantAnalyticsContent() {
     var totalOrdersToday by remember { mutableStateOf(0) }
     var completedCount by remember { mutableStateOf(0) }
     var totalRevenue by remember { mutableStateOf(0.0) }
+    var walletBalance by remember { mutableStateOf<Double?>(null) }
+    var availability by remember { mutableStateOf("open") }
+    var restaurantId by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
 
-    LaunchedEffect(Unit) {
+    suspend fun loadData() {
         try {
             val me = RetrofitClient.restaurantApi.getMe().body()
-            val rid = me?.restaurantId ?: return@LaunchedEffect
+            val rid = me?.restaurantId ?: return
+            restaurantId = rid
             val resp = RetrofitClient.restaurantApi.getMarketplaceSignals(rid).body()
             hasBoost = resp?.restaurantBoosts?.any { it.restaurantId == rid } == true
             val orders = RetrofitClient.restaurantApi.getOrders(rid).body() ?: emptyList()
@@ -58,19 +62,18 @@ fun RestaurantAnalyticsContent() {
             readyCount = orders.count { it.status in listOf("ready_for_pickup", "dispatch_pending", "rider_assigned", "rider_en_route") }
             completedCount = orders.count { it.status == "delivered" }
             totalRevenue = orders.filter { it.status == "delivered" }.sumOf { it.total ?: 0.0 }
+            val wallet = RetrofitClient.restaurantApi.getRestaurantWallet().body()
+            walletBalance = wallet?.walletBalance
         } catch (_: Exception) { }
         loading = false
     }
+
+    LaunchedEffect(Unit) { loadData() }
 
     val qualityRisk = when {
         preparingCount > 8 || readyCount > 5 -> "high"
         preparingCount > 4 || readyCount > 2  -> "medium"
         else -> "low"
-    }
-    val qualityRiskColor = when (qualityRisk) {
-        "high"   -> CibusRed
-        "medium" -> CibusAmber
-        else     -> CibusGreenDark
     }
 
     LazyColumn(
@@ -79,6 +82,34 @@ fun RestaurantAnalyticsContent() {
     ) {
         item {
             Text("Dashboard", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = CibusHeaderCard)
+        }
+
+        // ── Availability status badge ─────────────────────────────────
+        if (!loading) {
+            item {
+                val (statusColor, statusLabel, statusIcon) = when (availability) {
+                    "busy"         -> Triple(CibusAmber, "Busy", Icons.Default.Schedule)
+                    "closing_soon" -> Triple(CibusOrange, "Closing Soon", Icons.Default.ExitToApp)
+                    "closed"       -> Triple(CibusRed, "Closed", Icons.Default.StoreMallDirectory)
+                    else           -> Triple(CibusGreenDark, "Open for Orders", Icons.Default.Store)
+                }
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    color = statusColor.copy(alpha = 0.10f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(statusIcon, null, tint = statusColor, modifier = Modifier.size(16.dp))
+                        Text(statusLabel, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = statusColor)
+                        Spacer(Modifier.weight(1f))
+                        Text("Restaurant status", style = MaterialTheme.typography.labelSmall, color = CibusTextSecondary)
+                    }
+                }
+            }
         }
 
         // Boost banner
@@ -128,6 +159,35 @@ fun RestaurantAnalyticsContent() {
                     icon = Icons.Default.DirectionsBike,
                     modifier = Modifier.weight(1f)
                 )
+            }
+        }
+
+        // ── Wallet balance ─────────────────────────────────────────────
+        if (!loading && walletBalance != null) {
+            item {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = CibusGreenDark
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("Wallet Balance", fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
+                            Text(
+                                "Rs ${walletBalance!!.toInt()}",
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text("Available for payout", fontSize = 11.sp, color = Color.White.copy(alpha = 0.6f))
+                        }
+                        Icon(Icons.Default.AccountBalanceWallet, null, tint = Color.White.copy(alpha = 0.6f), modifier = Modifier.size(32.dp))
+                    }
+                }
             }
         }
 

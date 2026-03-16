@@ -88,6 +88,10 @@ interface RestaurantApi {
     @GET("restaurants/{id}/orders")
     suspend fun getOrders(@Path("id") restaurantId: String, @Query("limit") limit: Int = 50): Response<List<RestaurantOrderDto>>
 
+    /** Register FCM device token for push notifications. Backend: POST /restaurant/me/device-tokens */
+    @POST("restaurant/me/device-tokens")
+    suspend fun registerDeviceToken(@Body body: Map<String, @JvmSuppressWildcards String>): Response<Unit>
+
     // Phase 200: Restaurant Payout Wallet
     @GET("restaurant/wallet")
     suspend fun getRestaurantWallet(): Response<RestaurantWalletResponse>

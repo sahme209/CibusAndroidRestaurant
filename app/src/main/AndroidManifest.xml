@@ -24,9 +24,15 @@
         </activity>
 
         <!--
-            TODO (MANUAL): Add Firebase/FCM dependencies to this app's build.gradle.kts
-            and register a FirebaseMessagingService here for push notifications.
-            See: https://firebase.google.com/docs/cloud-messaging/android/client
+            Firebase Cloud Messaging Service — handles push for new orders and cancellations.
+            MANUAL REQUIRED: add app/google-services.json before release.
         -->
+        <service
+            android:name=".CibusRestaurantMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

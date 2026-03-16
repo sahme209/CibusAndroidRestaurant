@@ -16,6 +16,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         RetrofitClient.init(this)
+        // Register FCM token with backend on each launch (idempotent on backend side)
+        registerRestaurantFcmToken(applicationContext)
         enableEdgeToEdge()
         setContent {
             CibusRestaurantTheme {

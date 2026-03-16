@@ -1,39 +1,22 @@
 package com.cibus.restaurant.ui
 import com.cibus.restaurant.ui.theme.*
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Assignment
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,61 +24,61 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.cibus.restaurant.api.RestaurantOrderDto
 import com.cibus.restaurant.api.RetrofitClient
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
-/**
- * Phase 105 — Premium empty state for restaurant screens.
- */
+// ── Prep timer composable ──────────────────────────────────────────────────────
+
 @Composable
-private fun RestaurantEmptyState(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    message: String
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color.White)
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(88.dp)
-                .clip(CircleShape)
-                .background(Color(0xFFF5F5F5)),
-            contentAlignment = Alignment.Center
+private fun PrepTimerDisplay(preparingAtMs: Long, warnAfterMs: Long = 15 * 60 * 1000L) {
+    var elapsedMs by remember { mutableStateOf(System.currentTimeMillis() - preparingAtMs) }
+    LaunchedEffect(preparingAtMs) {
+        while (true) {
+            delay(1000L)
+            elapsedMs = System.currentTimeMillis() - preparingAtMs
+        }
+    }
+    val isOvertime = elapsedMs > warnAfterMs
+    val minutes = (elapsedMs / 1000L / 60L).toInt()
+    val seconds = (elapsedMs / 1000L % 60L).toInt()
+    val fgColor = if (isOvertime) CibusRed else CibusAmber
+    val bgColor = if (isOvertime) CibusRed.copy(alpha = 0.08f) else CibusAmber.copy(alpha = 0.12f)
+
+    Surface(shape = RoundedCornerShape(6.dp), color = bgColor) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Icon(
-                icon,
+                if (isOvertime) Icons.Default.Warning else Icons.Default.Timer,
                 contentDescription = null,
-                modifier = Modifier.size(40.dp),
-                tint = Color(0xFF8A8A8A)
-            )
-        }
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF1A1A1A)
+                tint = fgColor,
+                modifier = Modifier.size(12.dp)
             )
             Text(
-                message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF6B6B6B),
-                textAlign = TextAlign.Center
+                "%d:%02d".format(minutes, seconds),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = fgColor
             )
+            if (isOvertime) {
+                Text("OVERTIME", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = fgColor)
+            } else {
+                Text("prep time", style = MaterialTheme.typography.labelSmall, color = CibusTextSecondary)
+            }
         }
     }
 }
+
+// ── Main orders composable ─────────────────────────────────────────────────────
 
 @Composable
 fun RestaurantOrdersContent() {
@@ -108,20 +91,20 @@ fun RestaurantOrdersContent() {
     fun refresh(id: String) {
         scope.launch {
             try {
-                val ord = RetrofitClient.restaurantApi.getOrders(id)
-                if (ord.isSuccessful) orders = ord.body() ?: emptyList()
+                val r = RetrofitClient.restaurantApi.getOrders(id)
+                if (r.isSuccessful) orders = r.body() ?: emptyList()
             } catch (_: Exception) {}
         }
     }
 
-    // Auto-poll every 15 seconds so new orders surface without manual refresh
+    // Auto-poll every 15 s
     LaunchedEffect(restaurantId) {
         val id = restaurantId ?: return@LaunchedEffect
         while (true) {
-            kotlinx.coroutines.delay(15_000L)
+            delay(15_000L)
             try {
-                val ord = RetrofitClient.restaurantApi.getOrders(id)
-                if (ord.isSuccessful) orders = ord.body() ?: emptyList()
+                val r = RetrofitClient.restaurantApi.getOrders(id)
+                if (r.isSuccessful) orders = r.body() ?: emptyList()
             } catch (_: Exception) {}
         }
     }
@@ -129,141 +112,172 @@ fun RestaurantOrdersContent() {
     LaunchedEffect(Unit) {
         try {
             val me = RetrofitClient.restaurantApi.getMe()
-            if (!me.isSuccessful) {
-                error = "Could not load profile"
-                loading = false
-                return@LaunchedEffect
-            }
+            if (!me.isSuccessful) { error = "Could not load profile"; loading = false; return@LaunchedEffect }
             val id = me.body()?.restaurantId
-            if (id.isNullOrBlank()) {
-                error = "No restaurant linked"
-                loading = false
-                return@LaunchedEffect
-            }
+            if (id.isNullOrBlank()) { error = "No restaurant linked"; loading = false; return@LaunchedEffect }
             restaurantId = id
             val ord = RetrofitClient.restaurantApi.getOrders(id)
-            if (ord.isSuccessful) {
-                orders = ord.body() ?: emptyList()
-            } else {
-                error = "Could not load orders"
-            }
-        } catch (e: Exception) {
-            error = e.message ?: "Error loading orders"
-        }
+            if (ord.isSuccessful) orders = ord.body() ?: emptyList()
+            else error = "Could not load orders"
+        } catch (e: Exception) { error = e.message ?: "Error loading orders" }
         loading = false
     }
 
-    Box(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        when {
-            loading && orders.isEmpty() -> CircularProgressIndicator(
-                modifier = Modifier.padding(24.dp),
-                color = Color(0xFF2E7D32)
-            )
-            error != null -> RestaurantEmptyState(
-                icon = Icons.Default.Assignment,
-                title = "Something went wrong",
-                message = error ?: "Could not load orders."
-            )
-            orders.isEmpty() -> RestaurantEmptyState(
-                icon = Icons.Default.Assignment,
-                title = "No orders yet",
-                message = "Incoming orders will appear here when customers place them."
-            )
-            else -> {
-                // Phase 116D: Kitchen queue analysis
-                val preparing = orders.count { it.status == "preparing" }
-                val readyForPickup = orders.count { it.status == "ready_for_pickup" }
-                val newOrders = orders.count { it.status == "order_placed" }
+    // Group orders by workflow stage
+    val newOrders     = orders.filter { it.status == "order_placed" }
+    val preparingOrds = orders.filter { it.status == "accepted" || it.status == "preparing" }
+    val readyOrds     = orders.filter { it.status in listOf("ready_for_pickup", "dispatch_pending", "rider_assigned", "rider_en_route") }
+    val completedOrds = orders.filter { it.status in listOf("delivered", "picked_up", "on_the_way", "arriving_soon") }
 
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Phase 116D: Kitchen pressure header
-                    if (preparing > 0 || readyForPickup > 0) {
-                        item {
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(10.dp),
-                                color = if (readyForPickup > 0) Color(0xFFF59E0B).copy(alpha = 0.1f) else CibusGreenDark.copy(alpha = 0.08f)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    if (newOrders > 0) Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text("$newOrders", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                        Text("new", style = MaterialTheme.typography.labelSmall, color = Color(0xFF6B6B6B))
-                                    }
-                                    if (preparing > 0) Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text("$preparing", fontWeight = FontWeight.Bold, color = CibusGreenDark)
-                                        Text("preparing", style = MaterialTheme.typography.labelSmall, color = Color(0xFF6B6B6B))
-                                    }
-                                    if (readyForPickup > 0) Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text("$readyForPickup", fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
-                                        Text("ready / waiting rider", style = MaterialTheme.typography.labelSmall, color = Color(0xFF6B6B6B))
-                                    }
-                                }
-                            }
+    Box(modifier = Modifier.fillMaxSize().background(CibusSurfaceNeutral)) {
+        when {
+            loading && orders.isEmpty() -> {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = CibusGreenDark)
+            }
+            error != null && orders.isEmpty() -> {
+                Column(
+                    modifier = Modifier.align(Alignment.Center).padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.Warning, null, tint = CibusRed, modifier = Modifier.size(40.dp))
+                    Text(error ?: "Error", fontWeight = FontWeight.SemiBold, color = CibusHeaderCard)
+                }
+            }
+            orders.isEmpty() -> {
+                Column(
+                    modifier = Modifier.align(Alignment.Center).padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.Assignment, null, tint = Color(0xFF8A8A8A), modifier = Modifier.size(48.dp))
+                    Text("No active orders", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = CibusHeaderCard)
+                    Text("Incoming orders will appear here when customers place them.", style = MaterialTheme.typography.bodySmall, color = CibusTextSecondary, textAlign = TextAlign.Center)
+                }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                    // ── Kitchen pressure bar ────────────────────────────────
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (newOrders.isNotEmpty()) StatPill("${newOrders.size}", "New", CibusRed)
+                            if (preparingOrds.isNotEmpty()) StatPill("${preparingOrds.size}", "Preparing", CibusGreenDark)
+                            if (readyOrds.isNotEmpty()) StatPill("${readyOrds.size}", "Ready", CibusAmber)
+                            Spacer(Modifier.weight(1f))
+                            if (loading) CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = CibusGreenDark)
                         }
                     }
-                    items(orders) { order ->
-                        val rid = restaurantId
-                        var actionLoading by remember(order.id) { mutableStateOf(false) }
-                        var actionError by remember(order.id) { mutableStateOf<String?>(null) }
-                        OrderCard(
-                            order = order,
-                            actionLoading = actionLoading,
-                            actionError = actionError,
-                            onAccept = {
-                                scope.launch {
-                                    actionLoading = true; actionError = null
-                                    try {
-                                        val r = RetrofitClient.restaurantApi.acceptOrder(order.id)
-                                        if (r.isSuccessful) { if (rid != null) refresh(rid) }
-                                        else actionError = "Accept failed (${r.code()})"
-                                    } catch (e: Exception) { actionError = e.message ?: "Accept failed" }
-                                    finally { actionLoading = false }
-                                }
-                            },
-                            onReject = {
-                                scope.launch {
-                                    actionLoading = true; actionError = null
-                                    try {
-                                        val r = RetrofitClient.restaurantApi.rejectOrder(order.id)
-                                        if (r.isSuccessful) { if (rid != null) refresh(rid) }
-                                        else actionError = "Reject failed (${r.code()})"
-                                    } catch (e: Exception) { actionError = e.message ?: "Reject failed" }
-                                    finally { actionLoading = false }
-                                }
-                            },
-                            onStartPreparing = {
-                                scope.launch {
-                                    actionLoading = true; actionError = null
-                                    try {
-                                        val r = RetrofitClient.restaurantApi.patchOrderStatus(order.id, mapOf("status" to "preparing") as Map<String, Any>)
-                                        if (r.isSuccessful) { if (rid != null) refresh(rid) }
-                                        else actionError = "Failed (${r.code()})"
-                                    } catch (e: Exception) { actionError = e.message ?: "Failed" }
-                                    finally { actionLoading = false }
-                                }
-                            },
-                            onMarkReady = {
-                                scope.launch {
-                                    actionLoading = true; actionError = null
-                                    try {
-                                        val r = RetrofitClient.restaurantApi.patchOrderStatus(order.id, mapOf("status" to "ready_for_pickup") as Map<String, Any>)
-                                        if (r.isSuccessful) { if (rid != null) refresh(rid) }
-                                        else actionError = "Failed (${r.code()})"
-                                    } catch (e: Exception) { actionError = e.message ?: "Failed" }
-                                    finally { actionLoading = false }
-                                }
-                            }
-                        )
+
+                    // ── NEW ORDERS ─────────────────────────────────────────
+                    if (newOrders.isNotEmpty()) {
+                        item { SectionHeader("New Orders", Icons.Default.NotificationsActive, CibusRed, newOrders.size) }
+                        items(newOrders, key = { it.id }) { order ->
+                            OrderCard(
+                                order = order,
+                                onAccept = { scope.launch { runOrderAction(order.id, "accept", restaurantId, ::refresh) } },
+                                onReject = { scope.launch { runOrderAction(order.id, "reject", restaurantId, ::refresh) } },
+                                onStartPreparing = {},
+                                onMarkReady = {}
+                            )
+                        }
                     }
+
+                    // ── PREPARING ─────────────────────────────────────────
+                    if (preparingOrds.isNotEmpty()) {
+                        item { SectionHeader("Preparing", Icons.Default.Whatshot, CibusGreenDark, preparingOrds.size) }
+                        items(preparingOrds, key = { it.id }) { order ->
+                            OrderCard(
+                                order = order,
+                                onAccept = {},
+                                onReject = {},
+                                onStartPreparing = { scope.launch { runOrderAction(order.id, "preparing", restaurantId, ::refresh) } },
+                                onMarkReady = { scope.launch { runOrderAction(order.id, "ready_for_pickup", restaurantId, ::refresh) } }
+                            )
+                        }
+                    }
+
+                    // ── READY FOR PICKUP ──────────────────────────────────
+                    if (readyOrds.isNotEmpty()) {
+                        item { SectionHeader("Ready for Pickup", Icons.Default.CheckCircle, CibusAmber, readyOrds.size) }
+                        items(readyOrds, key = { it.id }) { order ->
+                            OrderCard(
+                                order = order,
+                                onAccept = {},
+                                onReject = {},
+                                onStartPreparing = {},
+                                onMarkReady = {}
+                            )
+                        }
+                    }
+
+                    // ── COMPLETED ─────────────────────────────────────────
+                    if (completedOrds.isNotEmpty()) {
+                        item { SectionHeader("Completed", Icons.Default.Done, CibusTextSecondary, completedOrds.size) }
+                        items(completedOrds, key = { it.id }) { order ->
+                            OrderCard(order = order, onAccept = {}, onReject = {}, onStartPreparing = {}, onMarkReady = {})
+                        }
+                    }
+
+                    item { Spacer(Modifier.height(32.dp)) }
                 }
             }
         }
+    }
+}
+
+private suspend fun runOrderAction(
+    orderId: String,
+    action: String,
+    restaurantId: String?,
+    refresh: (String) -> Unit
+) {
+    try {
+        val api = RetrofitClient.restaurantApi
+        when (action) {
+            "accept"           -> api.acceptOrder(orderId)
+            "reject"           -> api.rejectOrder(orderId)
+            "preparing"        -> api.patchOrderStatus(orderId, mapOf("status" to "preparing"))
+            "ready_for_pickup" -> api.patchOrderStatus(orderId, mapOf("status" to "ready_for_pickup") as Map<String, Any>)
+        }
+        restaurantId?.let { refresh(it) }
+    } catch (_: Exception) {}
+}
+
+@Composable
+private fun StatPill(value: String, label: String, color: Color) {
+    Surface(shape = RoundedCornerShape(8.dp), color = color.copy(alpha = 0.1f)) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(value, fontWeight = FontWeight.Bold, color = color, fontSize = 14.sp)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = CibusTextSecondary)
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color, count: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(icon, null, tint = color, modifier = Modifier.size(15.dp))
+        Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = CibusTextSecondary)
+        Text("($count)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = color)
     }
 }
 
@@ -272,114 +286,186 @@ private fun OrderCard(
     order: RestaurantOrderDto,
     onAccept: () -> Unit,
     onReject: () -> Unit,
-    onStartPreparing: () -> Unit = {},
-    onMarkReady: () -> Unit = {},
-    actionLoading: Boolean = false,
-    actionError: String? = null,
+    onStartPreparing: () -> Unit,
+    onMarkReady: () -> Unit,
 ) {
     val status = order.status ?: ""
-    val canAct = status == "order_placed"
-    val isAccepted = status == "accepted"
-    val isPreparing = status == "preparing"
-    val isUrgent = status in listOf("ready_for_pickup", "dispatch_pending")
-    val isActive = status in listOf("order_placed", "accepted", "preparing")
+    val isNew        = status == "order_placed"
+    val isAccepted   = status == "accepted"
+    val isPreparing  = status == "preparing"
+    val isReady      = status in listOf("ready_for_pickup", "dispatch_pending")
+    val isRiderAssigned = status == "rider_assigned"
+    val isRiderEnRoute  = status == "rider_en_route"
+
+    var actionLoading by remember(order.id) { mutableStateOf(false) }
+
+    // Parse preparingAt to epoch ms for timer
+    val preparingAtMs: Long? = remember(order.preparingAt) {
+        order.preparingAt?.let { ts ->
+            listOf(
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") },
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") },
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US)
+            ).firstNotNullOfOrNull { fmt -> runCatching { fmt.parse(ts)?.time }.getOrNull() }
+        }
+    }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isUrgent) Color(0xFFFFF3E0) else Color.White
+            containerColor = if (isNew) CibusRed.copy(alpha = 0.03f) else Color.White
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isUrgent) 4.dp else 2.dp)
+        border = if (isNew) androidx.compose.foundation.BorderStroke(1.5.dp, CibusRed.copy(alpha = 0.25f))
+                 else if (isReady || isRiderAssigned || isRiderEnRoute) androidx.compose.foundation.BorderStroke(1.5.dp, CibusAmber.copy(alpha = 0.4f))
+                 else null,
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isNew) 3.dp else 1.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // ── Header ─────────────────────────────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
-                Text(
-                    "Order #${order.id.take(8)}",
-                    fontWeight = FontWeight.SemiBold
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (isUrgent) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFFF59E0B).copy(alpha = 0.15f)
-                        ) {
-                            Text(
-                                "PICKUP READY",
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFFB45309),
-                                fontWeight = FontWeight.Bold
-                            )
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "Order #${order.id.takeLast(6)}",
+                            fontWeight = FontWeight.SemiBold,
+                            color = CibusHeaderCard
+                        )
+                        if (isNew) {
+                            Surface(shape = RoundedCornerShape(4.dp), color = CibusRed) {
+                                Text("NEW", modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                    style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        }
+                        if (order.paymentMethod?.lowercase() in listOf("cod", "cash")) {
+                            Surface(shape = RoundedCornerShape(4.dp), color = CibusAmber.copy(alpha = 0.15f)) {
+                                Text("COD", modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                    style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
+                            }
                         }
                     }
-                    Text(
-                        "Rs ${order.total?.toInt() ?: 0}",
-                        fontWeight = FontWeight.SemiBold,
-                        color = CibusGreenDark
-                    )
+                    // Area
+                    val area = (order.address?.get("area") as? String) ?: (order.address?.get("city") as? String) ?: ""
+                    if (area.isNotEmpty()) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.LocationOn, null, tint = CibusTextSecondary, modifier = Modifier.size(11.dp))
+                            Text(area, style = MaterialTheme.typography.bodySmall, color = CibusTextSecondary)
+                        }
+                    }
+                    // Time
+                    order.createdAt?.take(16)?.replace("T", " ")?.let { t ->
+                        Text(t, style = MaterialTheme.typography.labelSmall, color = CibusTextSecondary.copy(alpha = 0.6f))
+                    }
                 }
-            }
-
-            Text(
-                "Status: ${status.replace("_", " ").replaceFirstChar { it.uppercase() }}",
-                modifier = Modifier.padding(top = 4.dp),
-                style = MaterialTheme.typography.bodySmall,
-                color = if (isUrgent) Color(0xFFB45309) else if (isActive) MaterialTheme.colorScheme.primary else Color(0xFF6B6B6B)
-            )
-
-            val addr = order.address
-            if (addr != null) {
-                val area = (addr["area"] as? String) ?: (addr["city"] as? String) ?: ""
-                if (area.isNotEmpty()) Text(
-                    area,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF6B6B6B),
-                    modifier = Modifier.padding(top = 2.dp)
+                Text(
+                    "Rs ${order.total?.toInt() ?: 0}",
+                    fontWeight = FontWeight.Bold,
+                    color = CibusGreenDark,
+                    fontSize = 15.sp
                 )
             }
 
-            // ── Status-driven action buttons ───────────────────────────────
-            if (actionError != null) {
-                Spacer(Modifier.height(4.dp))
-                Text(actionError, color = CibusRed, style = MaterialTheme.typography.labelSmall)
+            // ── Items summary ──────────────────────────────────────────────
+            val itemsSummary = order.items?.take(4)?.joinToString(" · ") { item ->
+                val qty = (item["quantity"] as? Double)?.toInt() ?: (item["quantity"] as? Int) ?: 1
+                val name = (item["name"] as? String) ?: "Item"
+                "${qty}× $name"
             }
-            when {
-                actionLoading -> {
-                    Spacer(Modifier.height(8.dp))
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp).align(Alignment.CenterHorizontally), color = CibusGreenDark, strokeWidth = 2.dp)
+            if (!itemsSummary.isNullOrEmpty()) {
+                Text(itemsSummary, style = MaterialTheme.typography.bodySmall, color = CibusTextSecondary, maxLines = 2)
+            }
+
+            // ── Prep timer ─────────────────────────────────────────────────
+            if (isPreparing && preparingAtMs != null) {
+                PrepTimerDisplay(preparingAtMs = preparingAtMs)
+            }
+
+            // ── Rider status ──────────────────────────────────────────────
+            if (isReady || isRiderAssigned || isRiderEnRoute) {
+                Surface(
+                    shape = RoundedCornerShape(7.dp),
+                    color = CibusGreenDark.copy(alpha = 0.07f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            if (isRiderEnRoute) Icons.Default.DirectionsBike else Icons.Default.DirectionsBike,
+                            null,
+                            tint = CibusGreenDark,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        val riderName = order.riderName
+                        if (!riderName.isNullOrEmpty()) {
+                            Text(
+                                "Rider: $riderName" + (if (isRiderEnRoute) " • En route" else if (isRiderAssigned) " • Assigned" else ""),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = CibusGreenDark
+                            )
+                        } else {
+                            Text("Awaiting rider assignment…", style = MaterialTheme.typography.labelSmall, color = CibusTextSecondary)
+                        }
+                    }
                 }
-                canAct -> {
-                    Spacer(Modifier.height(8.dp))
+            }
+
+            // ── Action buttons ─────────────────────────────────────────────
+            if (actionLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp).align(Alignment.CenterHorizontally),
+                    color = CibusGreenDark,
+                    strokeWidth = 2.dp
+                )
+            } else when {
+                isNew -> {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = onAccept, enabled = !actionLoading) { Text("Accept") }
+                        OutlinedButton(
+                            onClick = { actionLoading = true; onReject() },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = CibusRed),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, CibusRed.copy(alpha = 0.4f))
+                        ) { Text("Reject", fontWeight = FontWeight.SemiBold) }
                         Button(
-                            onClick = onReject,
-                            enabled = !actionLoading,
-                            colors = ButtonDefaults.buttonColors(containerColor = CibusRed)
-                        ) { Text("Reject") }
+                            onClick = { actionLoading = true; onAccept() },
+                            modifier = Modifier.weight(1.6f),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = CibusGreenDark)
+                        ) { Text("Accept Order", fontWeight = FontWeight.SemiBold) }
                     }
                 }
                 isAccepted -> {
-                    Spacer(Modifier.height(8.dp))
                     Button(
-                        onClick = onStartPreparing,
+                        onClick = { actionLoading = true; onStartPreparing() },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !actionLoading,
+                        shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = CibusGreenDark)
-                    ) { Text("Start preparing") }
+                    ) {
+                        Icon(Icons.Default.Whatshot, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Start Preparing", fontWeight = FontWeight.SemiBold)
+                    }
                 }
                 isPreparing -> {
-                    Spacer(Modifier.height(8.dp))
                     Button(
-                        onClick = onMarkReady,
+                        onClick = { actionLoading = true; onMarkReady() },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !actionLoading,
+                        shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF40916C))
-                    ) { Text("Mark ready for pickup") }
+                    ) {
+                        Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Mark Ready for Pickup", fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }

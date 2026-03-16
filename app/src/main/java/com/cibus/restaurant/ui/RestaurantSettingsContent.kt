@@ -1,39 +1,14 @@
 package com.cibus.restaurant.ui
 import com.cibus.restaurant.ui.theme.*
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Circle
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Store
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,10 +18,10 @@ import com.cibus.restaurant.api.RetrofitClient
 import kotlinx.coroutines.launch
 
 private val AVAILABILITY_OPTIONS = listOf(
-    "open" to "Open",
-    "busy" to "Busy",
-    "closing_soon" to "Closing soon",
-    "closed" to "Closed"
+    "open"         to "Open",
+    "busy"         to "Busy",
+    "closing_soon" to "Closing Soon",
+    "closed"       to "Closed"
 )
 
 @Composable
@@ -56,7 +31,11 @@ fun RestaurantSettingsContent(onLogout: () -> Unit) {
     var loadingAvailability by remember { mutableStateOf(true) }
     var savingAvailability by remember { mutableStateOf(false) }
     var newOrderNotifications by remember { mutableStateOf(true) }
+    var showCloseConfirm by remember { mutableStateOf(false) }
+    var pendingAvailability by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+
+    val isOpen = availability == "open" || availability == "busy" || availability == "closing_soon"
 
     LaunchedEffect(Unit) {
         try {
@@ -66,12 +45,24 @@ fun RestaurantSettingsContent(onLogout: () -> Unit) {
         loadingAvailability = false
     }
 
+    fun setAvailability(value: String) {
+        val rid = restaurantId ?: return
+        savingAvailability = true
+        scope.launch {
+            try {
+                RetrofitClient.restaurantApi.patchAvailability(rid, mapOf("availability" to value))
+                availability = value
+            } catch (_: Exception) {}
+            savingAvailability = false
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Text(
             "Settings",
@@ -80,105 +71,139 @@ fun RestaurantSettingsContent(onLogout: () -> Unit) {
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        // Availability card
+        // ── Open / Closed hero toggle ─────────────────────────────────────
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isOpen) Color(0xFFECF9EE) else MaterialTheme.colorScheme.surface
+            ),
+            border = if (isOpen) androidx.compose.foundation.BorderStroke(1.5.dp, CibusGreenDark.copy(alpha = 0.3f)) else null,
             elevation = CardDefaults.cardElevation(2.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(Icons.Default.Store, contentDescription = null, tint = CibusGreenDark, modifier = Modifier.size(20.dp))
-                    Text(
-                        "Restaurant availability",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                Text(
-                    "Control whether customers can place new orders.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                if (loadingAvailability) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = CibusGreenDark)
-                } else {
-                    AVAILABILITY_OPTIONS.forEach { (value, label) ->
-                        val isSelected = availability == value
-                        val dotColor = when (value) {
-                            "open" -> CibusGreenDark
-                            "busy" -> CibusAmber
-                            "closing_soon" -> CibusOrange
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Status icon
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isOpen) CibusGreenDark.copy(alpha = 0.15f) else Color(0xFFDDDDDD)
+                    ) {
+                        if (savingAvailability) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(48.dp).padding(12.dp),
+                                color = CibusGreenDark,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
                             Icon(
-                                Icons.Default.Circle,
-                                contentDescription = null,
-                                tint = if (isSelected) dotColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                                modifier = Modifier.size(10.dp)
+                            if (isOpen) Icons.Default.Store else Icons.Default.Store,
+                                null,
+                                modifier = Modifier.size(48.dp).padding(12.dp),
+                                tint = if (isOpen) CibusGreenDark else Color(0xFF888888)
                             )
-                            Text(
-                                label,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                modifier = Modifier.weight(1f)
-                            )
-                            if (isSelected) {
-                                androidx.compose.material3.Badge(containerColor = dotColor) {}
-                            }
-                        }
-                        if (value != AVAILABILITY_OPTIONS.last().first) {
-                            androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                         }
                     }
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            if (isOpen) "Open for Orders" else "Temporarily Closed",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isOpen) CibusGreenDark else MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            if (savingAvailability) "Updating…"
+                            else if (isOpen) "Customers can place orders"
+                            else "Tap to reopen",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
-                    Spacer(Modifier.height(4.dp))
+                // Toggle button
+                Button(
+                    onClick = {
+                        if (isOpen) {
+                            pendingAvailability = "closed"
+                            showCloseConfirm = true
+                        } else {
+                            setAvailability("open")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isOpen) Color(0xFFDC2626) else CibusGreenDark
+                    ),
+                    enabled = !savingAvailability && !loadingAvailability && restaurantId != null
+                ) {
+                    Text(
+                        if (isOpen) "Close Restaurant" else "Open Restaurant",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
 
+                // Fine-grained status chips (only when open)
+                if (isOpen) {
+                    Text(
+                        "Status",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        AVAILABILITY_OPTIONS.filter { it.first != availability }.take(2).forEach { (value, label) ->
-                            Button(
-                                onClick = {
-                                    val rid = restaurantId ?: return@Button
-                                    savingAvailability = true
-                                    scope.launch {
-                                        try {
-                                            RetrofitClient.restaurantApi.patchAvailability(rid, mapOf("availability" to value))
-                                            availability = value
-                                        } catch (_: Exception) {}
-                                        savingAvailability = false
-                                    }
-                                },
-                                enabled = !savingAvailability && restaurantId != null,
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = CibusGreenDark)
-                            ) {
-                                if (savingAvailability) {
-                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
-                                } else {
-                                    Text("Set $label", fontWeight = FontWeight.SemiBold)
-                                }
+                        listOf("open" to "Open", "busy" to "Busy", "closing_soon" to "Closing Soon").forEach { (v, l) ->
+                            val isSelected = availability == v
+                            val chipColor = when (v) {
+                                "open"         -> CibusGreenDark
+                                "busy"         -> CibusAmber
+                                "closing_soon" -> CibusOrange
+                                else -> CibusGreenDark
                             }
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { setAvailability(v) },
+                                label = { Text(l, style = MaterialTheme.typography.labelSmall, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = chipColor.copy(alpha = 0.15f),
+                                    selectedLabelColor = chipColor,
+                                )
+                            )
                         }
                     }
                 }
             }
         }
 
-        // Phase 150: Kitchen Load Throttle card
+        // Confirmation dialog for closing
+        if (showCloseConfirm) {
+            AlertDialog(
+                onDismissRequest = { showCloseConfirm = false },
+                title = { Text("Close restaurant?", fontWeight = FontWeight.Bold) },
+                text = { Text("Customers will not be able to place new orders while your restaurant is closed.") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showCloseConfirm = false
+                            pendingAvailability?.let { setAvailability(it) }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                    ) { Text("Close", fontWeight = FontWeight.SemiBold) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showCloseConfirm = false }) { Text("Cancel") }
+                }
+            )
+        }
+
+        // ── Kitchen Load Throttle ─────────────────────────────────────────
         KitchenThrottleCard(restaurantId = restaurantId, scope = scope)
 
-        // Notifications card
+        // ── Notifications ─────────────────────────────────────────────────
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -187,31 +212,13 @@ fun RestaurantSettingsContent(onLogout: () -> Unit) {
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(Icons.Default.Notifications, contentDescription = null, tint = CibusGreenDark, modifier = Modifier.size(20.dp))
-                    Text(
-                        "Notifications",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    Icon(Icons.Default.Notifications, null, tint = CibusGreenDark, modifier = Modifier.size(20.dp))
+                    Text("Notifications", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "New order alerts",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            "Sound & vibration when a new order arrives",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Text("New order alerts", style = MaterialTheme.typography.bodyMedium)
+                        Text("Sound & vibration when a new order arrives", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Switch(
                         checked = newOrderNotifications,
@@ -224,7 +231,6 @@ fun RestaurantSettingsContent(onLogout: () -> Unit) {
 
         Spacer(Modifier.height(8.dp))
 
-        // Sign out
         Button(
             onClick = onLogout,
             modifier = Modifier.fillMaxWidth(),
@@ -236,10 +242,11 @@ fun RestaurantSettingsContent(onLogout: () -> Unit) {
         ) {
             Text("Sign Out", fontWeight = FontWeight.SemiBold)
         }
+
+        Spacer(Modifier.height(24.dp))
     }
 }
 
-/** Phase 150: Kitchen load throttle card — allows restaurant to self-pause ordering. */
 @Composable
 private fun KitchenThrottleCard(restaurantId: String?, scope: kotlinx.coroutines.CoroutineScope) {
     var orderingPaused by remember { mutableStateOf(false) }
@@ -271,34 +278,29 @@ private fun KitchenThrottleCard(restaurantId: String?, scope: kotlinx.coroutines
                 style = MaterialTheme.typography.bodySmall,
                 color = if (orderingPaused) Color(0xFF8A6400) else MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = {
-                        val target = !orderingPaused
-                        loading = true
-                        scope.launch {
-                            try {
-                                val body = mapOf(
-                                    "paused" to target,
-                                    "reason" to if (target) "Kitchen busy — partner self-throttle" else ""
-                                )
-                                RetrofitClient.restaurantApi.throttleOrdering(body)
-                                orderingPaused = target
-                            } catch (_: Exception) {}
-                            loading = false
-                        }
-                    },
-                    enabled = !loading && restaurantId != null,
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (orderingPaused) CibusGreenDark else Color(0xFFDC2626)
-                    )
-                ) {
-                    if (loading) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
-                    } else {
-                        Text(if (orderingPaused) "Resume Orders" else "Pause New Orders", fontWeight = FontWeight.SemiBold)
+            Button(
+                onClick = {
+                    val target = !orderingPaused
+                    loading = true
+                    scope.launch {
+                        try {
+                            val body = mapOf("paused" to target, "reason" to if (target) "Kitchen busy — partner self-throttle" else "")
+                            RetrofitClient.restaurantApi.throttleOrdering(body)
+                            orderingPaused = target
+                        } catch (_: Exception) {}
+                        loading = false
                     }
+                },
+                enabled = !loading && restaurantId != null,
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (orderingPaused) CibusGreenDark else Color(0xFFDC2626)
+                )
+            ) {
+                if (loading) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                } else {
+                    Text(if (orderingPaused) "Resume Orders" else "Pause New Orders", fontWeight = FontWeight.SemiBold)
                 }
             }
         }

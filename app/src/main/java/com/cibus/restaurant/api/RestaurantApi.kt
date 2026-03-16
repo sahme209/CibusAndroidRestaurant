@@ -193,6 +193,12 @@ data class RestaurantOrderDto(
     @SerializedName("restaurantName") val restaurantName: String? = null,
     val address: Map<String, Any>? = null,
     val items: List<Map<String, Any>>? = null,
+    @SerializedName("riderId") val riderId: String? = null,
+    @SerializedName("riderName") val riderName: String? = null,
+    @SerializedName("riderPhone") val riderPhone: String? = null,
+    @SerializedName("paymentMethod") val paymentMethod: String? = null,
+    @SerializedName("preparingAt") val preparingAt: String? = null,
+    @SerializedName("createdAt") val createdAt: String? = null,
 )
 
 // ── Phase 130: Adaptive Onboarding DTOs ───────────────────────────────────────

@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.cibus.restaurant.app-mergeDebugResources-49:/values-v21/values-v21.xml",
+            "outputFile": "com.cibus.restaurant.app-mergeDebugResources-56:/values-v21/values-v21.xml",
             "map": [
                 {
-                    "source": "/Users/samirahmed/.gradle/caches/9.1.0/transforms/398861d60524fefbb58c876f943eeccc/transformed/core-1.13.1/res/values-v21/values-v21.xml",
+                    "source": "/Users/samirahmed/.gradle/caches/9.1.0/transforms/ba62215d454d617d75499667ae063dea/transformed/core-1.13.1/res/values-v21/values-v21.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,13",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4",

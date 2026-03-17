@@ -9,6 +9,7 @@ package com.cibus.restaurant.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
@@ -49,8 +50,8 @@ fun RestaurantMainScreen(onLogout: () -> Unit = {}) {
         RestaurantTab("Dashboard", Icons.Default.Dashboard),
         RestaurantTab("Orders", Icons.Default.Assignment),
         RestaurantTab("Menu", Icons.Default.MenuBook),
-        RestaurantTab("Promotions", Icons.Default.LocalOffer),
-        RestaurantTab("Payouts", Icons.Default.AccountBalanceWallet),
+        RestaurantTab("Promos", Icons.Default.LocalOffer),
+        RestaurantTab("Wallet", Icons.Default.AccountBalanceWallet),
         RestaurantTab("Settings", Icons.Default.Settings)
     )
     val tabs = if (hasChain == true) {
@@ -60,7 +61,7 @@ fun RestaurantMainScreen(onLogout: () -> Unit = {}) {
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
+            NavigationBar(modifier = Modifier.navigationBarsPadding()) {
                 tabs.forEachIndexed { index, tab ->
                     NavigationBarItem(
                         selected = selectedIndex == index,

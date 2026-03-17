@@ -88,6 +88,10 @@ interface RestaurantApi {
     @GET("restaurants/{id}/orders")
     suspend fun getOrders(@Path("id") restaurantId: String, @Query("limit") limit: Int = 50): Response<List<RestaurantOrderDto>>
 
+    /** Multi-Sided Attraction: Merchant insights — popular items, peak hours (GET /restaurants/:id/insights). */
+    @GET("restaurants/{id}/insights")
+    suspend fun getInsights(@Path("id") restaurantId: String, @Query("days") days: Int = 7): Response<RestaurantInsightsResponse>
+
     /** Register FCM device token for push notifications. Backend: POST /restaurant/me/device-tokens */
     @POST("restaurant/me/device-tokens")
     suspend fun registerDeviceToken(@Body body: Map<String, @JvmSuppressWildcards String>): Response<Unit>
@@ -378,6 +382,18 @@ data class MenuItemResponse(
     val success: Boolean = true,
     val categories: List<MenuCategoryDto> = emptyList(),
 )
+
+// Multi-Sided Attraction: Merchant insights (GET /restaurants/:id/insights)
+data class RestaurantInsightsResponse(
+    @SerializedName("restaurantId") val restaurantId: String = "",
+    @SerializedName("popularItems") val popularItems: List<PopularItemInsight> = emptyList(),
+    @SerializedName("peakHours") val peakHours: List<PeakHourInsight> = emptyList(),
+    @SerializedName("totalOrders") val totalOrders: Int = 0,
+    @SerializedName("days") val days: Int = 7,
+    @SerializedName("generatedAt") val generatedAt: Long? = null,
+)
+data class PopularItemInsight(val name: String = "", val count: Int = 0)
+data class PeakHourInsight(val hour: Int = 0, val count: Int = 0)
 
 // Phase 200: Restaurant Wallet DTOs
 data class RestaurantWalletResponse(

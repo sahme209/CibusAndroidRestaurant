@@ -48,6 +48,7 @@ fun RestaurantAnalyticsContent() {
     var availability by remember { mutableStateOf("open") }
     var restaurantId by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
+    var insights by remember { mutableStateOf<com.cibus.restaurant.api.RestaurantInsightsResponse?>(null) }
 
     suspend fun loadData() {
         try {
@@ -57,6 +58,9 @@ fun RestaurantAnalyticsContent() {
             val resp = RetrofitClient.restaurantApi.getMarketplaceSignals(rid).body()
             hasBoost = resp?.restaurantBoosts?.any { it.restaurantId == rid } == true
             val orders = RetrofitClient.restaurantApi.getOrders(rid).body() ?: emptyList()
+            try {
+                insights = RetrofitClient.restaurantApi.getInsights(rid, 7).body()
+            } catch (_: Exception) { }
             totalOrdersToday = orders.size
             preparingCount = orders.count { it.status == "preparing" || it.status == "accepted" }
             readyCount = orders.count { it.status in listOf("ready_for_pickup", "dispatch_pending", "rider_assigned", "rider_en_route") }
@@ -82,6 +86,42 @@ fun RestaurantAnalyticsContent() {
     ) {
         item {
             Text("Dashboard", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = CibusHeaderCard)
+        }
+
+        // ── Merchant Insights (popular items, peak hours) ───────────────
+        insights?.let { ins ->
+            if (ins.popularItems.isNotEmpty() || ins.peakHours.isNotEmpty()) {
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = CibusSurface
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("Insights", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = CibusHeaderCard)
+                            if (ins.popularItems.isNotEmpty()) {
+                                Text("Popular items (last ${ins.days} days)", fontSize = 12.sp, color = CibusTextSecondary)
+                                ins.popularItems.take(5).forEach { item ->
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text(item.name, fontSize = 13.sp, color = CibusHeaderCard, maxLines = 1)
+                                        Text("${item.count} orders", fontSize = 12.sp, color = CibusTextSecondary)
+                                    }
+                                }
+                            }
+                            if (ins.peakHours.isNotEmpty()) {
+                                Text("Peak hours", fontSize = 12.sp, color = CibusTextSecondary)
+                                ins.peakHours.take(5).forEach { ph ->
+                                    val hourLabel = when (ph.hour) { 0 -> "12 AM"; in 1..12 -> "$ph.hour AM"; 12 -> "12 PM"; else -> "${ph.hour - 12} PM" }
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text(hourLabel, fontSize = 13.sp, color = CibusHeaderCard)
+                                        Text("${ph.count} orders", fontSize = 12.sp, color = CibusTextSecondary)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // ── Availability status badge ─────────────────────────────────

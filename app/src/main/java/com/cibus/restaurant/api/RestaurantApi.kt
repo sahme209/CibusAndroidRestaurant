@@ -210,6 +210,8 @@ data class RestaurantOrderDto(
     @SerializedName("specialInstructions") val specialInstructions: String? = null,
     @SerializedName("prepTimeMinutes") val prepTimeMinutes: Int? = null,
     @SerializedName("riderArrivedAt") val riderArrivedAt: String? = null,
+    @SerializedName("fulfillmentMode") val fulfillmentMode: String? = null,
+    @SerializedName("entityType") val entityType: String? = null,
 ) {
     val itemCount: Int get() = items?.sumOf { item ->
         (item["quantity"] as? Double)?.toInt() ?: (item["quantity"] as? Int) ?: 1

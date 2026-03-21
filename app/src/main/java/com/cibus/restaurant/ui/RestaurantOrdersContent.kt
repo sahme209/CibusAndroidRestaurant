@@ -132,7 +132,25 @@ fun RestaurantOrdersContent() {
     Box(modifier = Modifier.fillMaxSize().background(CibusSurfaceNeutral)) {
         when {
             loading && orders.isEmpty() -> {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = CibusGreenDark)
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            RestaurantSkeletonCard(modifier = Modifier.weight(1f), height = 32.dp)
+                            RestaurantSkeletonCard(modifier = Modifier.weight(1f), height = 32.dp)
+                        }
+                    }
+                    items(3) {
+                        RestaurantSkeletonCard(height = 140.dp)
+                    }
+                }
             }
             error != null && orders.isEmpty() -> {
                 Column(
@@ -290,6 +308,7 @@ private fun OrderCard(
     onMarkReady: () -> Unit,
 ) {
     val status = order.status ?: ""
+    val fm = (order.fulfillmentMode ?: "delivery").lowercase()
     val isNew        = status == "order_placed"
     val isAccepted   = status == "accepted"
     val isPreparing  = status == "preparing"
@@ -338,6 +357,15 @@ private fun OrderCard(
                             fontWeight = FontWeight.SemiBold,
                             color = CibusHeaderCard
                         )
+                        val fmLabel = when (fm) {
+                            "pickup" -> "Pickup"
+                            "dine_in" -> "Dine-in"
+                            else -> "Delivery"
+                        }
+                        Surface(shape = RoundedCornerShape(4.dp), color = CibusGreenDark.copy(alpha = 0.12f)) {
+                            Text(fmLabel, modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = CibusGreenDark)
+                        }
                         if (order.itemCount > 0) {
                             Text(
                                 "${order.itemCount} item${if (order.itemCount != 1) "s" else ""}",
@@ -422,8 +450,9 @@ private fun OrderCard(
                 }
             }
 
-            // ── Rider status ──────────────────────────────────────────────
-            if (isReady || isRiderAssigned || isRiderEnRoute || isRiderArrived) {
+            // ── Rider status (delivery) or pickup/dine-in ready message ────
+            val isDelivery = (order.fulfillmentMode ?: "delivery").lowercase() == "delivery"
+            if (isDelivery && (isReady || isRiderAssigned || isRiderEnRoute || isRiderArrived)) {
                 val riderBg = if (isRiderArrived) CibusGreenDark.copy(alpha = 0.15f) else CibusGreenDark.copy(alpha = 0.07f)
                 Surface(
                     shape = RoundedCornerShape(7.dp),
@@ -464,6 +493,23 @@ private fun OrderCard(
                                     style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
                             }
                         }
+                    }
+                }
+            } else if (!isDelivery && (isReady || isRiderAssigned || isRiderEnRoute || isRiderArrived)) {
+                // Pickup / Dine-in: show ready-for-customer message (no rider needed)
+                Surface(shape = RoundedCornerShape(7.dp), color = CibusAmber.copy(alpha = 0.12f)) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(Icons.Default.Person, null, tint = CibusAmber, modifier = Modifier.size(14.dp))
+                        Text(
+                            if (fm == "dine_in") "Ready for dine-in — customer will collect at table" else "Ready for pickup — customer will collect",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = CibusAmber
+                        )
                     }
                 }
             }

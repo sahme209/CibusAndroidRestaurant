@@ -66,12 +66,12 @@ fun RestaurantSettingsContent(onLogout: () -> Unit) {
     ) {
         Text(
             "Settings",
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        // ── Open / Closed hero toggle ─────────────────────────────────────
+        // ── Open / Closed hero toggle (Uber Eats–style status card) ───────
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),

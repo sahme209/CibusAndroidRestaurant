@@ -87,6 +87,9 @@ fun RestaurantAnalyticsContent() {
         item {
             Text("Dashboard", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = CibusHeaderCard)
         }
+        item {
+            Text("Today's overview", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = CibusHeaderCard)
+        }
 
         // ── Merchant Insights (popular items, peak hours) ───────────────
         insights?.let { ins ->
@@ -98,7 +101,7 @@ fun RestaurantAnalyticsContent() {
                         color = CibusSurface
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("Insights", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = CibusHeaderCard)
+                            Text("Insights", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = CibusHeaderCard)
                             if (ins.popularItems.isNotEmpty()) {
                                 Text("Popular items (last ${ins.days} days)", fontSize = 12.sp, color = CibusTextSecondary)
                                 ins.popularItems.take(5).forEach { item ->

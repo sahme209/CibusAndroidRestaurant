@@ -123,11 +123,12 @@ fun RestaurantOrdersContent() {
         loading = false
     }
 
-    // Group orders by workflow stage
-    val newOrders     = orders.filter { it.status == "order_placed" }
-    val preparingOrds = orders.filter { it.status == "accepted" || it.status == "preparing" }
-    val readyOrds     = orders.filter { it.status in listOf("ready_for_pickup", "dispatch_pending", "rider_assigned", "rider_en_route") }
-    val completedOrds = orders.filter { it.status in listOf("delivered", "picked_up", "on_the_way", "arriving_soon") }
+    // Group orders by workflow stage — queue-first, operator-friendly
+    val newOrders       = orders.filter { it.status == "order_placed" }
+    val preparingOrds   = orders.filter { it.status == "accepted" || it.status == "preparing" }
+    val readyForPickup  = orders.filter { it.status in listOf("ready_for_pickup", "dispatch_pending", "rider_assigned", "rider_en_route") }
+    val outForDelivery  = orders.filter { it.status in listOf("picked_up", "on_the_way", "arriving_soon") }
+    val completedOrds   = orders.filter { it.status == "delivered" }
 
     Box(modifier = Modifier.fillMaxSize().background(CibusSurfaceNeutral)) {
         when {
@@ -189,7 +190,8 @@ fun RestaurantOrdersContent() {
                         ) {
                             if (newOrders.isNotEmpty()) StatPill("${newOrders.size}", "New", CibusRed)
                             if (preparingOrds.isNotEmpty()) StatPill("${preparingOrds.size}", "Preparing", CibusGreenDark)
-                            if (readyOrds.isNotEmpty()) StatPill("${readyOrds.size}", "Ready", CibusAmber)
+                            if (readyForPickup.isNotEmpty()) StatPill("${readyForPickup.size}", "Ready", CibusAmber)
+                            if (outForDelivery.isNotEmpty()) StatPill("${outForDelivery.size}", "En Route", Color(0xFF2563EB))
                             Spacer(Modifier.weight(1f))
                             if (loading) CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = CibusGreenDark)
                         }
@@ -224,9 +226,23 @@ fun RestaurantOrdersContent() {
                     }
 
                     // ── READY FOR PICKUP ──────────────────────────────────
-                    if (readyOrds.isNotEmpty()) {
-                        item { SectionHeader("Ready for Pickup", Icons.Default.CheckCircle, CibusAmber, readyOrds.size) }
-                        items(readyOrds, key = { it.id }) { order ->
+                    if (readyForPickup.isNotEmpty()) {
+                        item { SectionHeader("Ready for Pickup", Icons.Default.CheckCircle, CibusAmber, readyForPickup.size) }
+                        items(readyForPickup, key = { it.id }) { order ->
+                            OrderCard(
+                                order = order,
+                                onAccept = {},
+                                onReject = {},
+                                onStartPreparing = {},
+                                onMarkReady = {}
+                            )
+                        }
+                    }
+
+                    // ── OUT FOR DELIVERY ───────────────────────────────────
+                    if (outForDelivery.isNotEmpty()) {
+                        item { SectionHeader("Out for Delivery", Icons.Default.LocalShipping, Color(0xFF2563EB), outForDelivery.size) }
+                        items(outForDelivery, key = { it.id }) { order ->
                             OrderCard(
                                 order = order,
                                 onAccept = {},

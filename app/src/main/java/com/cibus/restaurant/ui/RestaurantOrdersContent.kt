@@ -93,6 +93,7 @@ fun RestaurantOrdersContent() {
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var actionError by remember { mutableStateOf<String?>(null) }
+    var actionLoadingId by remember { mutableStateOf<String?>(null) }
     var showRejectDialog by remember { mutableStateOf(false) }
     var pendingRejectOrderId by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -238,9 +239,10 @@ fun RestaurantOrdersContent() {
                         items(newOrders, key = { it.id }) { order ->
                             OrderCard(
                                 order = order,
-                                onAccept = { scope.launch { runOrderAction(order.id, "accept", restaurantId, ::refresh, onError = onActionError) } },
+                                isActionLoading = actionLoadingId == order.id,
+                                onAccept = { scope.launch { actionLoadingId = order.id; try { runOrderAction(order.id, "accept", restaurantId, ::refresh, onError = onActionError) } finally { actionLoadingId = null } } },
                                 onReject = { pendingRejectOrderId = order.id; showRejectDialog = true },
-                                onDelay = { mins -> scope.launch { runDelayOrder(order.id, mins, restaurantId, ::refresh) } },
+                                onDelay = { mins -> scope.launch { actionLoadingId = order.id; try { runDelayOrder(order.id, mins, restaurantId, ::refresh) } finally { actionLoadingId = null } } },
                                 onRunningLate = {},
                                 onStartPreparing = {},
                                 onMarkReady = {}
@@ -254,12 +256,13 @@ fun RestaurantOrdersContent() {
                         items(preparingOrds, key = { it.id }) { order ->
                             OrderCard(
                                 order = order,
+                                isActionLoading = actionLoadingId == order.id,
                                 onAccept = {},
                                 onReject = {},
                                 onDelay = {},
-                                onRunningLate = {},
-                                onStartPreparing = { scope.launch { runOrderAction(order.id, "preparing", restaurantId, ::refresh, onError = onActionError) } },
-                                onMarkReady = { scope.launch { runOrderAction(order.id, "ready_for_pickup", restaurantId, ::refresh, onError = onActionError) } }
+                                onRunningLate = { scope.launch { actionLoadingId = order.id; try { runOrderAction(order.id, "running_late", restaurantId, ::refresh, onError = onActionError) } finally { actionLoadingId = null } } },
+                                onStartPreparing = { scope.launch { actionLoadingId = order.id; try { runOrderAction(order.id, "preparing", restaurantId, ::refresh, onError = onActionError) } finally { actionLoadingId = null } } },
+                                onMarkReady = { scope.launch { actionLoadingId = order.id; try { runOrderAction(order.id, "ready_for_pickup", restaurantId, ::refresh, onError = onActionError) } finally { actionLoadingId = null } } }
                             )
                         }
                     }
@@ -270,6 +273,7 @@ fun RestaurantOrdersContent() {
                         items(readyForPickup, key = { it.id }) { order ->
                             OrderCard(
                                 order = order,
+                                isActionLoading = false,
                                 onAccept = {},
                                 onReject = {},
                                 onDelay = {},
@@ -286,6 +290,7 @@ fun RestaurantOrdersContent() {
                         items(outForDelivery, key = { it.id }) { order ->
                             OrderCard(
                                 order = order,
+                                isActionLoading = false,
                                 onAccept = {},
                                 onReject = {},
                                 onDelay = {},
@@ -300,7 +305,7 @@ fun RestaurantOrdersContent() {
                     if (completedOrds.isNotEmpty()) {
                         item { SectionHeader("Completed", Icons.Default.Done, CibusTextSecondary, completedOrds.size) }
                         items(completedOrds, key = { it.id }) { order ->
-                            OrderCard(order = order, onAccept = {}, onReject = {}, onDelay = {}, onRunningLate = {}, onStartPreparing = {}, onMarkReady = {})
+                            OrderCard(order = order, isActionLoading = false, onAccept = {}, onReject = {}, onDelay = {}, onRunningLate = {}, onStartPreparing = {}, onMarkReady = {})
                         }
                     }
 
@@ -344,7 +349,7 @@ fun RestaurantOrdersContent() {
                                     showRejectDialog = false
                                     pendingRejectOrderId = null
                                     if (oid != null) {
-                                        scope.launch { runOrderAction(oid, "reject", restaurantId, ::refresh, rejectReason = reason, onError = onActionError) }
+                                        scope.launch { actionLoadingId = oid; try { runOrderAction(oid, "reject", restaurantId, ::refresh, rejectReason = reason, onError = onActionError) } finally { actionLoadingId = null } }
                                     }
                                 }
                             ) { Text(reason) }
@@ -427,6 +432,7 @@ private fun SectionHeader(title: String, icon: androidx.compose.ui.graphics.vect
 @Composable
 private fun OrderCard(
     order: RestaurantOrderDto,
+    isActionLoading: Boolean,
     onAccept: () -> Unit,
     onReject: () -> Unit,
     onDelay: (Int) -> Unit,
@@ -443,8 +449,6 @@ private fun OrderCard(
     val isRiderAssigned = status == "rider_assigned"
     val isRiderEnRoute  = status == "rider_en_route"
     val isRiderArrived  = status == "rider_arrived" || order.riderArrivedAt != null
-
-    var actionLoading by remember(order.id) { mutableStateOf(false) }
 
     // Parse preparingAt to epoch ms for timer
     val preparingAtMs: Long? = remember(order.preparingAt) {
@@ -727,7 +731,7 @@ private fun OrderCard(
             }
 
             // ── Action buttons ─────────────────────────────────────────────
-            if (actionLoading) {
+            if (isActionLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp).align(Alignment.CenterHorizontally),
                     color = CibusGreenDark,
@@ -739,7 +743,7 @@ private fun OrderCard(
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             listOf(10, 15, 30).forEach { mins ->
                                 OutlinedButton(
-                                    onClick = { actionLoading = true; onDelay(mins) },
+                                    onClick = { onDelay(mins) },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(8.dp),
                                     colors = ButtonDefaults.outlinedButtonColors(contentColor = CibusAmber),
@@ -749,14 +753,14 @@ private fun OrderCard(
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedButton(
-                                onClick = { actionLoading = true; onReject() },
+                                onClick = { onReject() },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = CibusRed),
                                 border = androidx.compose.foundation.BorderStroke(1.5.dp, CibusRed.copy(alpha = 0.4f))
                             ) { Text("Reject", fontWeight = FontWeight.SemiBold) }
                             Button(
-                                onClick = { actionLoading = true; onAccept() },
+                                onClick = { onAccept() },
                                 modifier = Modifier.weight(1.6f),
                                 shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = CibusGreenDark)
@@ -766,7 +770,7 @@ private fun OrderCard(
                 }
                 isAccepted -> {
                     Button(
-                        onClick = { actionLoading = true; onStartPreparing() },
+                        onClick = { onStartPreparing() },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = CibusGreenDark)
@@ -779,7 +783,7 @@ private fun OrderCard(
                 isPreparing -> {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(
-                            onClick = { actionLoading = true; onRunningLate() },
+                            onClick = { onRunningLate() },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = CibusAmber),
@@ -790,7 +794,7 @@ private fun OrderCard(
                             Text("Running late", fontWeight = FontWeight.SemiBold)
                         }
                         Button(
-                            onClick = { actionLoading = true; onMarkReady() },
+                            onClick = { onMarkReady() },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF40916C))

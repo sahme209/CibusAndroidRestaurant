@@ -68,6 +68,8 @@ fun SimpleOnboardingWizard(
     // Complete setup fields (when user taps "Looks good")
     var restaurantName by remember { mutableStateOf("") }
     var ownerName by remember { mutableStateOf("") }
+    var city by remember { mutableStateOf("Islamabad") }
+    var sector by remember { mutableStateOf("F-6") }
     var phone by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -158,6 +160,10 @@ fun SimpleOnboardingWizard(
                         onRestaurantNameChange = { restaurantName = it },
                         ownerName = ownerName,
                         onOwnerNameChange = { ownerName = it },
+                        city = city,
+                        onCityChange = { city = it },
+                        sector = sector,
+                        onSectorChange = { sector = it },
                         phone = phone,
                         onPhoneChange = { v -> phone = v.filter { it.isDigit() }.take(11) },
                         email = email,
@@ -168,7 +174,7 @@ fun SimpleOnboardingWizard(
                         submitting = submitting,
                         onBack = { showCompleteSetup = false },
                         onSubmit = {
-                            if (restaurantName.isBlank() || ownerName.isBlank() || phone.length < 10 || email.isBlank() || password.length < 6) return@SimpleCompleteSetupContent
+                            if (restaurantName.isBlank() || ownerName.isBlank() || city.isBlank() || sector.isBlank() || phone.length < 10 || email.isBlank() || password.length < 6) return@SimpleCompleteSetupContent
                             submitting = true
                             submitError = null
                             scope.launch {
@@ -178,9 +184,9 @@ fun SimpleOnboardingWizard(
                                         email = email,
                                         password = password,
                                         restaurantName = restaurantName,
-                                        address = "Islamabad",
-                                        city = "Islamabad",
-                                        sector = "F-6",
+                                        address = "$sector, $city",
+                                        city = city,
+                                        sector = sector,
                                         phone = phone,
                                         cuisineType = "Pakistani",
                                         integrationType = "APP",
@@ -206,7 +212,6 @@ fun SimpleOnboardingWizard(
                 step == 2 -> Step3Confirmation(
                     onLooksGood = { showCompleteSetup = true },
                     onEdit = { step = 0; menuImageUri = null },
-                    onDismiss = onDismiss,
                 )
             }
         }
@@ -307,14 +312,14 @@ private fun Step2Processing() {
         }
         Spacer(modifier = Modifier.height(32.dp))
         Text(
-            "Setting up your restaurant...",
+            "Setting up your restaurant…",
             fontSize = 20.sp,
             fontWeight = FontWeight.SemiBold,
             color = RestTextPrimary,
             textAlign = TextAlign.Center,
         )
         Text(
-            "Almost there",
+            "Thora intezar karo…",
             fontSize = 16.sp,
             color = RestTextSecondary,
             modifier = Modifier.padding(top = 8.dp),
@@ -327,7 +332,6 @@ private fun Step2Processing() {
 private fun Step3Confirmation(
     onLooksGood: () -> Unit,
     onEdit: () -> Unit,
-    onDismiss: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -348,14 +352,14 @@ private fun Step3Confirmation(
         }
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            "You're all set",
+            "Almost there",
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             color = RestTextPrimary,
             textAlign = TextAlign.Center,
         )
         Text(
-            "Add your menu in the next step",
+            "Ab details bharo aur start karo",
             fontSize = 16.sp,
             color = RestTextSecondary,
             modifier = Modifier.padding(top = 8.dp),
@@ -405,6 +409,10 @@ private fun SimpleCompleteSetupContent(
     onRestaurantNameChange: (String) -> Unit,
     ownerName: String,
     onOwnerNameChange: (String) -> Unit,
+    city: String,
+    onCityChange: (String) -> Unit,
+    sector: String,
+    onSectorChange: (String) -> Unit,
     phone: String,
     onPhoneChange: (String) -> Unit,
     email: String,
@@ -436,6 +444,8 @@ private fun SimpleCompleteSetupContent(
         }
         SimpleField("Restaurant name", restaurantName, onRestaurantNameChange)
         SimpleField("Your name", ownerName, onOwnerNameChange)
+        SimpleField("City", city, onCityChange)
+        SimpleField("Area / Sector", sector, onSectorChange)
         SimpleField("Phone", phone, onPhoneChange, KeyboardType.Phone)
         SimpleField("Email", email, onEmailChange, KeyboardType.Email)
         SimpleField("Password", password, onPasswordChange, KeyboardType.Password, isPassword = true)
@@ -445,7 +455,7 @@ private fun SimpleCompleteSetupContent(
             Button(
                 onClick = onSubmit,
                 modifier = Modifier.weight(1f),
-                enabled = !submitting && restaurantName.isNotBlank() && ownerName.isNotBlank() && phone.length >= 10 && email.isNotBlank() && password.length >= 6,
+                enabled = !submitting && restaurantName.isNotBlank() && ownerName.isNotBlank() && city.isNotBlank() && sector.isNotBlank() && phone.length >= 10 && email.isNotBlank() && password.length >= 6,
                 colors = ButtonDefaults.buttonColors(containerColor = RestGreen),
             ) {
                 if (submitting) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)

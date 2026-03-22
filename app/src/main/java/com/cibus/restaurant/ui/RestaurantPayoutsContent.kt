@@ -89,7 +89,7 @@ fun RestaurantPayoutsContent() {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     PayoutKpiCard(
                         modifier = Modifier.weight(1f),
-                        title = "30-Day Revenue",
+                        title = "30-Day Net Earnings",
                         value = "Rs ${last30Revenue.toInt()}",
                         color = Color(0xFF2D6A4F)
                     )
@@ -117,7 +117,7 @@ fun RestaurantPayoutsContent() {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text("How Payouts Work", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1A1A1A))
                         listOf(
-                            "Order revenue is credited to your wallet after delivery confirmation",
+                            "Net earnings (after platform commission) credited after each delivery",
                             "Ops team approves payout requests weekly",
                             "Funds transferred via bank transfer or mobile wallet (JazzCash/Easypaisa)",
                             "Transaction history and payout receipts available in Ops Portal"

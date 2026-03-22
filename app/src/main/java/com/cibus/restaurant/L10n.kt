@@ -44,4 +44,8 @@ object ResL10n {
     fun errPhone(ctx: Context) = if (isUrdu(ctx)) "10+ digit phone likho" else "Enter 10+ digit phone"
     fun errCnic(ctx: Context) = if (isUrdu(ctx)) "CNIC 13 numbers hona chahiye" else "CNIC must be 13 digits"
     fun errNtnPfa(ctx: Context) = if (isUrdu(ctx)) "NTN aur PFA license likho" else "Enter NTN and PFA license"
+
+    fun entryGetStarted(ctx: Context) = if (isUrdu(ctx)) "Shuru karo" else "Get Started"
+    fun entrySignInLink(ctx: Context) = if (isUrdu(ctx)) "Pehle se account hai? Login" else "Already have account? Sign in"
+    fun entryTagline(ctx: Context) = if (isUrdu(ctx)) "Apna restaurant Cibus par list karo. Orders lo. Paise kamao." else "List your restaurant on Cibus. Receive orders. Grow your business."
 }

@@ -15,10 +15,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -52,6 +55,9 @@ fun RestaurantMainScreen(onLogout: () -> Unit = {}) {
         RestaurantTab("Menu", Icons.Default.MenuBook),
         RestaurantTab("Promos", Icons.Default.LocalOffer),
         RestaurantTab("Wallet", Icons.Default.AccountBalanceWallet),
+        RestaurantTab("Reviews", Icons.Filled.Star),
+        RestaurantTab("Issues", Icons.Filled.Warning),
+        RestaurantTab("Inbox", Icons.Default.Mail),
         RestaurantTab("Settings", Icons.Default.Settings)
     )
     val tabs = if (hasChain == true) {
@@ -86,8 +92,14 @@ fun RestaurantMainScreen(onLogout: () -> Unit = {}) {
                 selectedIndex == 4 && hasChain == true -> RestaurantPromotionsContent()
                 selectedIndex == 4 && hasChain != true -> RestaurantPayoutsContent()
                 selectedIndex == 5 && hasChain == true -> RestaurantPayoutsContent()
-                selectedIndex == 5 && hasChain != true -> RestaurantSettingsContent(onLogout)
-                selectedIndex == 6 && hasChain == true -> RestaurantSettingsContent(onLogout)
+                selectedIndex == 5 && hasChain != true -> RestaurantReviewsContent()
+                selectedIndex == 6 && hasChain == true -> RestaurantReviewsContent()
+                selectedIndex == 6 && hasChain != true -> RestaurantOrderIssuesContent()
+                selectedIndex == 7 && hasChain == true -> RestaurantOrderIssuesContent()
+                selectedIndex == 7 && hasChain != true -> RestaurantInboxContent()
+                selectedIndex == 8 && hasChain == true -> RestaurantInboxContent()
+                selectedIndex == 8 && hasChain != true -> RestaurantSettingsContent(onLogout)
+                selectedIndex == 9 && hasChain == true -> RestaurantSettingsContent(onLogout)
                 else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("${tabs.getOrNull(selectedIndex)?.title ?: ""} — coming soon")
                 }

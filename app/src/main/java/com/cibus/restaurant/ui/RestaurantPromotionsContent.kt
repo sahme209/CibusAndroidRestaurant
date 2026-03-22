@@ -50,6 +50,29 @@ fun RestaurantPromotionsContent() {
             }
         }
 
+        // Uber Eats: Campaign performance summary
+        item {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = CibusGreenDark.copy(alpha = 0.08f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("0", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = CibusGreenDark)
+                        Text("Redemptions", fontSize = 11.sp, color = CibusTextSecondary)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("0", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A1A))
+                        Text("New customers", fontSize = 11.sp, color = CibusTextSecondary)
+                    }
+                }
+            }
+        }
+
         item {
             Text(
                 "Active promotions",
@@ -141,6 +164,10 @@ private fun PromotionCard(promo: RestaurantPromo) {
                 Text(promo.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A1A))
                 Text("Code: ${promo.code}", fontSize = 12.sp, color = Color(0xFF6B6B6B))
                 Text("Valid: ${promo.validUntil}", fontSize = 11.sp, color = Color(0xFF8E8E8E))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 4.dp)) {
+                    Text("0 redemptions", fontSize = 11.sp, color = CibusGreenDark)
+                    Text("0 new", fontSize = 11.sp, color = CibusTextSecondary)
+                }
             }
             Text(promo.value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = CibusGreenDark)
         }

@@ -20,6 +20,7 @@ import com.cibus.restaurant.claim.RestaurantListingState
 import com.cibus.restaurant.ui.claim.*
 
 sealed class RestaurantRoute(val route: String) {
+    data object Entry      : RestaurantRoute("entry")
     data object Login      : RestaurantRoute("login")
     data object Apply      : RestaurantRoute("apply")
     data object Onboarding : RestaurantRoute("onboarding")
@@ -30,8 +31,8 @@ sealed class RestaurantRoute(val route: String) {
     data object Main       : RestaurantRoute("main")
 }
 
-private fun navigateToLogin(navController: androidx.navigation.NavController) {
-    navController.navigate(RestaurantRoute.Login.route) {
+private fun navigateToEntry(navController: androidx.navigation.NavController) {
+    navController.navigate(RestaurantRoute.Entry.route) {
         popUpTo(0) { inclusive = true }
     }
 }
@@ -48,7 +49,7 @@ fun RestaurantApp() {
         RestaurantSessionCallbacks.on401 = {
             Handler(Looper.getMainLooper()).post {
                 isLoggedIn = false
-                navigateToLogin(navController)
+                navigateToEntry(navController)
             }
         }
         onDispose { RestaurantSessionCallbacks.on401 = null }
@@ -83,16 +84,24 @@ fun RestaurantApp() {
 
     NavHost(
         navController = navController,
-        startDestination = RestaurantRoute.Login.route
+        startDestination = RestaurantRoute.Entry.route
     ) {
+        composable(RestaurantRoute.Entry.route) {
+            EntryScreen(
+                onGetStarted = { navController.navigate(RestaurantRoute.Wizard.route) },
+                onSignIn = { navController.navigate(RestaurantRoute.Login.route) },
+            )
+        }
+
         composable(RestaurantRoute.Login.route) {
             LoginScreen(
+                onBackToEntry = { navController.popBackStack() },
                 onApplyClick = { navController.navigate(RestaurantRoute.Apply.route) },
                 onRegisterClick = { navController.navigate(RestaurantRoute.Wizard.route) },
                 onLoginSuccess = {
                     isLoggedIn = true
                     navController.navigate(RestaurantRoute.Onboarding.route) {
-                        popUpTo(RestaurantRoute.Login.route) { inclusive = true }
+                        popUpTo(RestaurantRoute.Entry.route) { inclusive = true }
                     }
                 }
             )
@@ -103,7 +112,7 @@ fun RestaurantApp() {
         }
 
         composable(RestaurantRoute.Wizard.route) {
-            AdaptiveOnboardingWizard(
+            SimpleOnboardingWizard(
                 onDismiss = { navController.popBackStack() },
                 onCompleted = { token, expiresIn ->
                     RetrofitClient.getTokenStore().saveToken(token)
@@ -179,7 +188,7 @@ fun RestaurantApp() {
                 isLoggedIn = false
                 isOperational = false
                 listingState = RestaurantListingState.UNCLAIMED
-                navController.navigate(RestaurantRoute.Login.route) {
+                navController.navigate(RestaurantRoute.Entry.route) {
                     popUpTo(RestaurantRoute.Main.route) { inclusive = true }
                 }
             })

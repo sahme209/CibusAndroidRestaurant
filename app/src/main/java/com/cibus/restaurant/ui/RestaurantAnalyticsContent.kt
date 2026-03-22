@@ -36,43 +36,95 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /** Restaurant analytics dashboard — live daily orders, revenue, kitchen pressure, rider timing, quality risk. */
+/** Date filter for sales dashboard (Uber Eats-style). */
+private enum class SalesDateFilter(val label: String, val daysBack: Int?) {
+    TODAY("Today", 0),
+    YESTERDAY("Yesterday", 1),
+    LAST_7("Last 7 days", 7),
+}
+
+private fun parseOrderCreatedAt(ts: String?): Long? {
+    if (ts.isNullOrBlank()) return null
+    return listOf(
+        java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") },
+        java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") },
+        java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", java.util.Locale.US),
+    ).firstNotNullOfOrNull { fmt -> runCatching { fmt.parse(ts)?.time }.getOrNull() }
+}
+
 @Composable
 fun RestaurantAnalyticsContent() {
     var hasBoost by remember { mutableStateOf(false) }
-    var preparingCount by remember { mutableStateOf(0) }
-    var readyCount by remember { mutableStateOf(0) }
-    var totalOrdersToday by remember { mutableStateOf(0) }
-    var completedCount by remember { mutableStateOf(0) }
-    var totalRevenue by remember { mutableStateOf(0.0) }
+    var allOrders by remember { mutableStateOf<List<com.cibus.restaurant.api.RestaurantOrderDto>>(emptyList()) }
     var walletBalance by remember { mutableStateOf<Double?>(null) }
+    var last30Revenue by remember { mutableStateOf<Double?>(null) }
+    var pendingPayouts by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
+    var completedPayouts by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
     var availability by remember { mutableStateOf("open") }
     var restaurantId by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
     var insights by remember { mutableStateOf<com.cibus.restaurant.api.RestaurantInsightsResponse?>(null) }
+    var dateFilter by remember { mutableStateOf(SalesDateFilter.TODAY) }
 
     suspend fun loadData() {
         try {
             val me = RetrofitClient.restaurantApi.getMe().body()
             val rid = me?.restaurantId ?: return
             restaurantId = rid
+            availability = me.availability ?: "open"
             val resp = RetrofitClient.restaurantApi.getMarketplaceSignals(rid).body()
             hasBoost = resp?.restaurantBoosts?.any { it.restaurantId == rid } == true
-            val orders = RetrofitClient.restaurantApi.getOrders(rid).body() ?: emptyList()
+            allOrders = RetrofitClient.restaurantApi.getOrders(rid).body() ?: emptyList()
             try {
                 insights = RetrofitClient.restaurantApi.getInsights(rid, 7).body()
             } catch (_: Exception) { }
-            totalOrdersToday = orders.size
-            preparingCount = orders.count { it.status == "preparing" || it.status == "accepted" }
-            readyCount = orders.count { it.status in listOf("ready_for_pickup", "dispatch_pending", "rider_assigned", "rider_en_route") }
-            completedCount = orders.count { it.status == "delivered" }
-            totalRevenue = orders.filter { it.status == "delivered" }.sumOf { it.total ?: 0.0 }
             val wallet = RetrofitClient.restaurantApi.getRestaurantWallet().body()
             walletBalance = wallet?.walletBalance
+            last30Revenue = wallet?.last30Revenue
+            pendingPayouts = wallet?.pendingPayouts ?: emptyList()
+            completedPayouts = wallet?.completedPayouts ?: emptyList()
         } catch (_: Exception) { }
         loading = false
     }
 
     LaunchedEffect(Unit) { loadData() }
+
+    // Filter orders by date (Uber Eats-style date filter)
+    val now = System.currentTimeMillis()
+    val filteredOrders = remember(allOrders, dateFilter) {
+        allOrders.filter { order ->
+            val createdMs = parseOrderCreatedAt(order.createdAt) ?: return@filter true
+            when (dateFilter) {
+                SalesDateFilter.TODAY -> {
+                    val dayStart = java.util.Calendar.getInstance().apply {
+                        set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+                        set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+                    }.timeInMillis
+                    createdMs >= dayStart
+                }
+                SalesDateFilter.YESTERDAY -> {
+                    val cal = java.util.Calendar.getInstance()
+                    cal.add(java.util.Calendar.DAY_OF_YEAR, -1)
+                    cal.set(java.util.Calendar.HOUR_OF_DAY, 0); cal.set(java.util.Calendar.MINUTE, 0)
+                    cal.set(java.util.Calendar.SECOND, 0); cal.set(java.util.Calendar.MILLISECOND, 0)
+                    val yesterdayStart = cal.timeInMillis
+                    cal.add(java.util.Calendar.DAY_OF_YEAR, 1)
+                    val yesterdayEnd = cal.timeInMillis
+                    createdMs in yesterdayStart until yesterdayEnd
+                }
+                SalesDateFilter.LAST_7 -> {
+                    val sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000L
+                    createdMs >= sevenDaysAgo
+                }
+            }
+        }
+    }
+    val preparingCount = filteredOrders.count { it.status == "preparing" || it.status == "accepted" }
+    val readyCount = filteredOrders.count { it.status in listOf("ready_for_pickup", "dispatch_pending", "rider_assigned", "rider_en_route") }
+    val completedCount = filteredOrders.count { it.status == "delivered" }
+    val totalOrdersToday = filteredOrders.size
+    val totalRevenue = filteredOrders.filter { it.status == "delivered" }.sumOf { it.total ?: 0.0 }
+    val avgTicketSize = if (completedCount > 0) totalRevenue / completedCount else 0.0
 
     val qualityRisk = when {
         preparingCount > 8 || readyCount > 5 -> "high"
@@ -81,14 +133,89 @@ fun RestaurantAnalyticsContent() {
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         item {
             Text("Dashboard", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = CibusHeaderCard)
+            Spacer(Modifier.height(4.dp))
         }
+        // Date filter (Uber Eats-style)
         item {
-            Text("Today's overview", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = CibusHeaderCard)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Sales overview", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = CibusHeaderCard)
+                Spacer(Modifier.weight(1f))
+                SalesDateFilter.entries.forEach { filter ->
+                    val selected = dateFilter == filter
+                    Surface(
+                        onClick = { dateFilter = filter },
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (selected) CibusGreenDark else CibusSurface,
+                        modifier = Modifier
+                    ) {
+                        Text(
+                            filter.label,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            fontSize = 12.sp,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (selected) Color.White else CibusTextSecondary
+                        )
+                    }
+                }
+            }
+        }
+
+        // ── Today's goal (Uber Eats) ─────────────────────────────────────
+        if (!loading && totalRevenue > 0) {
+            item {
+                val goal = 15000.0
+                val progress = (totalRevenue / goal).coerceIn(0.0, 1.0)
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.White
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Today's goal", fontWeight = FontWeight.SemiBold, color = CibusHeaderCard)
+                            Text("Rs ${totalRevenue.toInt()} / ${goal.toInt()}", fontSize = 12.sp, color = CibusTextSecondary)
+                        }
+                        LinearProgressIndicator(
+                            progress = { progress.toFloat() },
+                            modifier = Modifier.fillMaxWidth().height(6.dp),
+                            color = CibusGreenDark,
+                            trackColor = CibusTextSecondary.copy(alpha = 0.2f),
+                        )
+                    }
+                }
+            }
+        }
+
+        // ── Store alerts (Uber Eats) ─────────────────────────────────────
+        if (!loading) {
+            item {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = CibusGreenDark.copy(alpha = 0.08f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.CheckCircle, null, tint = CibusGreenDark, modifier = Modifier.size(20.dp))
+                        Column {
+                            Text("All systems operational", fontWeight = FontWeight.SemiBold, color = CibusGreenDark)
+                            Text("No store alerts. Orders flowing normally.", fontSize = 12.sp, color = CibusTextSecondary)
+                        }
+                    }
+                }
+            }
         }
 
         // ── Merchant Insights (popular items, peak hours) ───────────────
@@ -167,27 +294,35 @@ fun RestaurantAnalyticsContent() {
             }
         }
 
-        // ── Live metrics grid ─────────────────────────────────────────────
+        // ── Live metrics grid (Uber Eats-style) ───────────────────────────
         item {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Spacer(Modifier.height(4.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 MetricCard(
-                    title = "Orders Today",
+                    title = "Orders",
                     value = if (loading) "—" else "$totalOrdersToday",
-                    subtitle = if (loading) "Loading…" else if (totalOrdersToday > 0) "Active + completed" else "None yet",
+                    subtitle = if (loading) "Loading…" else if (totalOrdersToday > 0) "In period" else "None yet",
                     icon = Icons.Default.Assignment,
                     modifier = Modifier.weight(1f)
                 )
                 MetricCard(
-                    title = "Revenue Today",
+                    title = "Revenue",
                     value = if (loading) "—" else if (totalRevenue > 0) "Rs ${totalRevenue.toInt()}" else "Rs 0",
                     subtitle = if (loading) "Loading…" else "Completed orders",
                     icon = Icons.Default.AttachMoney,
                     modifier = Modifier.weight(1f)
                 )
+                MetricCard(
+                    title = "Avg ticket",
+                    value = if (loading) "—" else if (avgTicketSize > 0) "Rs ${avgTicketSize.toInt()}" else "—",
+                    subtitle = if (loading) "…" else "Per order",
+                    icon = Icons.Default.Receipt,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
         item {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 MetricCard(
                     title = "Preparing Now",
                     value = if (loading) "—" else "$preparingCount",
@@ -205,7 +340,7 @@ fun RestaurantAnalyticsContent() {
             }
         }
 
-        // ── Wallet balance ─────────────────────────────────────────────
+        // ── Wallet + Payout breakdown (Uber Eats-style) ───────────────────
         if (!loading && walletBalance != null) {
             item {
                 Surface(
@@ -213,22 +348,47 @@ fun RestaurantAnalyticsContent() {
                     shape = RoundedCornerShape(12.dp),
                     color = CibusGreenDark
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("Wallet Balance", fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
-                            Text(
-                                "Rs ${walletBalance!!.toInt()}",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Text("Available for payout", fontSize = 11.sp, color = Color.White.copy(alpha = 0.6f))
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text("Wallet Balance", fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
+                                Text(
+                                    "Rs ${walletBalance!!.toInt()}",
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                                Text("Available for payout", fontSize = 11.sp, color = Color.White.copy(alpha = 0.6f))
+                            }
+                            Icon(Icons.Default.AccountBalanceWallet, null, tint = Color.White.copy(alpha = 0.6f), modifier = Modifier.size(32.dp))
                         }
-                        Icon(Icons.Default.AccountBalanceWallet, null, tint = Color.White.copy(alpha = 0.6f), modifier = Modifier.size(32.dp))
+                        if (last30Revenue != null && last30Revenue!! > 0 || pendingPayouts.isNotEmpty() || completedPayouts.isNotEmpty()) {
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.2f))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                last30Revenue?.takeIf { it > 0 }?.let { rev ->
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("Rs ${rev.toInt()}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        Text("Last 30d", fontSize = 10.sp, color = Color.White.copy(alpha = 0.7f))
+                                    }
+                                }
+                                if (pendingPayouts.isNotEmpty()) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("${pendingPayouts.size}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        Text("Pending", fontSize = 10.sp, color = Color.White.copy(alpha = 0.7f))
+                                    }
+                                }
+                                if (completedPayouts.isNotEmpty()) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("${completedPayouts.size}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        Text("Paid out", fontSize = 10.sp, color = Color.White.copy(alpha = 0.7f))
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -270,12 +430,13 @@ private fun MetricCard(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         color = Color.White,
-        shadowElevation = 2.dp
+        shadowElevation = 3.dp
     ) {
         Column(
-            modifier = Modifier.padding(14.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,

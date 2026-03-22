@@ -40,6 +40,8 @@ data class RestaurantMeResponse(
     @SerializedName("applicationStatus") val applicationStatus: String? = "approved",
     @SerializedName("chainId") val chainId: String? = null,
     @SerializedName("chainName") val chainName: String? = null,
+    val availability: String? = "open",
+    @SerializedName("throttlePaused") val throttlePaused: Boolean? = null,
 )
 
 data class ChainMeResponse(

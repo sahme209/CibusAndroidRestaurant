@@ -1,24 +1,40 @@
 package com.cibus.restaurant.ui.claim
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cibus.restaurant.api.RetrofitClient
 import com.cibus.restaurant.claim.ClaimStatusSummary
 import com.cibus.restaurant.claim.RestaurantListingState
+import com.cibus.restaurant.ui.theme.CibusDimens
+import com.cibus.restaurant.ui.theme.CibusGreen
 
 /**
  * PartnerOnboardingScreen.kt
  * Hub screen for unverified restaurant partners.
- * Routes between find/claim, waiting, needs-info, rejected, and suspended states.
+ * Premium design with consistent spacing and clear hierarchy.
  */
 @Composable
 fun PartnerOnboardingScreen(
@@ -33,32 +49,43 @@ fun PartnerOnboardingScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFFF8FAF9), Color(0xFFF0F7F4), Color.White),
+                    startY = 0f,
+                    endY = Float.POSITIVE_INFINITY,
+                )
+            )
             .verticalScroll(rememberScrollState())
-            .padding(24.dp),
+            .padding(CibusDimens.spacing24),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(CibusDimens.spacing32))
 
         Icon(
             Icons.Default.Storefront,
             null,
             modifier = Modifier.size(72.dp),
-            tint = Color(0xFF1F5C42)
+            tint = CibusGreen,
         )
 
-        Spacer(Modifier.height(16.dp))
-        Text("Become a Cibus Partner", style = MaterialTheme.typography.headlineSmall)
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(CibusDimens.spacing16))
+        Text(
+            "Become a Cibus Partner",
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(CibusDimens.spacing8))
         Text(
             "Claim your restaurant listing, verify ownership, and start receiving orders.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
         )
 
         // Status badge
         if (listingState != RestaurantListingState.UNCLAIMED && listingState != RestaurantListingState.IMPORTED_PUBLIC) {
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(CibusDimens.spacing12))
             AssistChip(
                 onClick = {},
                 label = { Text(listingState.displayLabel) },
@@ -66,7 +93,7 @@ fun PartnerOnboardingScreen(
             )
         }
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(CibusDimens.spacing32))
 
         // ── Route by state ─────────────────────────────────────────────────
         when (listingState) {
@@ -110,7 +137,7 @@ fun PartnerOnboardingScreen(
             }
         }
 
-        Spacer(Modifier.height(40.dp))
+        Spacer(Modifier.height(CibusDimens.spacing32))
     }
 }
 
@@ -122,7 +149,10 @@ private fun FindAndClaimSection(
     onSearchChange: (String) -> Unit,
     onClaim: () -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing12),
+    ) {
         listOf(
             Triple("1", "Find Your Restaurant", "Search for your restaurant among public listings."),
             Triple("2", "Claim Ownership", "Provide your identity and business details."),
@@ -132,7 +162,7 @@ private fun FindAndClaimSection(
             StepCard(step, title, body)
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(CibusDimens.spacing16))
 
         OutlinedTextField(
             value = searchText,
@@ -141,17 +171,20 @@ private fun FindAndClaimSection(
             placeholder = { Text("e.g. Butt Karahi F-8") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            leadingIcon = { Icon(Icons.Default.Search, null) }
+            leadingIcon = { Icon(Icons.Default.Search, null) },
         )
+
+        Spacer(Modifier.height(CibusDimens.spacing8))
 
         Button(
             onClick = onClaim,
             modifier = Modifier.fillMaxWidth().height(52.dp),
-            enabled = searchText.isNotBlank()
+            enabled = searchText.isNotBlank(),
+            colors = ButtonDefaults.buttonColors(containerColor = CibusGreen),
         ) {
             Icon(Icons.Default.VerifiedUser, null, Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Claim This Restaurant")
+            Text("Claim This Restaurant", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
         }
 
         Text(
@@ -164,11 +197,33 @@ private fun FindAndClaimSection(
 
 @Composable
 private fun StepCard(step: String, title: String, body: String) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Badge { Text(step) }
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(title, style = MaterialTheme.typography.titleSmall)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(CibusDimens.cardPadding),
+            horizontalArrangement = Arrangement.spacedBy(CibusDimens.spacing12),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = CibusGreen.copy(alpha = 0.12f),
+            ) {
+                Text(
+                    step,
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = CibusGreen,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold))
                 Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -177,7 +232,11 @@ private fun StepCard(step: String, title: String, body: String) {
 
 @Composable
 private fun WaitingSection(onRefresh: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing16),
+    ) {
         Icon(Icons.Default.HourglassFull, null, modifier = Modifier.size(56.dp), tint = Color(0xFFE88C2B))
         Text("Application Under Review", style = MaterialTheme.typography.titleLarge)
         Text(
@@ -195,7 +254,11 @@ private fun WaitingSection(onRefresh: () -> Unit) {
 
 @Composable
 private fun NeedsInfoSection(reviewNote: String?, onUpdateDocs: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing16),
+    ) {
         Icon(Icons.Default.Warning, null, modifier = Modifier.size(56.dp), tint = Color(0xFFE88C2B))
         Text("More Information Required", style = MaterialTheme.typography.titleLarge)
         reviewNote?.let {
@@ -203,15 +266,23 @@ private fun NeedsInfoSection(reviewNote: String?, onUpdateDocs: () -> Unit) {
                 Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(14.dp))
             }
         }
-        Button(onClick = onUpdateDocs, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-            Text("View & Update Documents")
+        Button(
+            onClick = onUpdateDocs,
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = CibusGreen),
+        ) {
+            Text("View & Update Documents", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
         }
     }
 }
 
 @Composable
 private fun RejectedSection(reviewNote: String?) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing16),
+    ) {
         Icon(Icons.Default.Cancel, null, modifier = Modifier.size(56.dp), tint = MaterialTheme.colorScheme.error)
         Text("Claim Not Approved", style = MaterialTheme.typography.titleLarge)
         reviewNote?.let {
@@ -223,7 +294,11 @@ private fun RejectedSection(reviewNote: String?) {
 
 @Composable
 private fun SuspendedSection() {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing16),
+    ) {
         Icon(Icons.Default.PauseCircle, null, modifier = Modifier.size(56.dp), tint = Color(0xFFE88C2B))
         Text("Account Suspended", style = MaterialTheme.typography.titleLarge)
         Text("Your account has been temporarily suspended. Contact support@cibus.pk.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

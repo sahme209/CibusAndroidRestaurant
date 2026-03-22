@@ -42,7 +42,7 @@ fun RestaurantPayoutsContent() {
                     pendingCount = body?.pendingPayoutsCount ?: 0
                     completedCount = body?.completedPayoutsCount ?: 0
                     totalPaidOut = body?.totalPaidOut ?: 0.0
-                    commissionRate = body?.commissionRate ?: 0.12
+                    commissionRate = body?.commissionRate ?: 0.06
                 }
             } catch (_: Exception) {}
         }
@@ -96,8 +96,8 @@ fun RestaurantPayoutsContent() {
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4))
                 ) {
                     Column(Modifier.padding(12.dp)) {
-                        Text("Commission", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF166534))
-                        Text("Platform commission: ${(commissionRate * 100).toInt()}%. You receive net earnings (order total minus commission) after each delivery.", fontSize = 11.sp, color = Color(0xFF4B5563))
+                        Text("Platform service fee", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF166534))
+                        Text("Service fee: ${(commissionRate * 100).toInt()}%. You receive net earnings (order total minus fee) after each delivery.", fontSize = 11.sp, color = Color(0xFF4B5563))
                     }
                 }
             }

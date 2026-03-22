@@ -28,6 +28,8 @@ fun RestaurantPayoutsContent() {
     var last30Revenue by remember { mutableStateOf(0.0) }
     var pendingCount by remember { mutableStateOf(0) }
     var completedCount by remember { mutableStateOf(0) }
+    var totalPaidOut by remember { mutableStateOf(0.0) }
+    var commissionRate by remember { mutableStateOf(0.12) }
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -35,10 +37,12 @@ fun RestaurantPayoutsContent() {
                 val resp = RetrofitClient.restaurantApi.getRestaurantWallet()
                 if (resp.isSuccessful) {
                     val body = resp.body()
-                    walletBalance = body?.walletBalance ?: 0.0
+                    walletBalance = body?.walletBalance ?: body?.wallet?.get("balance")?.toString()?.toDoubleOrNull() ?: 0.0
                     last30Revenue = body?.last30Revenue ?: 0.0
                     pendingCount = body?.pendingPayoutsCount ?: 0
                     completedCount = body?.completedPayoutsCount ?: 0
+                    totalPaidOut = body?.totalPaidOut ?: 0.0
+                    commissionRate = body?.commissionRate ?: 0.12
                 }
             } catch (_: Exception) {}
         }
@@ -85,6 +89,20 @@ fun RestaurantPayoutsContent() {
             }
 
             item {
+                // Commission info
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4))
+                ) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text("Commission", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF166534))
+                        Text("Platform commission: ${(commissionRate * 100).toInt()}%. You receive net earnings (order total minus commission) after each delivery.", fontSize = 11.sp, color = Color(0xFF4B5563))
+                    }
+                }
+            }
+
+            item {
                 // KPI row
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     PayoutKpiCard(
@@ -92,6 +110,12 @@ fun RestaurantPayoutsContent() {
                         title = "30-Day Net Earnings",
                         value = "Rs ${last30Revenue.toInt()}",
                         color = Color(0xFF2D6A4F)
+                    )
+                    PayoutKpiCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Paid Out",
+                        value = "Rs ${totalPaidOut.toInt()}",
+                        color = Color(0xFF2563EB)
                     )
                     PayoutKpiCard(
                         modifier = Modifier.weight(1f),
@@ -103,7 +127,7 @@ fun RestaurantPayoutsContent() {
                         modifier = Modifier.weight(1f),
                         title = "Completed",
                         value = "$completedCount",
-                        color = Color(0xFF2563EB)
+                        color = Color(0xFF059669)
                     )
                 }
             }
@@ -118,6 +142,7 @@ fun RestaurantPayoutsContent() {
                         Text("How Payouts Work", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1A1A1A))
                         listOf(
                             "Net earnings (after platform commission) credited after each delivery",
+                            "Platform commission (${(commissionRate * 100).toInt()}%) is deducted from each order; you receive the rest",
                             "Ops team approves payout requests weekly",
                             "Funds transferred via bank transfer or mobile wallet (JazzCash/Easypaisa)",
                             "Transaction history and payout receipts available in Ops Portal"

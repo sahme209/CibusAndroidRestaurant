@@ -104,7 +104,7 @@ interface RestaurantApi {
     suspend fun acceptOrder(@Path("id") orderId: String): Response<Unit>
 
     @POST("orders/{id}/reject")
-    suspend fun rejectOrder(@Path("id") orderId: String): Response<Unit>
+    suspend fun rejectOrder(@Path("id") orderId: String, @Body body: Map<String, String> = emptyMap()): Response<Unit>
 
     @GET("restaurants/{id}/menu")
     suspend fun getMenu(@Path("id") restaurantId: String): Response<RestaurantMenuResponse>
@@ -121,6 +121,10 @@ interface RestaurantApi {
 
     @PATCH("orders/{id}/status")
     suspend fun patchOrderStatus(@Path("id") orderId: String, @Body body: Map<String, Any>): Response<Unit>
+
+    /** Uber Eats style: PATCH /orders/:id — delay order with delayMinutes */
+    @PATCH("orders/{id}")
+    suspend fun delayOrder(@Path("id") orderId: String, @Body body: Map<String, Any>): Response<Unit>
 
     // ── Phase 130: Adaptive Onboarding ───────────────────────────────────────
     @POST("restaurant/onboarding")
@@ -404,6 +408,8 @@ data class RestaurantWalletResponse(
     @SerializedName("last30Revenue") val last30Revenue: Double? = null,
     @SerializedName("pendingPayouts") val pendingPayouts: List<Map<String, Any>>? = null,
     @SerializedName("completedPayouts") val completedPayouts: List<Map<String, Any>>? = null,
+    @SerializedName("totalPaidOut") val totalPaidOut: Double? = null,
+    @SerializedName("commissionRate") val commissionRate: Double? = null,
 ) {
     val pendingPayoutsCount: Int get() = pendingPayouts?.size ?: 0
     val completedPayoutsCount: Int get() = completedPayouts?.size ?: 0

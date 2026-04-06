@@ -92,7 +92,7 @@ fun EntryScreen(
 
     // ── Layout ──────────────────────────────────────────────────────────────
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val heroHeight = maxHeight * 0.44f
+        val heroHeight = maxHeight * 0.36f
 
         // Background: dark-green hero fills top ~44%, white below
         Column(modifier = Modifier.fillMaxSize()) {
@@ -127,27 +127,28 @@ fun EntryScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(heroHeight)
                     .graphicsLayer {
                         alpha = heroAlpha.value
                         translationY = heroOffsetY.value * density
                     },
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
 
                 // Storefront icon with concentric glow rings
                 Box(contentAlignment = Alignment.Center) {
                     // Outer glow ring
                     Box(
                         modifier = Modifier
-                            .size(90.dp)
+                            .size(80.dp)
                             .clip(CircleShape)
                             .background(Color.White.copy(alpha = 0.10f))
                     )
                     // Inner glow ring
                     Box(
                         modifier = Modifier
-                            .size(72.dp)
+                            .size(64.dp)
                             .clip(CircleShape)
                             .background(Color.White.copy(alpha = 0.15f))
                     )
@@ -155,21 +156,21 @@ fun EntryScreen(
                     Icon(
                         imageVector = Icons.Default.Storefront,
                         contentDescription = null,
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.size(32.dp),
                         tint = Color.White,
                     )
                 }
 
-                Spacer(Modifier.height(CibusDimens.spacing16))
+                Spacer(Modifier.height(14.dp))
 
                 // Title + Tagline grouped together
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Text(
                         text = "Become a HUBB\nMerchant Partner",
-                        fontSize = CibusDimens.displaySp,
+                        fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                         textAlign = TextAlign.Center,
@@ -178,12 +179,14 @@ fun EntryScreen(
 
                     Text(
                         text = ResL10n.entryTagline(ctx),
-                        fontSize = CibusDimens.bodySp,
-                        color = Color.Black,
+                        fontSize = 12.sp,
+                        color = Color.White.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = CibusDimens.spacing24),
                     )
                 }
+
+                Spacer(Modifier.weight(1f))
             }
 
             // ── Benefits Card (overlapping hero via negative offset) ────────
@@ -191,7 +194,7 @@ fun EntryScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = CibusDimens.spacing16)
-                    .offset(y = (-20).dp)
+                    .offset(y = 4.dp)
                     .graphicsLayer {
                         alpha = cardAlpha.value
                         translationY = cardOffsetY.value * density
@@ -244,7 +247,7 @@ fun EntryScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = CibusDimens.screenHorizontal)
-                    .padding(bottom = 32.dp)
+                    .padding(bottom = 16.dp)
                     .graphicsLayer {
                         alpha = ctaAlpha.value
                         translationY = ctaOffsetY.value * density

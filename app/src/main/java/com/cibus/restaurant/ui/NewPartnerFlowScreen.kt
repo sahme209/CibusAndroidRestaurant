@@ -558,6 +558,7 @@ private fun DetailsStep(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             .verticalScroll(rememberScrollState())
             .padding(CibusDimens.screenHorizontal)
             .padding(top = CibusDimens.spacing16, bottom = CibusDimens.spacing24),
@@ -581,9 +582,7 @@ private fun DetailsStep(
                 PartnerFormField(label = "Partner Name", value = partnerName, onValueChange = onPartnerNameChange)
                 PartnerFormField(label = "Email", value = email, onValueChange = onEmailChange, keyboardType = KeyboardType.Email)
                 PartnerFormField(label = "Password", value = password, onValueChange = onPasswordChange, isPassword = true)
-                if (phone.isEmpty()) {
-                    PartnerFormField(label = "Phone Number", value = phone, onValueChange = onPhoneChange, keyboardType = KeyboardType.Phone)
-                }
+                PartnerFormField(label = "Phone Number", value = phone, onValueChange = onPhoneChange, keyboardType = KeyboardType.Phone)
             }
         }
 

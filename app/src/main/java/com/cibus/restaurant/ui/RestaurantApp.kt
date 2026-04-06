@@ -25,6 +25,7 @@ sealed class RestaurantRoute(val route: String) {
     data object Apply      : RestaurantRoute("apply")
     data object Onboarding : RestaurantRoute("onboarding")
     data object Wizard     : RestaurantRoute("wizard")
+    data object NewPartner : RestaurantRoute("new_partner")
     data object Claim      : RestaurantRoute("claim/{restaurantId}/{restaurantName}")
     data object Documents  : RestaurantRoute("documents/{claimId}")
     data object Status     : RestaurantRoute("status")
@@ -66,7 +67,6 @@ fun RestaurantApp() {
 
             if (proceedToMain) {
                 isLoggedIn = true
-                // Fetch claim/verification status
                 try {
                     val status = RetrofitClient.restaurantApi.fetchClaimStatus()
                     if (status != null) {
@@ -88,7 +88,7 @@ fun RestaurantApp() {
     ) {
         composable(RestaurantRoute.Entry.route) {
             EntryScreen(
-                onGetStarted = { navController.navigate(RestaurantRoute.Wizard.route) },
+                onGetStarted = { navController.navigate(RestaurantRoute.NewPartner.route) },
                 onSignIn = { navController.navigate(RestaurantRoute.Login.route) },
             )
         }
@@ -97,7 +97,7 @@ fun RestaurantApp() {
             LoginScreen(
                 onBackToEntry = { navController.popBackStack() },
                 onApplyClick = { navController.navigate(RestaurantRoute.Apply.route) },
-                onRegisterClick = { navController.navigate(RestaurantRoute.Wizard.route) },
+                onRegisterClick = { navController.navigate(RestaurantRoute.NewPartner.route) },
                 onLoginSuccess = {
                     isLoggedIn = true
                     navController.navigate(RestaurantRoute.Onboarding.route) {
@@ -111,10 +111,30 @@ fun RestaurantApp() {
             ApplyScreen(onBackToLogin = { navController.popBackStack() })
         }
 
+        // Discovery-first partner flow (primary "Get Started" target)
+        composable(RestaurantRoute.NewPartner.route) {
+            NewPartnerFlowScreen(
+                onCompleted = { token, _ ->
+                    RetrofitClient.getTokenStore().saveToken(token)
+                    isLoggedIn = true
+                    isOperational = true
+                    navController.navigate(RestaurantRoute.Main.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onDismiss = { navController.popBackStack() },
+                onManualRegister = {
+                    navController.navigate(RestaurantRoute.Wizard.route) {
+                        popUpTo(RestaurantRoute.NewPartner.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable(RestaurantRoute.Wizard.route) {
             SimpleOnboardingWizard(
                 onDismiss = { navController.popBackStack() },
-                onCompleted = { token, expiresIn ->
+                onCompleted = { token, _ ->
                     RetrofitClient.getTokenStore().saveToken(token)
                     isLoggedIn = true
                     isOperational = true

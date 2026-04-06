@@ -2,6 +2,7 @@ package com.cibus.restaurant.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -12,12 +13,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.cibus.restaurant.api.RetrofitClient
 
 // Phase 140: RestaurantMenuContent now delegates to the full MenuEditorContent
 @Composable
 fun RestaurantMenuContent() {
     var restaurantId by remember { mutableStateOf<String?>(null) }
+    var menuSelfServeBlocked by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -25,7 +29,9 @@ fun RestaurantMenuContent() {
         try {
             val me = RetrofitClient.restaurantApi.getMe()
             if (me.isSuccessful) {
-                restaurantId = me.body()?.restaurantId
+                val body = me.body()
+                restaurantId = body?.restaurantId
+                menuSelfServeBlocked = body?.menuSelfServeBlocked == true
             } else {
                 error = "Could not load profile"
             }
@@ -44,6 +50,17 @@ fun RestaurantMenuContent() {
         }
         restaurantId.isNullOrBlank() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("No restaurant linked. Complete onboarding first.")
+        }
+        menuSelfServeBlocked -> Box(
+            Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "Menu setup pending approval. Your new venue is being reviewed. Once operations approves registration, you can add and edit your menu here.",
+                textAlign = TextAlign.Center
+            )
         }
         else -> MenuEditorContent(restaurantId = restaurantId!!)
     }

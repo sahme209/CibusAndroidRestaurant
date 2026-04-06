@@ -1,27 +1,42 @@
 package com.cibus.restaurant.ui
 
+// Premium entry screen — dramatic DoorDash-Merchant-inspired with bold dark-green hero,
+// floating benefits card, and staggered entrance animations. Matches iOS EntryView.
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import com.cibus.restaurant.ResL10n
-import com.cibus.restaurant.ui.theme.CibusDimens
-import com.cibus.restaurant.ui.theme.CibusGreen
+import com.cibus.restaurant.ui.theme.*
 
 /**
  * Premium entry screen shown on app launch when user is not logged in.
- * Uber Eats–level design: hero, clear CTAs, no demo feel.
+ * DoorDash Merchant-inspired: bold dark-green hero filling the top third,
+ * storefront icon with concentric glow rings, floating white benefits card
+ * that overlaps the hero via negative offset, and staggered fade-slide-in.
  */
 @Composable
 fun EntryScreen(
@@ -29,138 +44,301 @@ fun EntryScreen(
     onSignIn: () -> Unit,
 ) {
     val ctx = LocalContext.current
+    var showHomeKitchenOnboarding by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFF8FAF9),
-                        Color(0xFFF0F7F4),
-                        Color.White,
-                    ),
-                    startY = 0f,
-                    endY = Float.POSITIVE_INFINITY,
-                )
+    // ── Home Kitchen onboarding full-screen dialog ──────────────────────────
+    if (showHomeKitchenOnboarding) {
+        HomeKitchenOnboardingWizard(
+            onComplete = { token, expiresIn ->
+                showHomeKitchenOnboarding = false
+                // Token received — navigate to main screen
+            },
+            onDismiss = { showHomeKitchenOnboarding = false }
+        )
+        return
+    }
+
+    // ── Entrance animations ─────────────────────────────────────────────────
+    val heroAlpha = remember { Animatable(0f) }
+    val heroOffsetY = remember { Animatable(24f) }
+    val cardAlpha = remember { Animatable(0f) }
+    val cardOffsetY = remember { Animatable(16f) }
+    val ctaAlpha = remember { Animatable(0f) }
+    val ctaOffsetY = remember { Animatable(12f) }
+
+    LaunchedEffect(Unit) {
+        // Hero fade-slide
+        launch {
+            heroAlpha.animateTo(1f, tween(durationMillis = 400, delayMillis = 150))
+        }
+        launch {
+            heroOffsetY.animateTo(0f, tween(durationMillis = 400, delayMillis = 150))
+        }
+        // Card fade-slide (staggered)
+        launch {
+            cardAlpha.animateTo(1f, tween(durationMillis = 400, delayMillis = 300))
+        }
+        launch {
+            cardOffsetY.animateTo(0f, tween(durationMillis = 400, delayMillis = 300))
+        }
+        // CTA fade-slide (staggered)
+        launch {
+            ctaAlpha.animateTo(1f, tween(durationMillis = 400, delayMillis = 450))
+        }
+        launch {
+            ctaOffsetY.animateTo(0f, tween(durationMillis = 400, delayMillis = 450))
+        }
+    }
+
+    // ── Layout ──────────────────────────────────────────────────────────────
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val heroHeight = maxHeight * 0.44f
+
+        // Background: dark-green hero fills top ~44%, white below
+        Column(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(heroHeight)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(CibusGreenDark, CibusGreen)
+                        )
+                    )
             )
-    ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(Color.White)
+            )
+        }
+
+        // Scrollable content
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(CibusDimens.spacing24)
                 .statusBarsPadding()
                 .navigationBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            Spacer(Modifier.height(24.dp))
 
-            // Hero content
+            // ── Hero Section (on dark green) ────────────────────────────────
             Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .graphicsLayer {
+                        alpha = heroAlpha.value
+                        translationY = heroOffsetY.value * density
+                    },
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.weight(1f, fill = false),
             ) {
-                Icon(
-                    Icons.Default.Storefront,
-                    contentDescription = null,
-                    modifier = Modifier.size(80.dp),
-                    tint = CibusGreen,
-                )
-                Spacer(Modifier.height(CibusDimens.spacing24))
-                Text(
-                    "Become a Cibus Partner",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(Modifier.height(CibusDimens.spacing12))
-                Text(
-                    ResL10n.entryTagline(ctx),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(Modifier.height(CibusDimens.spacing32))
+                Spacer(Modifier.height(20.dp))
 
-                // Benefit bullets
-                BenefitRow(
-                    icon = Icons.Default.Schedule,
-                    text = "Flexible hours – open when you want",
-                )
-                Spacer(Modifier.height(CibusDimens.spacing12))
-                BenefitRow(
-                    icon = Icons.Default.Payments,
-                    text = "Secure payouts, transparent fees",
-                )
-                Spacer(Modifier.height(CibusDimens.spacing12))
-                BenefitRow(
-                    icon = Icons.Default.TrendingUp,
-                    text = "Reach more customers in your area",
-                )
+                // Storefront icon with concentric glow rings
+                Box(contentAlignment = Alignment.Center) {
+                    // Outer glow ring
+                    Box(
+                        modifier = Modifier
+                            .size(90.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.10f))
+                    )
+                    // Inner glow ring
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.15f))
+                    )
+                    // Icon
+                    Icon(
+                        imageVector = Icons.Default.Storefront,
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp),
+                        tint = Color.White,
+                    )
+                }
+
+                Spacer(Modifier.height(CibusDimens.spacing16))
+
+                // Title + Tagline grouped together
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "Become a HUBB\nMerchant Partner",
+                        fontSize = CibusDimens.displaySp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 34.sp,
+                    )
+
+                    Text(
+                        text = ResL10n.entryTagline(ctx),
+                        fontSize = CibusDimens.bodySp,
+                        color = Color.Black,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = CibusDimens.spacing24),
+                    )
+                }
             }
 
-            // CTAs
+            // ── Benefits Card (overlapping hero via negative offset) ────────
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = CibusDimens.spacing16)
+                    .offset(y = (-20).dp)
+                    .graphicsLayer {
+                        alpha = cardAlpha.value
+                        translationY = cardOffsetY.value * density
+                    },
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White,
+                shadowElevation = 8.dp,
+            ) {
+                Column(
+                    modifier = Modifier.padding(CibusDimens.spacing24),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    // Section label
+                    Text(
+                        text = "WHY PARTNER WITH US",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = CibusTextOnSurfaceSecondary,
+                        letterSpacing = 0.8.sp,
+                    )
+
+                    // Benefit rows
+                    EntryBenefitRow(
+                        icon = Icons.Default.Schedule,
+                        text = "Flexible hours \u2013 open when you want",
+                        accent = CibusGreen,
+                    )
+                    EntryBenefitRow(
+                        icon = Icons.Default.Payments,
+                        text = "Secure payouts, transparent fees",
+                        accent = CibusGreenLight,
+                    )
+                    EntryBenefitRow(
+                        icon = Icons.Default.TrendingUp,
+                        text = "Reach more customers in your area",
+                        accent = CibusSuccess,
+                    )
+                    EntryBenefitRow(
+                        icon = Icons.Default.Shield,
+                        text = "Real-time order management tools",
+                        accent = CibusOrange,
+                    )
+                }
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            // ── CTAs ────────────────────────────────────────────────────────
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = CibusDimens.screenHorizontal)
+                    .padding(bottom = 32.dp)
+                    .graphicsLayer {
+                        alpha = ctaAlpha.value
+                        translationY = ctaOffsetY.value * density
+                    },
                 verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing16),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Button(
+                // Primary CTA — "Get Started"
+                RestaurantPrimaryButton(
+                    text = ResL10n.entryGetStarted(ctx),
                     onClick = onGetStarted,
+                    isLargeCTA = true,
+                )
+
+                // Secondary CTA — "Start Home Kitchen"
+                Button(
+                    onClick = { showHomeKitchenOnboarding = true },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = CibusGreen),
+                        .height(CibusDimens.btnHeight),
+                    shape = RoundedCornerShape(CibusDimens.btnRadius),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = CibusGreen.copy(alpha = 0.10f),
+                        contentColor = CibusGreen,
+                    ),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
                 ) {
+                    Icon(
+                        imageVector = Icons.Default.Home,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(CibusDimens.spacing8))
                     Text(
-                        ResL10n.entryGetStarted(ctx),
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                        ),
+                        text = if (ResL10n.isUrdu(ctx)) "Ghar se Khana Becho" else "Start Home Kitchen",
+                        fontSize = CibusDimens.bodySp,
+                        fontWeight = FontWeight.SemiBold,
                     )
                 }
-                TextButton(
-                    onClick = onSignIn,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        ResL10n.entrySignInLink(ctx),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+
+                // Sign in text link
+                Text(
+                    text = ResL10n.entrySignInLink(ctx),
+                    fontSize = CibusDimens.bodySp,
+                    color = CibusTextOnSurfaceSecondary,
+                    modifier = Modifier
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onSignIn,
+                        )
+                        .padding(vertical = CibusDimens.spacing8),
+                )
             }
 
-            Spacer(Modifier.height(24.dp))
         }
     }
 }
 
+// ── Benefit Row ─────────────────────────────────────────────────────────────
+
 @Composable
-private fun BenefitRow(
+private fun EntryBenefitRow(
     icon: ImageVector,
     text: String,
+    accent: Color,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Start,
     ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = CibusGreen,
-        )
+        // Rounded square icon background
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(CibusDimens.radiusSm))
+                .background(accent.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = accent,
+            )
+        }
+
         Spacer(Modifier.width(CibusDimens.spacing12))
+
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = CibusDimens.bodySp,
+            color = CibusTextOnSurface,
         )
     }
 }

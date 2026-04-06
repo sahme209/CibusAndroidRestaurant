@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <cache-path name="menu_photos" path="." />
+    <!-- Camera apps often expect a writable path under external cache -->
+    <external-cache-path name="menu_photos_ext" path="." />
+</paths>

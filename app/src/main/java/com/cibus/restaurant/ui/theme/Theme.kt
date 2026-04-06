@@ -8,15 +8,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val RestaurantDarkColorScheme = darkColorScheme(
-    primary = Color(0xFFFFA726),
-    secondary = Color(0xFFFFB74D),
-    tertiary = Color(0xFFFFCC80)
+    primary = CibusGreenLight,
+    secondary = CibusAccent,
+    tertiary = CibusAmberLight,
+    background = CibusSurfaceNeutral,
+    surface = CibusSurface,
+    onPrimary = Color.White,
+    onBackground = CibusTextPrimary,
+    onSurface = CibusTextPrimary,
+    onSurfaceVariant = CibusTextSecondary,
 )
 
 private val RestaurantLightColorScheme = lightColorScheme(
-    primary = Color(0xFFE65100),
-    secondary = Color(0xFFF57C00),
-    tertiary = Color(0xFFFF9800)
+    primary = CibusGreen,
+    secondary = CibusGreenLight,
+    tertiary = CibusAmber,
+    background = CibusSurfaceSecondary,
+    surface = CibusCardBg,
+    onPrimary = Color.White,
+    onBackground = CibusTextOnSurface,
+    onSurface = CibusTextOnSurface,
+    onSurfaceVariant = CibusTextOnSurfaceSecondary,
 )
 
 @Composable

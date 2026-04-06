@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cibus.restaurant.api.AdaptiveOnboardingRequest
+import com.cibus.restaurant.ui.theme.CibusDimens
 import com.cibus.restaurant.api.DiscoveredRestaurantDto
 import com.cibus.restaurant.api.OnboardingMenuItemDto
 import com.cibus.restaurant.api.RetrofitClient
@@ -61,7 +62,7 @@ private val POS_PROVIDERS = listOf("Square", "Toast", "Lightspeed", "Revel", "Fo
 private val MENU_CATEGORIES = listOf("Starters", "Mains", "Burgers", "Pizza", "Desserts", "Drinks", "Sides", "Specials")
 
 enum class IntegrationType(val label: String, val icon: String, val description: String) {
-    APP("Cibus Restaurant App", "📱", "Receive and manage orders directly in the Cibus Restaurant app"),
+    APP("HUBB Merchant App", "📱", "Receive and manage orders directly in the HUBB Merchant app"),
     WEB("Web Dashboard", "🌐", "Manage orders from any browser at restaurant.cibus.app"),
     POS("Connect Existing POS", "🖥️", "Orders automatically pushed to your existing POS system")
 }
@@ -86,6 +87,7 @@ fun AdaptiveOnboardingWizard(
 
     // Step 0 — Discovery (new in Phase 140)
     // Step 1 — Basic info
+    var linkedRestaurantId by remember { mutableStateOf<String?>(null) }
     var restaurantName by remember { mutableStateOf("") }
     var ownerName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -197,6 +199,7 @@ fun AdaptiveOnboardingWizard(
                             deliveryRadiusKm = deliveryRadius.toInt(),
                             kitchenPrepMinutes = kitchenPrep.toInt(),
                             menuItems = menuItemsForBackend,
+                            linkedRestaurantId = linkedRestaurantId,
                         )
                         val resp = RetrofitClient.restaurantApi.submitOnboarding(req)
                         val data = resp.body()?.data
@@ -289,8 +292,14 @@ fun AdaptiveOnboardingWizard(
                     when (currentStep) {
                         0 -> RestaurantDiscoveryScreen(
                             city = city,
-                            onSkip = { step++ },
+                            onSkip = {
+                                linkedRestaurantId = null
+                                step++
+                            },
                             onSelected = { discovered ->
+                                linkedRestaurantId =
+                                    if (discovered.source == "existing_listing" && discovered.id.isNotBlank()) discovered.id
+                                    else null
                                 if (discovered.name.isNotEmpty()) restaurantName = discovered.name
                                 if (discovered.address.isNotEmpty()) address = discovered.address
                                 if (discovered.phone.isNotEmpty()) phone = discovered.phone
@@ -435,7 +444,7 @@ private fun Step0BasicInfoContent(
                         1.5.dp, Color(0xFF2D6A4F)
                     )
                 ) {
-                    Text(label, fontSize = 12.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
+                    Text(label, fontSize = CibusDimens.captionSp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
                 }
             }
         }
@@ -520,7 +529,7 @@ private fun Step1IntegrationTypeContent(
     onSelect: (IntegrationType) -> Unit,
 ) {
     Text("How do you want to receive orders?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-    Text("Choose how Cibus delivers new orders to you. You can change this later in Settings.", style = MaterialTheme.typography.bodySmall, color = RestTextSecondary)
+    Text("Choose how HUBB delivers new orders to you. You can change this later in Settings.", style = MaterialTheme.typography.bodySmall, color = RestTextSecondary)
 
     IntegrationType.entries.forEach { type ->
         val isSelected = selected == type
@@ -539,7 +548,7 @@ private fun Step1IntegrationTypeContent(
                         .background(if (isSelected) Color(0xFF2D6A4F) else Color(0xFFF0F0F0)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(type.icon, fontSize = 20.sp)
+                    Text(type.icon, fontSize = CibusDimens.titleSp)
                 }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(type.label, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
@@ -567,7 +576,7 @@ private fun Step2AdaptiveConfigContent(
 ) {
     when (type) {
         IntegrationType.APP -> {
-            OnboardingHighlightCard(icon = "📱", title = "Cibus Restaurant App", message = "Orders arrive instantly in this app with sound and vibration alerts. Make sure notifications are enabled in your device settings.")
+            OnboardingHighlightCard(icon = "📱", title = "HUBB Merchant App", message = "Orders arrive instantly in this app with sound and vibration alerts. Make sure notifications are enabled in your device settings.")
             OnboardingCard(title = "You're all set", icon = "✅") {
                 Text("No additional configuration needed. Orders will appear in the Orders tab.", style = MaterialTheme.typography.bodySmall, color = RestTextSecondary)
             }
@@ -577,7 +586,7 @@ private fun Step2AdaptiveConfigContent(
             OnboardingCard(title = "Your dashboard URL", icon = "🔗") {
                 Surface(shape = RoundedCornerShape(10.dp), color = Color(0xFFF0F8F4)) {
                     Row(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("🌐", fontSize = 18.sp)
+                        Text("🌐", fontSize = CibusDimens.priceSp)
                         Text("restaurant.cibus.app", color = Color(0xFF2D6A4F), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -595,7 +604,7 @@ private fun Step2AdaptiveConfigContent(
             }
             Surface(shape = RoundedCornerShape(10.dp), color = Color(0xFFF0F0F0)) {
                 Text(
-                    "Cibus will POST new orders to your API endpoint as JSON with your API key in the Authorization header.",
+                    "HUBB will POST new orders to your API endpoint as JSON with your API key in the Authorization header.",
                     modifier = Modifier.padding(12.dp),
                     style = MaterialTheme.typography.labelSmall, color = RestTextSecondary
                 )
@@ -625,7 +634,7 @@ private fun Step3MenuSetupContent(
     if (items.isEmpty()) {
         Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("🧾", fontSize = 36.sp)
+                Text("🧾", fontSize = CibusDimens.displaySp)
                 Text("No items yet", style = MaterialTheme.typography.bodyMedium, color = RestTextSecondary)
             }
         }
@@ -753,7 +762,7 @@ private fun Step5GoLiveContent(
             Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.errorContainer) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("⚠️", fontSize = 18.sp)
+                        Text("⚠️", fontSize = CibusDimens.priceSp)
                         Text("Setup failed", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)
                     }
                     Text(error, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
@@ -807,7 +816,7 @@ private fun OnboardingCard(title: String, icon: String, content: @Composable Col
     Surface(shape = RoundedCornerShape(14.dp), color = Color.White, shadowElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(icon, fontSize = 14.sp)
+                Text(icon, fontSize = CibusDimens.captionSp)
                 Text(title.uppercase(), style = MaterialTheme.typography.labelSmall, color = RestTextSecondary, letterSpacing = 0.5.sp)
             }
             content()
@@ -819,7 +828,7 @@ private fun OnboardingCard(title: String, icon: String, content: @Composable Col
 private fun OnboardingHighlightCard(icon: String, title: String, message: String) {
     Surface(shape = RoundedCornerShape(12.dp), color = Color(0xFF2D6A4F).copy(alpha = 0.07f)) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(icon, fontSize = 22.sp, modifier = Modifier.width(32.dp))
+            Text(icon, fontSize = CibusDimens.priceLargeSp, modifier = Modifier.width(32.dp))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                 Text(message, style = MaterialTheme.typography.bodySmall, color = RestTextSecondary)

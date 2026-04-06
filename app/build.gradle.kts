@@ -29,10 +29,13 @@ android {
         debug {
             buildConfigField("String", "BASE_URL", "\"https://api-vtadzgdqca-uc.a.run.app\"")
             buildConfigField("Boolean", "DEBUG_LOGGING", "true")
+            // Digits only, e.g. 923218765432 — empty hides WhatsApp support buttons
+            buildConfigField("String", "PARTNER_SUPPORT_WHATSAPP_DIGITS", "\"\"")
         }
         release {
             buildConfigField("String", "BASE_URL", "\"https://api-vtadzgdqca-uc.a.run.app\"")
             buildConfigField("Boolean", "DEBUG_LOGGING", "false")
+            buildConfigField("String", "PARTNER_SUPPORT_WHATSAPP_DIGITS", "\"\"")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

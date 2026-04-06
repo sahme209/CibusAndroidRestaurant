@@ -1,21 +1,31 @@
 package com.cibus.restaurant.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cibus.restaurant.api.MenuCategoryDto
@@ -23,17 +33,16 @@ import com.cibus.restaurant.api.MenuImportRequest
 import com.cibus.restaurant.api.MenuItemDto
 import com.cibus.restaurant.api.MenuItemUpdateRequest
 import com.cibus.restaurant.api.AddMenuItemRequest
-import com.cibus.restaurant.api.MenuSuggestionResponse
 import com.cibus.restaurant.api.RetrofitClient
+import com.cibus.restaurant.ui.theme.*
 import kotlinx.coroutines.launch
-
-private val CibusGreen = Color(0xFF2D6A4F)
 
 @Composable
 fun MenuEditorContent(restaurantId: String) {
     var categories by remember { mutableStateOf<List<MenuCategoryDto>>(emptyList()) }
     var menuStatus by remember { mutableStateOf("pending_partner_onboarding") }
     var isLoading by remember { mutableStateOf(true) }
+    var isSaving by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
     var showImportDialog by remember { mutableStateOf(false) }
     var showAddItemDialog by remember { mutableStateOf(false) }
@@ -60,177 +69,225 @@ fun MenuEditorContent(restaurantId: String) {
 
     LaunchedEffect(restaurantId) { if (restaurantId.isNotEmpty()) loadMenu() }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Top bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text("Menu", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text(
-                    "${categories.size} categories · ${categories.sumOf { it.items.size }} items",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = { showImportDialog = true },
-                    shape = RoundedCornerShape(10.dp),
-                    border = ButtonDefaults.outlinedButtonBorder,
+    val totalItems = categories.sumOf { it.items.size }
+
+    Box(modifier = Modifier.fillMaxSize().background(CibusSurfaceSecondary)) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // ── Green gradient hero header ───────────────────────────────────
+            MenuHeroHeader(
+                categoryCount = categories.size,
+                itemCount = totalItems,
+                isLoading = isLoading,
+                onImportClick = { showImportDialog = true }
+            )
+
+            // ── Saving indicator strip ───────────────────────────────────────
+            AnimatedVisibility(
+                visible = isSaving,
+                enter = slideInVertically() + fadeIn(),
+                exit = slideOutVertically() + fadeOut()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(CibusGreen.copy(alpha = 0.08f))
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Import")
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(14.dp),
+                        strokeWidth = 2.dp,
+                        color = CibusGreen
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Saving changes\u2026",
+                        fontSize = CibusDimens.captionSp,
+                        fontWeight = FontWeight.Medium,
+                        color = CibusGreen
+                    )
                 }
             }
-        }
 
-        HorizontalDivider()
-
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = CibusGreen)
-            }
-        } else if (categories.isEmpty()) {
-            // Empty state
-            Column(
-                modifier = Modifier.fillMaxSize().padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text("📋", fontSize = 48.sp)
-                Spacer(Modifier.height(12.dp))
-                Text("No menu yet", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "Import a template or add items manually.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-                Spacer(Modifier.height(20.dp))
-                Button(
-                    onClick = { showImportDialog = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = CibusGreen),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("✨ Import Menu Template", fontWeight = FontWeight.Bold)
+            // ── Content ──────────────────────────────────────────────────────
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = CibusGreen)
                 }
-            }
-        } else {
-            LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                categories.forEach { category ->
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        category.name,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp,
-                                        color = CibusGreen
+            } else if (categories.isEmpty()) {
+                MenuEmptyState(
+                    onImportTemplate = { showImportDialog = true },
+                    onAddCategoryManually = {
+                        val name = "New Category ${categories.size + 1}"
+                        scope.launch {
+                            try {
+                                val r = RetrofitClient.restaurantApi.addMenuItem(
+                                    restaurantId,
+                                    AddMenuItemRequest(
+                                        categoryName = name,
+                                        item = MenuItemDto(id = "", name = "Sample Item", price = 100.0)
                                     )
-                                    Text(
-                                        "${category.items.size} items",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color.Gray
-                                    )
+                                )
+                                if (r.isSuccessful) {
+                                    categories = r.body()?.categories ?: categories
                                 }
-
-                                if (category.items.isNotEmpty()) {
-                                    Spacer(Modifier.height(10.dp))
-                                    HorizontalDivider()
-                                    Spacer(Modifier.height(6.dp))
-                                    category.items.forEach { item ->
-                                        MenuItemRow(
-                                            item = item,
-                                            onEdit = {
-                                                editingItem = category.name to item
-                                                showEditItemDialog = true
-                                            },
-                                            onDelete = {
-                                                scope.launch {
-                                                    try {
-                                                        val r = RetrofitClient.restaurantApi.deleteMenuItem(restaurantId, item.id)
-                                                        if (r.isSuccessful) categories = r.body()?.categories ?: categories
-                                                    } catch (_: Exception) {}
-                                                }
-                                            },
-                                            onToggleAvailable = {
-                                                scope.launch {
-                                                    try {
-                                                        val r = RetrofitClient.restaurantApi.updateMenuItem(
-                                                            restaurantId, item.id,
-                                                            MenuItemUpdateRequest(available = !item.available)
+                            } catch (_: Exception) {}
+                        }
+                    }
+                )
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(CibusDimens.screenHorizontal),
+                    verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing12)
+                ) {
+                    categories.forEach { category ->
+                        item {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(14.dp),
+                                shadowElevation = 3.dp,
+                                color = CibusCardBg
+                            ) {
+                                Column(modifier = Modifier.padding(CibusDimens.cardPadding)) {
+                                    // Category header
+                                    CategoryHeader(
+                                        name = category.name,
+                                        itemCount = category.items.size,
+                                        onDelete = {
+                                            // Delete all items in category one by one
+                                            scope.launch {
+                                                try {
+                                                    for (item in category.items) {
+                                                        val r = RetrofitClient.restaurantApi.deleteMenuItem(
+                                                            restaurantId, item.id
                                                         )
-                                                        if (r.isSuccessful) categories = r.body()?.categories ?: categories
-                                                    } catch (_: Exception) {}
-                                                }
+                                                        if (r.isSuccessful) {
+                                                            categories = r.body()?.categories ?: categories
+                                                        }
+                                                    }
+                                                } catch (_: Exception) {}
                                             }
+                                        }
+                                    )
+
+                                    if (category.items.isNotEmpty()) {
+                                        Spacer(Modifier.height(CibusDimens.spacing8))
+                                        HorizontalDivider(
+                                            thickness = CibusDimens.dividerThickness,
+                                            color = CibusSurfaceSecondary
+                                        )
+                                        Spacer(Modifier.height(CibusDimens.spacing4))
+                                        category.items.forEach { item ->
+                                            MenuItemRow(
+                                                item = item,
+                                                onEdit = {
+                                                    editingItem = category.name to item
+                                                    showEditItemDialog = true
+                                                },
+                                                onDelete = {
+                                                    scope.launch {
+                                                        try {
+                                                            val r = RetrofitClient.restaurantApi.deleteMenuItem(
+                                                                restaurantId, item.id
+                                                            )
+                                                            if (r.isSuccessful) {
+                                                                categories = r.body()?.categories ?: categories
+                                                            }
+                                                        } catch (_: Exception) {}
+                                                    }
+                                                },
+                                                onToggleAvailable = {
+                                                    scope.launch {
+                                                        try {
+                                                            val r = RetrofitClient.restaurantApi.updateMenuItem(
+                                                                restaurantId, item.id,
+                                                                MenuItemUpdateRequest(available = !item.available)
+                                                            )
+                                                            if (r.isSuccessful) {
+                                                                categories = r.body()?.categories ?: categories
+                                                            }
+                                                        } catch (_: Exception) {}
+                                                    }
+                                                }
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(Modifier.height(CibusDimens.spacing8))
+                                    TextButton(
+                                        onClick = {
+                                            addItemCategory = category.name
+                                            showAddItemDialog = true
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Add,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                            tint = CibusGreen
+                                        )
+                                        Spacer(Modifier.width(CibusDimens.spacing4))
+                                        Text(
+                                            "Add item to ${category.name}",
+                                            color = CibusGreen,
+                                            fontSize = CibusDimens.captionSp
                                         )
                                     }
-                                }
-
-                                Spacer(Modifier.height(8.dp))
-                                TextButton(
-                                    onClick = { addItemCategory = category.name; showAddItemDialog = true },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp), tint = CibusGreen)
-                                    Spacer(Modifier.width(4.dp))
-                                    Text("Add item to ${category.name}", color = CibusGreen, fontSize = 13.sp)
                                 }
                             }
                         }
                     }
-                }
 
-                item {
-                    OutlinedButton(
-                        onClick = {
-                            val name = "New Category ${categories.size + 1}"
-                            scope.launch {
-                                try {
-                                    val r = RetrofitClient.restaurantApi.addMenuItem(
-                                        restaurantId,
-                                        AddMenuItemRequest(categoryName = name, item = MenuItemDto(id = "", name = "Sample Item", price = 100.0))
-                                    )
-                                    if (r.isSuccessful) { categories = r.body()?.categories ?: categories }
-                                } catch (_: Exception) {}
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Add New Category")
+                    // Add new category button
+                    item {
+                        OutlinedButton(
+                            onClick = {
+                                val name = "New Category ${categories.size + 1}"
+                                scope.launch {
+                                    try {
+                                        val r = RetrofitClient.restaurantApi.addMenuItem(
+                                            restaurantId,
+                                            AddMenuItemRequest(
+                                                categoryName = name,
+                                                item = MenuItemDto(
+                                                    id = "",
+                                                    name = "Sample Item",
+                                                    price = 100.0
+                                                )
+                                            )
+                                        )
+                                        if (r.isSuccessful) {
+                                            categories = r.body()?.categories ?: categories
+                                        }
+                                    } catch (_: Exception) {}
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(CibusDimens.radiusMd)
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Add New Category")
+                        }
                     }
                 }
             }
-        }
 
-        errorMsg?.let { msg ->
-            Snackbar(
-                modifier = Modifier.padding(8.dp),
-                action = { TextButton(onClick = { errorMsg = null }) { Text("Dismiss") } }
-            ) { Text(msg) }
+            // Error snackbar
+            errorMsg?.let { msg ->
+                Snackbar(
+                    modifier = Modifier.padding(CibusDimens.spacing8),
+                    action = {
+                        TextButton(onClick = { errorMsg = null }) { Text("Dismiss") }
+                    }
+                ) { Text(msg) }
+            }
         }
     }
 
@@ -257,7 +314,12 @@ fun MenuEditorContent(restaurantId: String) {
                             restaurantId,
                             AddMenuItemRequest(
                                 categoryName = addItemCategory,
-                                item = MenuItemDto(id = "", name = name, price = price, description = description)
+                                item = MenuItemDto(
+                                    id = "",
+                                    name = name,
+                                    price = price,
+                                    description = description
+                                )
                             )
                         )
                         if (r.isSuccessful) categories = r.body()?.categories ?: categories
@@ -279,7 +341,12 @@ fun MenuEditorContent(restaurantId: String) {
                         try {
                             val r = RetrofitClient.restaurantApi.updateMenuItem(
                                 restaurantId, item.id,
-                                MenuItemUpdateRequest(name = name, price = price, description = description, available = available)
+                                MenuItemUpdateRequest(
+                                    name = name,
+                                    price = price,
+                                    description = description,
+                                    available = available
+                                )
                             )
                             if (r.isSuccessful) categories = r.body()?.categories ?: categories
                         } catch (_: Exception) {}
@@ -292,6 +359,192 @@ fun MenuEditorContent(restaurantId: String) {
     }
 }
 
+// ── Green Gradient Hero Header ───────────────────────────────────────────────
+
+@Composable
+private fun MenuHeroHeader(
+    categoryCount: Int,
+    itemCount: Int,
+    isLoading: Boolean,
+    onImportClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(CibusGreenDark, CibusGreen)
+                )
+            )
+            .padding(
+                start = CibusDimens.screenHorizontal,
+                end = CibusDimens.screenHorizontal,
+                top = CibusDimens.spacing32 + 24.dp, // account for status bar
+                bottom = CibusDimens.spacing24
+            )
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column {
+                Text(
+                    "Menu",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                if (!isLoading) {
+                    Spacer(Modifier.height(CibusDimens.spacing4))
+                    Text(
+                        "$categoryCount categories \u00B7 $itemCount items",
+                        fontSize = CibusDimens.captionSp,
+                        color = Color.White.copy(alpha = 0.7f)
+                    )
+                }
+            }
+            IconButton(onClick = onImportClick) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Import menu",
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+    }
+}
+
+// ── Empty State ──────────────────────────────────────────────────────────────
+
+@Composable
+private fun MenuEmptyState(
+    onImportTemplate: () -> Unit,
+    onAddCategoryManually: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(CibusDimens.spacing32),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Spacer(Modifier.weight(1f))
+
+        // Large circular icon backdrop
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .clip(CircleShape)
+                .background(CibusGreen.copy(alpha = 0.08f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add, // Storefront stand-in
+                contentDescription = null,
+                modifier = Modifier.size(52.dp),
+                tint = CibusGreen.copy(alpha = 0.6f)
+            )
+        }
+
+        Spacer(Modifier.height(CibusDimens.spacing24))
+
+        Text(
+            "No menu yet",
+            fontSize = CibusDimens.headingSp,
+            fontWeight = FontWeight.Bold,
+            color = CibusTextOnSurface
+        )
+        Spacer(Modifier.height(CibusDimens.spacing8))
+        Text(
+            "Start by importing a template or adding items manually.",
+            fontSize = CibusDimens.bodySp,
+            color = CibusTextOnSurfaceSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = CibusDimens.spacing16)
+        )
+
+        Spacer(Modifier.height(CibusDimens.spacing28))
+
+        // Primary CTA: Import Menu Template
+        Button(
+            onClick = onImportTemplate,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(CibusDimens.btnHeight),
+            colors = ButtonDefaults.buttonColors(containerColor = CibusGreen),
+            shape = RoundedCornerShape(CibusDimens.btnRadius)
+        ) {
+            Text(
+                "Import Menu Template",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = CibusDimens.bodySp,
+                color = Color.White
+            )
+        }
+
+        Spacer(Modifier.height(CibusDimens.spacing12))
+
+        // Secondary: Add category manually text link
+        TextButton(onClick = onAddCategoryManually) {
+            Text(
+                "Add category manually",
+                fontSize = CibusDimens.captionSp,
+                color = CibusTextOnSurfaceSecondary
+            )
+        }
+
+        Spacer(Modifier.weight(1f))
+    }
+}
+
+// ── Category Header ──────────────────────────────────────────────────────────
+
+@Composable
+private fun CategoryHeader(
+    name: String,
+    itemCount: Int,
+    onDelete: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(CibusDimens.spacing8),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                name.uppercase(),
+                fontWeight = FontWeight.Bold,
+                fontSize = CibusDimens.labelSp,
+                color = CibusGreen
+            )
+            Text(
+                "($itemCount)",
+                fontWeight = FontWeight.Medium,
+                fontSize = 11.sp,
+                color = CibusTextOnSurfaceSecondary
+            )
+        }
+        IconButton(
+            onClick = onDelete,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                Icons.Default.Delete,
+                contentDescription = "Delete category",
+                modifier = Modifier.size(14.dp),
+                tint = CibusRed.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+// ── Menu Item Row ────────────────────────────────────────────────────────────
+
 @Composable
 private fun MenuItemRow(
     item: MenuItemDto,
@@ -302,49 +555,102 @@ private fun MenuItemRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
+            .clickable { onEdit() }
+            .padding(vertical = CibusDimens.spacing8),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(CibusDimens.spacing12)
     ) {
+        // Availability indicator bar (3dp wide)
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .height(40.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(
+                    if (item.available) CibusGreen
+                    else CibusTextTertiary.copy(alpha = 0.3f)
+                )
+        )
+
+        // Item details
         Column(modifier = Modifier.weight(1f)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
                     item.name,
                     fontWeight = FontWeight.Medium,
-                    fontSize = 13.sp,
-                    color = if (item.available) Color.Black else Color.Gray
+                    fontSize = CibusDimens.bodySp,
+                    color = if (item.available) CibusTextOnSurface else CibusTextOnSurfaceSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 if (item.isPopular) {
                     Text(
-                        "Popular",
+                        "POPULAR",
                         fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
                         color = Color.White,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(Color(0xFFF59E0B))
-                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                            .clip(RoundedCornerShape(CibusDimens.radiusXs))
+                            .background(CibusOrange)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+                if (!item.available) {
+                    Text(
+                        "HIDDEN",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = CibusTextOnSurfaceSecondary,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(CibusDimens.radiusXs))
+                            .background(CibusTextTertiary.copy(alpha = 0.2f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
             }
             if (item.description.isNotEmpty()) {
-                Text(item.description, fontSize = 11.sp, color = Color.Gray, maxLines = 1)
+                Text(
+                    item.description,
+                    fontSize = CibusDimens.captionSp,
+                    color = CibusTextOnSurfaceSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
-            Text("Rs. ${item.price.toInt()}", fontSize = 12.sp, color = CibusGreen, fontWeight = FontWeight.SemiBold)
+            Text(
+                "Rs. ${item.price.toInt()}",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = FontFamily.Monospace,
+                color = CibusGreen
+            )
         }
+
+        // Toggle switch
         Switch(
             checked = item.available,
             onCheckedChange = { onToggleAvailable() },
-            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = CibusGreen),
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = CibusGreen
+            ),
             modifier = Modifier.size(40.dp, 24.dp)
         )
-        IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
-            Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(16.dp), tint = Color.Gray)
-        }
-        IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-            Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(16.dp), tint = Color.Red.copy(alpha = 0.7f))
-        }
+
+        // Chevron right (edit)
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = "Edit",
+            modifier = Modifier.size(20.dp),
+            tint = CibusTextOnSurfaceSecondary
+        )
     }
 }
+
+// ── Import Dialog ────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -353,8 +659,10 @@ private fun MenuImportDialog(
     onImported: (List<MenuCategoryDto>) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val cuisines = listOf("Pakistani", "Fast Food", "BBQ", "Chinese", "Italian", "Desi",
-        "Burgers", "Pizza", "Wraps & Rolls", "Desserts", "Bakery", "Beverages")
+    val cuisines = listOf(
+        "Pakistani", "Fast Food", "BBQ", "Chinese", "Italian", "Desi",
+        "Burgers", "Pizza", "Wraps & Rolls", "Desserts", "Bakery", "Beverages"
+    )
     var selectedCuisine by remember { mutableStateOf("Pakistani") }
     var preview by remember { mutableStateOf<List<MenuCategoryDto>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
@@ -373,22 +681,36 @@ private fun MenuImportDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Import Menu Template", fontWeight = FontWeight.Bold) },
+        title = {
+            Text("Import Menu Template", fontWeight = FontWeight.Bold)
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing12)) {
                 // Cuisine picker
                 Text("Select cuisine:", style = MaterialTheme.typography.labelMedium)
                 var expanded by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = it }
+                ) {
                     OutlinedTextField(
                         value = selectedCuisine,
                         onValueChange = {},
                         readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(),
-                        shape = RoundedCornerShape(10.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(),
+                        shape = RoundedCornerShape(CibusDimens.radiusSm),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = CibusGreen,
+                            cursorColor = CibusGreen
+                        )
                     )
-                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
                         cuisines.forEach { c ->
                             DropdownMenuItem(
                                 text = { Text(c) },
@@ -399,7 +721,10 @@ private fun MenuImportDialog(
                 }
 
                 if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = CibusGreen)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = CibusGreen
+                    )
                 } else if (preview.isNotEmpty()) {
                     val totalItems = preview.sumOf { cat -> cat.items.size }
                     Text(
@@ -409,19 +734,22 @@ private fun MenuImportDialog(
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         for (cat in preview.take(3)) {
-                            val itemNames = cat.items.take(3).joinToString { item -> item.name }
+                            val itemNames = cat.items.take(3).joinToString { it.name }
                             Text(
-                                "• ${cat.name}: $itemNames${if (cat.items.size > 3) "…" else ""}",
+                                "\u2022 ${cat.name}: $itemNames${if (cat.items.size > 3) "\u2026" else ""}",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray
+                                color = CibusTextOnSurfaceSecondary
                             )
                         }
                     }
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = replaceExisting, onCheckedChange = { replaceExisting = it },
-                        colors = CheckboxDefaults.colors(checkedColor = CibusGreen))
+                    Checkbox(
+                        checked = replaceExisting,
+                        onCheckedChange = { replaceExisting = it },
+                        colors = CheckboxDefaults.colors(checkedColor = CibusGreen)
+                    )
                     Text("Replace existing menu", style = MaterialTheme.typography.bodyMedium)
                 }
             }
@@ -434,23 +762,36 @@ private fun MenuImportDialog(
                         try {
                             val r = RetrofitClient.restaurantApi.importMenu(
                                 restaurantId,
-                                MenuImportRequest(source = "template", cuisineType = selectedCuisine, replaceExisting = replaceExisting)
+                                MenuImportRequest(
+                                    source = "template",
+                                    cuisineType = selectedCuisine,
+                                    replaceExisting = replaceExisting
+                                )
                             )
                             if (r.isSuccessful) onImported(r.body()?.categories ?: preview)
                             else onImported(preview)
-                        } catch (_: Exception) { onImported(preview) }
+                        } catch (_: Exception) {
+                            onImported(preview)
+                        }
                         isImporting = false
                     }
                 },
                 enabled = !isImporting && preview.isNotEmpty(),
-                colors = ButtonDefaults.buttonColors(containerColor = CibusGreen)
+                colors = ButtonDefaults.buttonColors(containerColor = CibusGreen),
+                shape = RoundedCornerShape(CibusDimens.btnRadius)
             ) {
-                Text(if (isImporting) "Importing…" else "Import")
+                Text(if (isImporting) "Importing\u2026" else "Import")
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = CibusGreen)
+            }
+        }
     )
 }
+
+// ── Add Item Dialog ──────────────────────────────────────────────────────────
 
 @Composable
 private fun AddMenuItemDialog(
@@ -462,30 +803,63 @@ private fun AddMenuItemDialog(
     var price by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
 
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = CibusGreen,
+        cursorColor = CibusGreen,
+        focusedLabelColor = CibusGreen
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add to $categoryName", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Item name") },
-                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp))
-                OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Price (Rs.)") },
-                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number))
-                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description (optional)") },
-                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing12)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Item name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(CibusDimens.radiusSm),
+                    colors = textFieldColors
+                )
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = { price = it },
+                    label = { Text("Price (Rs.)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(CibusDimens.radiusSm),
+                    colors = textFieldColors,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                    )
+                )
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(CibusDimens.radiusSm),
+                    colors = textFieldColors
+                )
             }
         },
         confirmButton = {
             Button(
                 onClick = { onAdd(name, price.toDoubleOrNull() ?: 0.0, description) },
                 enabled = name.isNotEmpty() && price.isNotEmpty(),
-                colors = ButtonDefaults.buttonColors(containerColor = CibusGreen)
+                colors = ButtonDefaults.buttonColors(containerColor = CibusGreen),
+                shape = RoundedCornerShape(CibusDimens.btnRadius)
             ) { Text("Add") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = CibusGreen)
+            }
+        }
     )
 }
+
+// ── Edit Item Dialog ─────────────────────────────────────────────────────────
 
 @Composable
 private fun EditMenuItemDialog(
@@ -498,31 +872,73 @@ private fun EditMenuItemDialog(
     var description by remember { mutableStateOf(item.description) }
     var available by remember { mutableStateOf(item.available) }
 
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = CibusGreen,
+        cursorColor = CibusGreen,
+        focusedLabelColor = CibusGreen
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Edit Item", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") },
-                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp))
-                OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Price (Rs.)") },
-                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number))
-                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") },
-                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Switch(checked = available, onCheckedChange = { available = it },
-                        colors = SwitchDefaults.colors(checkedTrackColor = CibusGreen))
+            Column(verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing12)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(CibusDimens.radiusSm),
+                    colors = textFieldColors
+                )
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = { price = it },
+                    label = { Text("Price (Rs.)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(CibusDimens.radiusSm),
+                    colors = textFieldColors,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                    )
+                )
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(CibusDimens.radiusSm),
+                    colors = textFieldColors
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(CibusDimens.spacing8)
+                ) {
+                    Switch(
+                        checked = available,
+                        onCheckedChange = { available = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = CibusGreen
+                        )
+                    )
                     Text("Available", style = MaterialTheme.typography.bodyMedium)
                 }
             }
         },
         confirmButton = {
             Button(
-                onClick = { onSave(name, price.toDoubleOrNull() ?: item.price, description, available) },
-                colors = ButtonDefaults.buttonColors(containerColor = CibusGreen)
+                onClick = {
+                    onSave(name, price.toDoubleOrNull() ?: item.price, description, available)
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = CibusGreen),
+                shape = RoundedCornerShape(CibusDimens.btnRadius)
             ) { Text("Save") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = CibusGreen)
+            }
+        }
     )
 }

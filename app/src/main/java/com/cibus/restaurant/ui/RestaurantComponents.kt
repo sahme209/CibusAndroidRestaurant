@@ -47,13 +47,14 @@ fun RestaurantPrimaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    isLargeCTA: Boolean = false
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().height(48.dp),
+        modifier = modifier.fillMaxWidth().height(if (isLargeCTA) CibusDimens.btnHeightLarge else CibusDimens.btnHeight),
         enabled = enabled && !isLoading,
-        shape = RoundedCornerShape(CibusDimens.cardRadius),
+        shape = RoundedCornerShape(CibusDimens.btnRadius),
         colors = ButtonDefaults.buttonColors(
             containerColor = RestGreen,
             disabledContainerColor = RestTextTertiary
@@ -62,7 +63,7 @@ fun RestaurantPrimaryButton(
         if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
         } else {
-            Text(text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+            Text(text, fontSize = CibusDimens.bodySp, fontWeight = FontWeight.SemiBold, color = Color.White)
         }
     }
 }
@@ -77,7 +78,7 @@ fun RestaurantSurfaceCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(CibusDimens.cardRadius),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = CibusDimens.cardElevation),
         colors = CardDefaults.cardColors(containerColor = RestCardBG)
     ) {
         Column(modifier = Modifier.padding(CibusDimens.cardPadding), content = content)
@@ -102,14 +103,14 @@ fun RestaurantSectionHeader(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+            Text(text = title, fontSize = CibusDimens.titleSp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
             if (subtitle != null) {
-                Text(text = subtitle, fontSize = 12.sp, color = RestTextTertiary)
+                Text(text = subtitle, fontSize = CibusDimens.captionSp, color = RestTextTertiary)
             }
         }
         if (actionLabel != null && onAction != null) {
             TextButton(onClick = onAction, contentPadding = PaddingValues(horizontal = 4.dp)) {
-                Text(text = actionLabel, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = RestGreen)
+                Text(text = actionLabel, fontSize = CibusDimens.captionSp, fontWeight = FontWeight.SemiBold, color = RestGreen)
             }
         }
     }
@@ -138,6 +139,85 @@ fun RestaurantStatusBadge(
 @Composable
 fun RestaurantDivider(indent: androidx.compose.ui.unit.Dp = 0.dp, modifier: Modifier = Modifier) {
     HorizontalDivider(modifier = modifier.padding(start = indent), color = RestDivider, thickness = 0.8.dp)
+}
+
+/**
+ * Subtle section break — hairline divider with consistent vertical spacing.
+ * Use between major content sections (orders vs menu, dashboard vs analytics).
+ */
+@Composable
+fun RestaurantSectionBreak(modifier: Modifier = Modifier) {
+    HorizontalDivider(
+        modifier = modifier
+            .padding(horizontal = CibusDimens.screenHorizontal)
+            .padding(vertical = CibusDimens.dividerVerticalPadding),
+        color = RestDivider.copy(alpha = 0.4f),
+        thickness = CibusDimens.dividerThickness
+    )
+}
+
+// ── Restaurant Empty State ────────────────────────────────────────────────────
+
+/**
+ * Reusable empty state — icon, title, message, optional CTA.
+ * Use for: empty orders, empty menu, no earnings, etc.
+ */
+@Composable
+fun RestaurantEmptyState(
+    icon: ImageVector,
+    title: String,
+    message: String,
+    modifier: Modifier = Modifier,
+    actionText: String? = null,
+    onAction: (() -> Unit)? = null
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(CibusDimens.spacing24),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing16)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(RestBackground),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+                tint = RestTextTertiary
+            )
+        }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing4)
+        ) {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = RestTextPrimary
+            )
+            Text(
+                text = message,
+                fontSize = 14.sp,
+                color = RestTextTertiary,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.padding(horizontal = CibusDimens.spacing24)
+            )
+        }
+        if (actionText != null && onAction != null) {
+            RestaurantPrimaryButton(
+                text = actionText,
+                onClick = onAction,
+                modifier = Modifier.width(200.dp)
+            )
+        }
+    }
 }
 
 // ── Premium Button Scale (WS1) ────────────────────────────────────────────────
@@ -177,7 +257,7 @@ fun RestaurantSkeletonCard(modifier: Modifier = Modifier, height: Dp = 80.dp) {
         modifier = modifier
             .fillMaxWidth()
             .height(height)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(CibusDimens.cardRadius))
             .background(shimmerBrush)
     )
 }

@@ -31,6 +31,11 @@ data class CibusAuthData(
 data class CibusAuthResponse(val success: Boolean? = true, val data: CibusAuthData? = null)
 data class CibusApplyResponse(val success: Boolean? = true, val message: String? = null)
 
+data class OpenHoursDto(
+    val open: String? = null,
+    val close: String? = null,
+)
+
 data class RestaurantMeResponse(
     @SerializedName("partnerId") val partnerId: String? = null,
     @SerializedName("restaurantId") val restaurantId: String? = null,
@@ -42,6 +47,14 @@ data class RestaurantMeResponse(
     @SerializedName("chainName") val chainName: String? = null,
     val availability: String? = "open",
     @SerializedName("throttlePaused") val throttlePaused: Boolean? = null,
+    @SerializedName("kitchenPrepMinutes") val kitchenPrepMinutes: Int? = null,
+    @SerializedName("deliveryRadiusKm") val deliveryRadiusKm: Int? = null,
+    @SerializedName("openHours") val openHours: OpenHoursDto? = null,
+    @SerializedName("pickupInstructions") val pickupInstructions: String? = null,
+    val rating: Double? = null,
+    @SerializedName("reviewCount") val reviewCount: Int? = null,
+    @SerializedName("menuSelfServeBlocked") val menuSelfServeBlocked: Boolean? = null,
+    @SerializedName("newVenuePendingReview") val newVenuePendingReview: Boolean? = null,
 )
 
 data class ChainMeResponse(
@@ -75,6 +88,10 @@ interface RestaurantApi {
 
     @GET("restaurant/me")
     suspend fun getMe(): Response<RestaurantMeResponse>
+
+    /** PATCH /restaurant/me/store — prep, pickup copy, hours, radius, availability (restaurant doc). */
+    @PATCH("restaurant/me/store")
+    suspend fun patchRestaurantStore(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<Unit>
 
     @GET("chains/me")
     suspend fun getChainsMe(): Response<ChainMeResponse>
@@ -172,6 +189,19 @@ interface RestaurantApi {
     @POST("restaurants/{id}/menu/cleanup")
     suspend fun cleanupMenu(@Path("id") restaurantId: String): Response<MenuItemResponse>
 
+    /** Empty JSON `{}` — OkHttp/Express reject POST with no body. */
+    @POST("restaurants/{id}/menu/submit-for-review")
+    suspend fun submitMenuForOpsReview(
+        @Path("id") restaurantId: String,
+        @Body body: Map<String, @JvmSuppressWildcards Any> = emptyMap(),
+    ): Response<Map<String, Any>>
+
+    @POST("restaurants/{id}/menu/submit-review")
+    suspend fun submitMenuForReview(
+        @Path("id") restaurantId: String,
+        @Body body: Map<String, @JvmSuppressWildcards Any> = emptyMap(),
+    ): Response<Map<String, Any>>
+
     // ── Claim / Verification ──────────────────────────────────────────────────
 
     /** POST /restaurant-claims — submit a new claim for a public listing. */
@@ -188,6 +218,16 @@ interface RestaurantApi {
     /** GET /restaurant-claims/status — get verification status for current restaurant. */
     @GET("restaurant-claims/status")
     suspend fun getClaimStatus(): Response<ClaimStatusApiResponse>
+
+    // ── Home Kitchen Onboarding ─────────────────────────────────────────────
+    @POST("home-kitchen/onboarding")
+    suspend fun submitHomeKitchenOnboarding(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<Map<String, Any>>
+
+    @PATCH("home-kitchen/me/availability")
+    suspend fun toggleHomeKitchenAvailability(@Body body: Map<String, String>): Response<Unit>
+
+    @POST("home-kitchen/me/upgrade-request")
+    suspend fun submitHomeKitchenUpgrade(@Body body: Map<String, String>): Response<Unit>
 }
 data class RestaurantMenuResponse(
     val categories: List<Map<String, Any>> = emptyList(),
@@ -218,6 +258,7 @@ data class RestaurantOrderDto(
     @SerializedName("riderArrivedAt") val riderArrivedAt: String? = null,
     @SerializedName("fulfillmentMode") val fulfillmentMode: String? = null,
     @SerializedName("entityType") val entityType: String? = null,
+    @SerializedName("reportedIssue") val reportedIssue: Map<String, Any>? = null,
 ) {
     val itemCount: Int get() = items?.sumOf { item ->
         (item["quantity"] as? Double)?.toInt() ?: (item["quantity"] as? Int) ?: 1
@@ -245,6 +286,7 @@ data class AdaptiveOnboardingRequest(
     @SerializedName("deliveryRadiusKm")  val deliveryRadiusKm: Int? = null,
     @SerializedName("kitchenPrepMinutes") val kitchenPrepMinutes: Int? = null,
     @SerializedName("menuItems")         val menuItems: List<OnboardingMenuItemDto>? = null,
+    @SerializedName("linkedRestaurantId") val linkedRestaurantId: String? = null,
 )
 
 data class OnboardingMenuItemDto(
@@ -342,13 +384,17 @@ data class MenuItemDto(
 )
 
 data class MenuCategoryDto(
-    val name: String = "",
+    @SerializedName(value = "name", alternate = ["category"]) val name: String = "",
     val items: List<MenuItemDto> = emptyList(),
 )
 
 data class MenuResponseDto(
     val categories: List<MenuCategoryDto> = emptyList(),
     @SerializedName("menuStatus") val menuStatus: String = "pending_partner_onboarding",
+    @SerializedName("menuReviewStatus") val menuReviewStatus: String? = null,
+    @SerializedName("publishedCategoryCount") val publishedCategoryCount: Int? = null,
+    @SerializedName("publishedItemCount") val publishedItemCount: Int? = null,
+    @SerializedName("menuReviewNote") val menuReviewNote: String? = null,
 )
 
 data class MenuSuggestionResponse(
@@ -364,6 +410,8 @@ data class MenuImportRequest(
     @SerializedName("cuisineType") val cuisineType: String? = null,
     val categories: List<MenuCategoryDto>? = null,
     @SerializedName("replaceExisting") val replaceExisting: Boolean = false,
+    @SerializedName("imageBase64") val imageBase64: String? = null,
+    @SerializedName("contentType") val contentType: String? = null,
 )
 
 data class MenuImportResponse(
@@ -371,6 +419,9 @@ data class MenuImportResponse(
     @SerializedName("categoriesImported") val categoriesImported: Int = 0,
     @SerializedName("totalItems") val totalItems: Int = 0,
     val categories: List<MenuCategoryDto> = emptyList(),
+    /** Server hint: AI extraction vs template fallback, storage skipped, etc. */
+    val message: String? = null,
+    @SerializedName("menuReviewStatus") val menuReviewStatus: String? = null,
 )
 
 data class AddMenuItemRequest(

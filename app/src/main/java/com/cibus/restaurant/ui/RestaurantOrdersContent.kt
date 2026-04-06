@@ -267,6 +267,11 @@ fun RestaurantOrdersContent() {
                         }
                     }
 
+                    // Section divider between Preparing and Ready for Pickup
+                    if (preparingOrds.isNotEmpty() && readyForPickup.isNotEmpty()) {
+                        item { RestaurantSectionBreak() }
+                    }
+
                     // ── READY FOR PICKUP ──────────────────────────────────
                     if (readyForPickup.isNotEmpty()) {
                         item { SectionHeader("Ready for Pickup", Icons.Default.CheckCircle, CibusAmber, readyForPickup.size) }

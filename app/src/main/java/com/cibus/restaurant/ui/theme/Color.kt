@@ -2,19 +2,41 @@ package com.cibus.restaurant.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val CibusGreen = Color(0xFF2D6A4F)
-val CibusGreenDark = Color(0xFF2D6A4F)
-val CibusGreenLight = Color(0xFF40916C)
-val CibusRed = Color(0xFFD93744)
+// ── Brand accent (matches Customer iOS app #06C167) ─────────────────────────
+val CibusAccentGreen = Color(0xFF06C167)
+
+// ── Brand (matches iOS RestaurantColors) ─────────────────────────────────────
+val CibusGreen = Color(0xFF2D6A4F)       // primary
+val CibusGreenDark = Color(0xFF1B4332)   // primaryDark
+val CibusGreenLight = Color(0xFF40916C)  // primaryLight
+val CibusAccent = Color(0xFF6EE7B7)      // accent
+
+// ── Status ───────────────────────────────────────────────────────────────────
+val CibusRed = Color(0xFFDC2626)         // danger
 val CibusRedHot = Color(0xFFE53935)
-val CibusAmber = Color(0xFFB45309)
-val CibusOrange = Color(0xFFEA580C)
+val CibusAmber = Color(0xFFB45309)       // warning
+val CibusAmberLight = Color(0xFFF59E0B)  // warningLight
+val CibusOrange = Color(0xFFEA580C)      // orangeAlert
 val CibusOrangeWarm = Color(0xFFF57C00)
 val CibusCoral = Color(0xFFE07A5F)
-val CibusTextPrimary = Color(0xFF1A1A1A)
-val CibusTextSecondary = Color(0xFF4A4A4A)
-val CibusHeaderCard = Color(0xFF1A1A1A)
-val CibusSurface = Color(0xFFF2F2F2)
-val CibusSurfaceNeutral = Color(0xFFF5F5F5)
+val CibusSuccess = Color(0xFF16A34A)     // success
+
+// ── Surfaces ─────────────────────────────────────────────────────────────────
+val CibusCardBg = Color.White
+val CibusSurfaceSecondary = Color(0xFFF2F2F7)  // iOS secondarySystemBackground
 val CibusSurfaceGreen = Color(0xFFF0F7F4)
+
+// ── Text ─────────────────────────────────────────────────────────────────────
+/** Dark-theme shell text: light on dark. */
+val CibusTextPrimary = Color(0xFFF5F5F7)
+val CibusTextSecondary = Color(0xFFAEAEB2)
+/** Light-theme text: dark on white (used in card-based views). */
+val CibusTextOnSurface = Color(0xFF1C1C1E)
+val CibusTextOnSurfaceSecondary = Color(0xFF8E8E93)
+val CibusTextTertiary = Color(0xFFC7C7CC)
+
+// ── Card/Header ──────────────────────────────────────────────────────────────
+val CibusHeaderCard = Color(0xFF2C2C2E)
+val CibusSurface = Color(0xFF2C2C2E)
+val CibusSurfaceNeutral = Color(0xFF1D1D1F)
 val CibusYellow = Color(0xFFFFC107)

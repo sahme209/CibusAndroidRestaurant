@@ -2,11 +2,79 @@ package com.cibus.restaurant.api
 
 import android.content.Context
 import com.cibus.restaurant.BuildConfig
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.lang.reflect.Type
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 import java.util.concurrent.TimeUnit
+
+/** Forces every request to bypass HTTP cache (prevents 304/ETag stale-data issues). */
+private val noCacheInterceptor = Interceptor { chain ->
+    val request = chain.request().newBuilder()
+        .header("Cache-Control", "no-cache, no-store")
+        .header("Pragma", "no-cache")
+        .build()
+    chain.proceed(request)
+}
+
+/**
+ * Retry interceptor for transient connection errors (matches iOS resilientData).
+ * Retries once after 300ms on connection reset / socket timeout — common with
+ * stale HTTP/2 connections when the user spends time filling out forms.
+ */
+private val resilientRetryInterceptor = Interceptor { chain ->
+    val request = chain.request()
+    try {
+        chain.proceed(request)
+    } catch (e: java.io.IOException) {
+        // Retry once on transient connection errors
+        Thread.sleep(300)
+        chain.proceed(request)
+    }
+}
+
+/**
+ * Deserializes timestamp fields that may arrive as either:
+ *   - An ISO-8601 string: "2026-03-29T10:00:00.000Z"
+ *   - A Firestore Timestamp object: { "_seconds": 1711706400, "_nanoseconds": 0 }
+ *
+ * Returns the value as an ISO-8601 string (or null on failure), matching what the
+ * RestaurantOrderDto fields (preparingAt, createdAt, riderArrivedAt) expect.
+ */
+private val firestoreTimestampDeserializer = object : JsonDeserializer<String?> {
+    private val iso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).also {
+        it.timeZone = TimeZone.getTimeZone("UTC")
+    }
+
+    override fun deserialize(json: JsonElement?, typeOfT: Type?, ctx: JsonDeserializationContext?): String? {
+        if (json == null || json.isJsonNull) return null
+        // Plain ISO string — pass through
+        if (json.isJsonPrimitive) return json.asString
+        // Firestore { "_seconds": N } object — convert to ISO string
+        if (json.isJsonObject) {
+            val obj = json.asJsonObject
+            val seconds = obj.get("_seconds")?.takeIf { !it.isJsonNull }?.asLong ?: return null
+            return iso.format(Date(seconds * 1000L))
+        }
+        return null
+    }
+}
+
+/** Custom Gson that handles Firestore timestamp objects in String? fields. */
+private val restaurantGson = GsonBuilder()
+    .registerTypeHierarchyAdapter(String::class.java, firestoreTimestampDeserializer)
+    .serializeNulls()
+    .create()
 
 object RetrofitClient {
     private var tokenStore: RestaurantTokenStore? = null
@@ -26,13 +94,19 @@ object RetrofitClient {
         return if (store == null) {
             OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(180, TimeUnit.SECONDS)
+                .writeTimeout(180, TimeUnit.SECONDS)
+                .addInterceptor(noCacheInterceptor)
+                .addInterceptor(resilientRetryInterceptor)
                 .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
                 .build()
         } else {
             OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(180, TimeUnit.SECONDS)
+                .writeTimeout(180, TimeUnit.SECONDS)
+                .addInterceptor(noCacheInterceptor)
+                .addInterceptor(resilientRetryInterceptor)
                 .addInterceptor(RestaurantAuthInterceptor(store))
                 .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
                 .build()
@@ -45,7 +119,7 @@ object RetrofitClient {
         Retrofit.Builder()
             .baseUrl(baseUrl)
             .client(buildOkHttp())
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(restaurantGson))
             .build()
             .create(RestaurantApi::class.java)
     }

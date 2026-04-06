@@ -53,6 +53,8 @@ import com.cibus.restaurant.ui.theme.CibusDimens
 import com.cibus.restaurant.ui.theme.CibusGreen
 import com.cibus.restaurant.ui.theme.CibusGreenDark
 import com.cibus.restaurant.ui.theme.CibusRed
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -87,8 +89,14 @@ fun NewPartnerFlowScreen(
     var ntn by remember { mutableStateOf("") }
     var pfaLicense by remember { mutableStateOf("") }
 
+    // Business type
+    var businessType by remember { mutableStateOf("Restaurant") }
+
     // State
     var isSubmitting by remember { mutableStateOf(false) }
+    var isSubmitted by remember { mutableStateOf(false) }
+    var pendingToken by remember { mutableStateOf<String?>(null) }
+    var pendingExpiresIn by remember { mutableStateOf<Int?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val stepLabels = listOf("Find Your Restaurant", "Your Details", "Review & Submit")
@@ -98,13 +106,15 @@ fun NewPartnerFlowScreen(
             TopAppBar(
                 title = { },
                 navigationIcon = {
-                    if (step == 0) {
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Cancel")
-                        }
-                    } else {
-                        IconButton(onClick = { step -= 1; errorMessage = null }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    if (!isSubmitted) {
+                        if (step == 0) {
+                            IconButton(onClick = onDismiss) {
+                                Icon(Icons.Default.Close, contentDescription = "Cancel")
+                            }
+                        } else {
+                            IconButton(onClick = { step -= 1; errorMessage = null }) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                            }
                         }
                     }
                 },
@@ -152,6 +162,8 @@ fun NewPartnerFlowScreen(
                         restaurantName = restaurantName,
                         address = address,
                         cuisineType = cuisineType,
+                        businessType = businessType,
+                        onBusinessTypeChange = { businessType = it },
                         partnerName = partnerName,
                         onPartnerNameChange = { partnerName = it },
                         email = email,
@@ -184,6 +196,7 @@ fun NewPartnerFlowScreen(
                         restaurantName = restaurantName,
                         address = address,
                         cuisineType = cuisineType,
+                        businessType = businessType,
                         sector = sector,
                         city = city,
                         partnerName = partnerName,
@@ -193,6 +206,7 @@ fun NewPartnerFlowScreen(
                         ntn = ntn,
                         pfaLicense = pfaLicense,
                         isSubmitting = isSubmitting,
+                        isSubmitted = isSubmitted,
                         errorMessage = errorMessage,
                         onSubmit = {
                             isSubmitting = true
@@ -215,7 +229,9 @@ fun NewPartnerFlowScreen(
                                     val resp = RetrofitClient.restaurantApi.submitOnboarding(req)
                                     val data = resp.body()?.data
                                     if (resp.isSuccessful && data != null) {
-                                        onCompleted(data.accessToken, data.expiresIn ?: 86400)
+                                        pendingToken = data.accessToken
+                                        pendingExpiresIn = data.expiresIn ?: 86400
+                                        isSubmitted = true
                                     } else {
                                         errorMessage = resp.errorBody()?.string()?.take(120)
                                             ?: "Registration failed. Please try again."
@@ -224,6 +240,15 @@ fun NewPartnerFlowScreen(
                                     errorMessage = e.message ?: "Network error. Please try again."
                                 }
                                 isSubmitting = false
+                            }
+                        },
+                        onDone = {
+                            val token = pendingToken
+                            val expires = pendingExpiresIn
+                            if (token != null && expires != null) {
+                                onCompleted(token, expires)
+                            } else {
+                                onDismiss()
                             }
                         }
                     )
@@ -533,11 +558,14 @@ private fun DiscoverResultCard(
 
 // ── Step 1: Account & Legal Details ──────────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DetailsStep(
     restaurantName: String,
     address: String,
     cuisineType: String,
+    businessType: String,
+    onBusinessTypeChange: (String) -> Unit,
     partnerName: String,
     onPartnerNameChange: (String) -> Unit,
     email: String,
@@ -555,6 +583,9 @@ private fun DetailsStep(
     errorMessage: String?,
     onNext: () -> Unit,
 ) {
+    val businessTypes = listOf("Restaurant", "Grocery", "Convenience", "Bakery", "Cafe", "Cloud Kitchen", "Catering")
+    var businessTypeExpanded by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -567,7 +598,7 @@ private fun DetailsStep(
         // Header
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Your Details", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = RestTextPrimary)
-            Text("Create your account and provide identity info", fontSize = CibusDimens.bodySp, color = RestTextSecondary)
+            Text("Create your account and provide business info", fontSize = CibusDimens.bodySp, color = RestTextSecondary)
         }
 
         // Selected restaurant preview
@@ -575,14 +606,76 @@ private fun DetailsStep(
             SelectedRestaurantPreview(restaurantName = restaurantName, address = address, cuisineType = cuisineType)
         }
 
+        // Business section
+        RestaurantSurfaceCard {
+            Column(verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing12)) {
+                Text("BUSINESS", fontSize = CibusDimens.labelSp, fontWeight = FontWeight.SemiBold, color = RestTextTertiary, letterSpacing = 0.5.sp)
+
+                // Business type dropdown
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Select your business type", fontSize = CibusDimens.captionSp, color = RestTextSecondary)
+                    ExposedDropdownMenuBox(
+                        expanded = businessTypeExpanded,
+                        onExpandedChange = { businessTypeExpanded = it },
+                    ) {
+                        OutlinedTextField(
+                            value = businessType,
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = {
+                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = RestTextTertiary)
+                            },
+                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = RestGreen,
+                                cursorColor = RestGreen,
+                            ),
+                            singleLine = true,
+                        )
+                        ExposedDropdownMenu(
+                            expanded = businessTypeExpanded,
+                            onDismissRequest = { businessTypeExpanded = false },
+                        ) {
+                            businessTypes.forEach { type ->
+                                DropdownMenuItem(
+                                    text = { Text(type) },
+                                    onClick = {
+                                        onBusinessTypeChange(type)
+                                        businessTypeExpanded = false
+                                    },
+                                    trailingIcon = {
+                                        if (type == businessType) {
+                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = RestGreen, modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (restaurantName.isEmpty()) {
+                    PartnerFormField(label = "Store name", value = restaurantName, onValueChange = {})
+                }
+            }
+        }
+
         // Account section
         RestaurantSurfaceCard {
             Column(verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing12)) {
                 Text("ACCOUNT", fontSize = CibusDimens.labelSp, fontWeight = FontWeight.SemiBold, color = RestTextTertiary, letterSpacing = 0.5.sp)
-                PartnerFormField(label = "Partner Name", value = partnerName, onValueChange = onPartnerNameChange)
-                PartnerFormField(label = "Email", value = email, onValueChange = onEmailChange, keyboardType = KeyboardType.Email)
+                PartnerFormField(label = "Full Name", value = partnerName, onValueChange = onPartnerNameChange)
+                // Email + Phone side by side
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        PartnerFormField(label = "Email Address", value = email, onValueChange = onEmailChange, keyboardType = KeyboardType.Email)
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        PartnerFormField(label = "Store phone", value = phone, onValueChange = onPhoneChange, keyboardType = KeyboardType.Phone)
+                    }
+                }
                 PartnerFormField(label = "Password", value = password, onValueChange = onPasswordChange, isPassword = true)
-                PartnerFormField(label = "Phone Number", value = phone, onValueChange = onPhoneChange, keyboardType = KeyboardType.Phone)
             }
         }
 
@@ -590,9 +683,16 @@ private fun DetailsStep(
         RestaurantSurfaceCard {
             Column(verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing12)) {
                 Text("LEGAL INFORMATION", fontSize = CibusDimens.labelSp, fontWeight = FontWeight.SemiBold, color = RestTextTertiary, letterSpacing = 0.5.sp)
-                PartnerFormField(label = "CNIC (National ID)", value = cnic, onValueChange = onCnicChange, keyboardType = KeyboardType.Number)
-                PartnerFormField(label = "NTN (Tax Number)", value = ntn, onValueChange = onNtnChange)
-                PartnerFormField(label = "PFA License Number", value = pfaLicense, onValueChange = onPfaLicenseChange)
+                PartnerFormField(label = "CNIC (13 digits)", value = cnic, onValueChange = onCnicChange, keyboardType = KeyboardType.Number)
+                // NTN + PFA side by side
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        PartnerFormField(label = "NTN (optional)", value = ntn, onValueChange = onNtnChange, keyboardType = KeyboardType.Number)
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        PartnerFormField(label = "PFA License (opt.)", value = pfaLicense, onValueChange = onPfaLicenseChange)
+                    }
+                }
             }
         }
 
@@ -620,6 +720,13 @@ private fun DetailsStep(
         if (errorMessage != null) {
             Text(errorMessage, fontSize = CibusDimens.captionSp, color = CibusRed)
         }
+
+        // Consent text
+        Text(
+            "By clicking \"Review & Submit\", I agree to receive marketing electronic communications from HUBB.",
+            fontSize = CibusDimens.captionSp,
+            color = RestTextTertiary,
+        )
 
         // Next button
         RestaurantPrimaryButton(
@@ -705,6 +812,7 @@ private fun ReviewStep(
     restaurantName: String,
     address: String,
     cuisineType: String,
+    businessType: String,
     sector: String,
     city: String,
     partnerName: String,
@@ -714,77 +822,84 @@ private fun ReviewStep(
     ntn: String,
     pfaLicense: String,
     isSubmitting: Boolean,
+    isSubmitted: Boolean,
     errorMessage: String?,
     onSubmit: () -> Unit,
+    onDone: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(CibusDimens.screenHorizontal)
-            .padding(top = CibusDimens.spacing16, bottom = CibusDimens.spacing24),
-        verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing20),
-    ) {
-        // Header
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Review & Submit", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = RestTextPrimary)
-            Text("Confirm your details before submitting", fontSize = CibusDimens.bodySp, color = RestTextSecondary)
+    if (isSubmitted) {
+        SuccessView(onDone = onDone)
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(CibusDimens.screenHorizontal)
+                .padding(top = CibusDimens.spacing16, bottom = CibusDimens.spacing24),
+            verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing20),
+        ) {
+            // Header
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Review & Submit", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = RestTextPrimary)
+                Text("Confirm your details before submitting", fontSize = CibusDimens.bodySp, color = RestTextSecondary)
+            }
+
+            // Restaurant section
+            ReviewSection(
+                title = "Restaurant",
+                items = listOf(
+                    "Name" to restaurantName,
+                    "Address" to address,
+                    "Type" to businessType,
+                    "Cuisine" to cuisineType,
+                    "Area" to if (sector.isEmpty()) city else "$sector, $city",
+                )
+            )
+
+            // Account section
+            ReviewSection(
+                title = "Account",
+                items = listOf(
+                    "Name" to partnerName,
+                    "Email" to email,
+                    "Phone" to phone,
+                )
+            )
+
+            // Legal section
+            ReviewSection(
+                title = "Legal",
+                items = listOf(
+                    "CNIC" to formatCNIC(cnic),
+                    "NTN" to ntn.ifBlank { "Not provided" },
+                    "PFA" to pfaLicense.ifBlank { "Not provided" },
+                )
+            )
+
+            // Error
+            if (errorMessage != null) {
+                Text(errorMessage, fontSize = CibusDimens.captionSp, color = CibusRed)
+            }
+
+            // Submit button
+            RestaurantPrimaryButton(
+                text = "Submit Application",
+                onClick = onSubmit,
+                isLoading = isSubmitting,
+                enabled = !isSubmitting,
+            )
+
+            // Disclaimer
+            Text(
+                "By submitting, you confirm these details are accurate.\nVerification takes 1-3 business days.",
+                fontSize = CibusDimens.captionSp,
+                color = RestTextTertiary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(CibusDimens.spacing20))
         }
-
-        // Restaurant section
-        ReviewSection(
-            title = "Restaurant",
-            items = listOf(
-                "Name" to restaurantName,
-                "Address" to address,
-                "Cuisine" to cuisineType,
-                "Area" to if (sector.isEmpty()) city else "$sector, $city",
-            )
-        )
-
-        // Account section
-        ReviewSection(
-            title = "Account",
-            items = listOf(
-                "Name" to partnerName,
-                "Email" to email,
-                "Phone" to phone,
-            )
-        )
-
-        // Legal section
-        ReviewSection(
-            title = "Legal",
-            items = listOf(
-                "CNIC" to formatCNIC(cnic),
-                "NTN" to ntn.ifBlank { "Not provided" },
-                "PFA" to pfaLicense.ifBlank { "Not provided" },
-            )
-        )
-
-        // Error
-        if (errorMessage != null) {
-            Text(errorMessage, fontSize = CibusDimens.captionSp, color = CibusRed)
-        }
-
-        // Submit button
-        RestaurantPrimaryButton(
-            text = "Submit Application",
-            onClick = onSubmit,
-            isLoading = isSubmitting,
-            enabled = !isSubmitting,
-        )
-
-        // Disclaimer
-        Text(
-            "By submitting, you confirm these details are accurate.\nVerification takes 1-3 business days.",
-            fontSize = CibusDimens.captionSp,
-            color = RestTextTertiary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        Spacer(Modifier.height(CibusDimens.spacing20))
     }
 }
 
@@ -823,6 +938,80 @@ private fun ReviewSection(
                 }
             }
         }
+    }
+}
+
+// ── Success View ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun SuccessView(onDone: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(CibusDimens.screenHorizontal)
+            .padding(top = 40.dp, bottom = CibusDimens.spacing24),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
+        // Check icon
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .clip(RoundedCornerShape(50.dp))
+                .background(RestGreen.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = RestGreen,
+                modifier = Modifier.size(56.dp),
+            )
+        }
+
+        // Title + subtitle
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("THANK YOU!", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = RestTextPrimary)
+            Text("Your application has been submitted", fontSize = CibusDimens.bodySp, color = RestTextSecondary)
+        }
+
+        // What happens next
+        RestaurantSurfaceCard {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("What happens next?", fontSize = CibusDimens.bodySp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+                Spacer(Modifier.height(8.dp))
+                SuccessStepRow(number = "1", text = "Our team reviews your application")
+                SuccessStepRow(number = "2", text = "We verify your identity and documents")
+                SuccessStepRow(number = "3", text = "You'll receive an email when approved")
+            }
+        }
+
+        Text("Verification takes 1–3 business days", fontSize = CibusDimens.captionSp, color = RestTextTertiary)
+
+        Spacer(Modifier.weight(1f))
+
+        RestaurantPrimaryButton(text = "Done", onClick = onDone)
+    }
+}
+
+@Composable
+private fun SuccessStepRow(number: String, text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.padding(vertical = 4.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(RestGreen),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(number, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        }
+        Text(text, fontSize = CibusDimens.bodySp, color = RestTextSecondary)
     }
 }
 

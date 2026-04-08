@@ -55,6 +55,7 @@ private fun parseOrderCreatedAt(ts: String?): Long? {
 @Composable
 fun RestaurantAnalyticsContent() {
     var hasBoost by remember { mutableStateOf(false) }
+    var boostExpiry by remember { mutableStateOf<Long?>(null) }
     var allOrders by remember { mutableStateOf<List<com.cibus.restaurant.api.RestaurantOrderDto>>(emptyList()) }
     var walletBalance by remember { mutableStateOf<Double?>(null) }
     var last30Revenue by remember { mutableStateOf<Double?>(null) }
@@ -75,7 +76,9 @@ fun RestaurantAnalyticsContent() {
             restaurantName = me.restaurantName ?: ""
             availability = me.availability ?: "open"
             val resp = RetrofitClient.restaurantApi.getMarketplaceSignals(rid).body()
-            hasBoost = resp?.restaurantBoosts?.any { it.restaurantId == rid } == true
+            val matchingBoost = resp?.restaurantBoosts?.find { it.restaurantId == rid }
+            hasBoost = matchingBoost != null
+            boostExpiry = matchingBoost?.boostUntil
             allOrders = RetrofitClient.restaurantApi.getOrders(rid).body() ?: emptyList()
             try {
                 insights = RetrofitClient.restaurantApi.getInsights(rid, 7).body()
@@ -562,6 +565,205 @@ fun RestaurantAnalyticsContent() {
                                 Column {
                                     Text(suggestion.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
                                     Text(suggestion.body, fontSize = 12.sp, color = RestTextSecondary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Customer Insights (computed from allOrders) ──────────────────
+            if (!loading && completedCount > 0) {
+                item { RestaurantSectionBreak() }
+                item {
+                    val deliveredOrders = allOrders.filter { it.status == "delivered" }
+                    val uniqueCustomers = deliveredOrders.mapNotNull { it.address?.get("phone") as? String }.distinct().size
+                    val avgOrderValue = if (deliveredOrders.isNotEmpty()) deliveredOrders.sumOf { it.total ?: 0.0 } / deliveredOrders.size else 0.0
+                    val peakHour = deliveredOrders.mapNotNull { order ->
+                        parseOrderCreatedAt(order.createdAt)?.let { ms ->
+                            val cal = java.util.Calendar.getInstance().apply { timeInMillis = ms }
+                            cal.get(java.util.Calendar.HOUR_OF_DAY)
+                        }
+                    }.groupBy { it }.maxByOrNull { it.value.size }?.key
+                    val fulfillmentBreakdown = deliveredOrders.groupBy { (it.fulfillmentMode ?: "delivery").lowercase() }.mapValues { it.value.size }
+
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.White,
+                        shadowElevation = 2.dp
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(Icons.Default.People, null, tint = CibusGreenDark, modifier = Modifier.size(20.dp))
+                                Text("Customer Insights", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("$uniqueCustomers", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = CibusGreenDark)
+                                    Text("Unique customers", fontSize = 11.sp, color = RestTextSecondary)
+                                }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("Rs ${avgOrderValue.toInt()}", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = CibusGreenDark)
+                                    Text("Avg order value", fontSize = 11.sp, color = RestTextSecondary)
+                                }
+                                peakHour?.let { hour ->
+                                    val hourLabel = when (hour) { 0 -> "12 AM"; in 1..11 -> "$hour AM"; 12 -> "12 PM"; else -> "${hour - 12} PM" }
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(hourLabel, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = CibusGreenDark)
+                                        Text("Peak hour", fontSize = 11.sp, color = RestTextSecondary)
+                                    }
+                                }
+                            }
+                            if (fulfillmentBreakdown.isNotEmpty()) {
+                                HorizontalDivider(color = Color(0xFFE0E0E0))
+                                Text("Fulfillment breakdown", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = RestTextSecondary)
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    fulfillmentBreakdown.forEach { (mode, count) ->
+                                        val label = when (mode) {
+                                            "pickup" -> "Pickup"
+                                            "dine_in", "dine-in" -> "Dine-in"
+                                            else -> "Delivery"
+                                        }
+                                        Surface(shape = RoundedCornerShape(8.dp), color = CibusGreenDark.copy(alpha = 0.08f)) {
+                                            Column(
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally
+                                            ) {
+                                                Text("$count", fontWeight = FontWeight.Bold, color = CibusGreenDark)
+                                                Text(label, fontSize = 11.sp, color = RestTextSecondary)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Revenue Forecast (computed from allOrders) ────────────────────
+            if (!loading && completedCount > 0) {
+                item {
+                    val deliveredOrders = allOrders.filter { it.status == "delivered" }
+                    val revenueByDate = deliveredOrders.groupBy { order ->
+                        parseOrderCreatedAt(order.createdAt)?.let { ms ->
+                            val cal = java.util.Calendar.getInstance().apply { timeInMillis = ms }
+                            "${cal.get(java.util.Calendar.YEAR)}-${cal.get(java.util.Calendar.DAY_OF_YEAR)}"
+                        } ?: "unknown"
+                    }.filterKeys { it != "unknown" }
+                    val daysCount = revenueByDate.size
+                    val totalRevenueAll = deliveredOrders.sumOf { it.total ?: 0.0 }
+                    val avgDailyRevenue = if (daysCount > 0) totalRevenueAll / daysCount else 0.0
+                    val projectedWeekly = avgDailyRevenue * 7
+
+                    if (daysCount > 0 && avgDailyRevenue > 0) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = CibusGreenDark.copy(alpha = 0.06f),
+                            shadowElevation = 1.dp
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.TrendingUp, null, tint = CibusGreenDark, modifier = Modifier.size(24.dp))
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text("Revenue Forecast", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+                                    Text(
+                                        "Projected weekly revenue: Rs ${projectedWeekly.toInt()}",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = CibusGreenDark
+                                    )
+                                    Text(
+                                        "Based on $daysCount day${if (daysCount != 1) "s" else ""} of order data",
+                                        fontSize = 12.sp,
+                                        color = RestTextSecondary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Demand Alert Card ─────────────────────────────────────────────
+            if (!loading) {
+                // Enhanced boost card with expiry
+                if (hasBoost) {
+                    item {
+                        val expiryText = boostExpiry?.let { exp ->
+                            val remaining = exp - System.currentTimeMillis()
+                            if (remaining > 0) {
+                                val hours = remaining / (1000 * 60 * 60)
+                                val mins = (remaining / (1000 * 60)) % 60
+                                if (hours > 0) "${hours}h ${mins}m remaining" else "${mins}m remaining"
+                            } else "Expired"
+                        }
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = CibusGreenDark.copy(alpha = 0.12f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(Icons.Default.Bolt, null, tint = CibusGreenDark, modifier = Modifier.size(24.dp))
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text("Visibility Boost Active", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = CibusGreenDark)
+                                    Text("Your restaurant is featured and receiving extra visibility", fontSize = 12.sp, color = RestTextSecondary)
+                                    if (expiryText != null) {
+                                        Text("Boost $expiryText", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = CibusAmber)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // High demand alert
+                if (preparingCount > 5) {
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = CibusOrange.copy(alpha = 0.10f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(Icons.Default.LocalFireDepartment, null, tint = CibusOrange, modifier = Modifier.size(22.dp))
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text("High Demand", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = CibusOrange)
+                                    Text("$preparingCount orders preparing — kitchen is at high capacity", fontSize = 12.sp, color = RestTextSecondary)
+                                }
+                            }
+                        }
+                    }
+                }
+                // Low demand notice (open store, 0 orders in period)
+                if (totalOrdersToday == 0 && availability != "closed") {
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = CibusAmber.copy(alpha = 0.08f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(Icons.Default.TrendingDown, null, tint = CibusAmber, modifier = Modifier.size(22.dp))
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text("Low Demand", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = CibusAmber)
+                                    Text("No orders in this period. Consider running a promotion to attract customers.", fontSize = 12.sp, color = RestTextSecondary)
                                 }
                             }
                         }

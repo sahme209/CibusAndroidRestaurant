@@ -45,6 +45,7 @@ fun MenuEditorContent(restaurantId: String) {
     var isLoading by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
+    var availabilityFeedback by remember { mutableStateOf<String?>(null) }
     var showImportDialog by remember { mutableStateOf(false) }
     var showAddItemDialog by remember { mutableStateOf(false) }
     var addItemCategory by remember { mutableStateOf("") }
@@ -201,14 +202,18 @@ fun MenuEditorContent(restaurantId: String) {
                                                 onToggleAvailable = {
                                                     scope.launch {
                                                         try {
+                                                            val newAvail = !item.available
                                                             val r = RetrofitClient.restaurantApi.updateMenuItem(
                                                                 restaurantId, item.id,
-                                                                MenuItemUpdateRequest(available = !item.available)
+                                                                MenuItemUpdateRequest(available = newAvail)
                                                             )
                                                             if (r.isSuccessful) {
                                                                 categories = r.body()?.categories ?: categories
+                                                                availabilityFeedback = if (newAvail) "${item.name} is now available" else "${item.name} marked as sold out"
                                                             }
-                                                        } catch (_: Exception) {}
+                                                        } catch (_: Exception) {
+                                                            availabilityFeedback = "Failed to update availability"
+                                                        }
                                                     }
                                                 }
                                             )
@@ -293,6 +298,24 @@ fun MenuEditorContent(restaurantId: String) {
                         TextButton(onClick = { errorMsg = null }) { Text("Dismiss") }
                     }
                 ) { Text(msg) }
+            }
+
+            // Availability toggle feedback snackbar
+            availabilityFeedback?.let { msg ->
+                LaunchedEffect(msg) {
+                    kotlinx.coroutines.delay(2500)
+                    availabilityFeedback = null
+                }
+                Snackbar(
+                    modifier = Modifier
+                        .padding(CibusDimens.spacing8),
+                    containerColor = CibusGreenDark,
+                    action = {
+                        TextButton(onClick = { availabilityFeedback = null }) {
+                            Text("OK", color = Color.White)
+                        }
+                    }
+                ) { Text(msg, color = Color.White) }
             }
         }
     }
@@ -574,7 +597,7 @@ private fun MenuItemRow(
                 .clip(RoundedCornerShape(2.dp))
                 .background(
                     if (item.available) CibusGreen
-                    else CibusTextTertiary.copy(alpha = 0.3f)
+                    else CibusRed.copy(alpha = 0.6f)
                 )
         )
 
@@ -606,13 +629,13 @@ private fun MenuItemRow(
                 }
                 if (!item.available) {
                     Text(
-                        "HIDDEN",
+                        "SOLD OUT",
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
-                        color = CibusTextOnSurfaceSecondary,
+                        color = Color.White,
                         modifier = Modifier
                             .clip(RoundedCornerShape(CibusDimens.radiusXs))
-                            .background(CibusTextTertiary.copy(alpha = 0.2f))
+                            .background(CibusRed)
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }

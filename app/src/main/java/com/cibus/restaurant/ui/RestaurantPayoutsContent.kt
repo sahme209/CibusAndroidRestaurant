@@ -123,6 +123,88 @@ private fun PayoutOverview(wallet: RestaurantWalletResponse) {
             }
         }
 
+        // ── Monthly Summary card ──────────────────────────────────────────
+        run {
+            val monthRevenue = wallet.last30Revenue ?: 0.0
+            val commRate = wallet.commissionRate
+            val estimatedCommission = if (commRate != null && monthRevenue > 0) monthRevenue * commRate else null
+            val netEstimated = if (estimatedCommission != null) monthRevenue - estimatedCommission else null
+
+            if (monthRevenue > 0 || wallet.pendingPayoutsCount > 0 || wallet.completedPayoutsCount > 0) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = CibusCardBg,
+                    shadowElevation = 1.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.CalendarMonth, null, tint = CibusGreenDark, modifier = Modifier.size(20.dp))
+                            Text("Monthly Summary", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+                        }
+
+                        if (monthRevenue > 0) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("30-day revenue", fontSize = 14.sp, color = RestTextSecondary)
+                                Text("Rs ${monthRevenue.toInt()}", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = RestTextPrimary)
+                            }
+                        }
+
+                        if (estimatedCommission != null) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Estimated commission (${((commRate ?: 0.0) * 100).toInt()}%)", fontSize = 14.sp, color = RestTextSecondary)
+                                Text("-Rs ${estimatedCommission.toInt()}", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = CibusRed)
+                            }
+                        }
+
+                        if (netEstimated != null) {
+                            HorizontalDivider(color = Color(0xFFE0E0E0))
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Net estimated earnings", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+                                Text("Rs ${netEstimated.toInt()}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = CibusGreenDark)
+                            }
+                        }
+
+                        if (wallet.pendingPayoutsCount > 0 || wallet.completedPayoutsCount > 0) {
+                            HorizontalDivider(color = Color(0xFFE0E0E0))
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("${wallet.pendingPayoutsCount}", fontWeight = FontWeight.Bold, color = CibusAmber)
+                                    Text("Pending payouts", fontSize = 11.sp, color = RestTextSecondary)
+                                }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("${wallet.completedPayoutsCount}", fontWeight = FontWeight.Bold, color = CibusGreen)
+                                    Text("Completed payouts", fontSize = 11.sp, color = RestTextSecondary)
+                                }
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = CibusGreenDark.copy(alpha = 0.06f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Default.Info, null, tint = CibusGreenDark, modifier = Modifier.size(16.dp))
+                                Text(
+                                    "Full monthly report available at end of billing cycle",
+                                    fontSize = 12.sp,
+                                    color = RestTextSecondary
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         if (wallet.pendingPayoutsCount == 0 && wallet.completedPayoutsCount == 0) {
             Box(Modifier.fillMaxWidth().padding(top = 24.dp), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {

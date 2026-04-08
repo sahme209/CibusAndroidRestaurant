@@ -96,6 +96,7 @@ fun RestaurantOrdersContent() {
     var actionLoadingId by remember { mutableStateOf<String?>(null) }
     var showRejectDialog by remember { mutableStateOf(false) }
     var pendingRejectOrderId by remember { mutableStateOf<String?>(null) }
+    var autoAcceptEnabled by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val prevNewOrderIds = remember { mutableStateOf<Set<String>>(emptySet()) }
     val view = androidx.compose.ui.platform.LocalView.current
@@ -121,6 +122,26 @@ fun RestaurantOrdersContent() {
             }
             prevNewOrderIds.value = newIds
         } else if (newIds.isEmpty()) prevNewOrderIds.value = emptySet()
+    }
+
+    // Auto-accept: when enabled and active kitchen orders < 5, accept new orders automatically
+    val activeKitchenCount = orders.count { it.status == "accepted" || it.status == "preparing" }
+    LaunchedEffect(orders, autoAcceptEnabled) {
+        if (!autoAcceptEnabled) return@LaunchedEffect
+        if (activeKitchenCount >= 5) return@LaunchedEffect
+        val rid = restaurantId ?: return@LaunchedEffect
+        val newToAccept = orders.filter { it.status == "order_placed" }
+        for (order in newToAccept) {
+            try {
+                RetrofitClient.restaurantApi.acceptOrder(order.id)
+            } catch (_: Exception) {}
+        }
+        if (newToAccept.isNotEmpty()) {
+            try {
+                val r = RetrofitClient.restaurantApi.getOrders(rid)
+                if (r.isSuccessful) orders = r.body() ?: emptyList()
+            } catch (_: Exception) {}
+        }
     }
 
     fun refresh(id: String) {
@@ -215,6 +236,80 @@ fun RestaurantOrdersContent() {
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
+                    // ── Auto-accept toggle ──────────────────────────────────
+                    item {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (autoAcceptEnabled) CibusGreenDark.copy(alpha = 0.08f) else Color.White,
+                            shadowElevation = 1.dp
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Icon(
+                                    if (autoAcceptEnabled) Icons.Default.FlashOn else Icons.Default.FlashOff,
+                                    null,
+                                    tint = if (autoAcceptEnabled) CibusGreenDark else RestTextSecondary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "Auto-accept new orders",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = RestTextPrimary
+                                    )
+                                    Text(
+                                        if (activeKitchenCount >= 5) "Paused — kitchen has $activeKitchenCount active orders"
+                                        else "Accepts when kitchen has fewer than 5 active orders",
+                                        fontSize = 11.sp,
+                                        color = RestTextSecondary
+                                    )
+                                }
+                                Switch(
+                                    checked = autoAcceptEnabled,
+                                    onCheckedChange = { autoAcceptEnabled = it },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = CibusGreenDark
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    // ── Auto-accept active info banner ──────────────────────
+                    if (autoAcceptEnabled) {
+                        item {
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                color = CibusGreenDark.copy(alpha = 0.06f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(Icons.Default.Info, null, tint = CibusGreenDark, modifier = Modifier.size(16.dp))
+                                    Text(
+                                        if (activeKitchenCount >= 5) "Auto-accept paused: $activeKitchenCount orders in kitchen (limit: 5)"
+                                        else "Auto-accept is active — new orders will be accepted automatically",
+                                        fontSize = 12.sp,
+                                        color = CibusGreenDark
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     // ── Kitchen pressure bar ────────────────────────────────
                     item {
                         Row(

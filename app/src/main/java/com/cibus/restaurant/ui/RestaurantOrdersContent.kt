@@ -314,6 +314,40 @@ fun RestaurantOrdersContent() {
                         }
                     }
 
+                    // ── SCHEDULED ORDERS INFO ─────────────────────────────────
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            color = CibusGreenDark.copy(alpha = 0.06f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(Icons.Default.Schedule, null, tint = CibusGreenDark, modifier = Modifier.size(22.dp))
+                                Column {
+                                    Text("Scheduled Orders", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = RestTextPrimary)
+                                    Text(
+                                        "Pre-orders for future time slots will appear here. Customers can schedule orders up to 7 days in advance.",
+                                        fontSize = 12.sp,
+                                        color = RestTextSecondary
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Show scheduled orders if any exist
+                    val scheduledOrders = orders.filter { it.status == "scheduled" }
+                    if (scheduledOrders.isNotEmpty()) {
+                        item { SectionHeader("Scheduled", Icons.Default.CalendarMonth, CibusGreenDark, scheduledOrders.size) }
+                        items(scheduledOrders, key = { it.id }) { order ->
+                            OrderCard(order = order, isActionLoading = false, onAccept = {}, onReject = {}, onDelay = {}, onRunningLate = {}, onStartPreparing = {}, onMarkReady = {})
+                        }
+                    }
+
                     item { Spacer(Modifier.height(32.dp)) }
                 }
             }

@@ -13,8 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,6 +32,8 @@ import com.cibus.restaurant.api.MenuImportRequest
 import com.cibus.restaurant.api.MenuItemDto
 import com.cibus.restaurant.api.MenuItemUpdateRequest
 import com.cibus.restaurant.api.AddMenuItemRequest
+import com.cibus.restaurant.api.ModifierGroupDto
+import com.cibus.restaurant.api.ModifierOptionDto
 import com.cibus.restaurant.api.RetrofitClient
 import com.cibus.restaurant.ui.theme.*
 import kotlinx.coroutines.launch
@@ -238,6 +239,11 @@ fun MenuEditorContent(restaurantId: String) {
                                 }
                             }
                         }
+                    }
+
+                    // Daypart menus section
+                    item {
+                        DaypartMenuSection(categoryNames = categories.map { it.name })
                     }
 
                     // Add new category button
@@ -610,6 +616,18 @@ private fun MenuItemRow(
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
+                if (item.modifiers.isNotEmpty()) {
+                    Text(
+                        "${item.modifiers.size} add-on${if (item.modifiers.size > 1) "s" else ""}",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = CibusGreen,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(CibusDimens.radiusXs))
+                            .background(CibusGreen.copy(alpha = 0.1f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
             }
             if (item.description.isNotEmpty()) {
                 Text(
@@ -871,6 +889,7 @@ private fun EditMenuItemDialog(
     var price by remember { mutableStateOf(item.price.toInt().toString()) }
     var description by remember { mutableStateOf(item.description) }
     var available by remember { mutableStateOf(item.available) }
+    var modifiers by remember { mutableStateOf(item.modifiers.toMutableList()) }
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = CibusGreen,
@@ -882,7 +901,10 @@ private fun EditMenuItemDialog(
         onDismissRequest = onDismiss,
         title = { Text("Edit Item", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing12)) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing12),
+                modifier = Modifier.heightIn(max = 400.dp).then(Modifier.imePadding())
+            ) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -924,6 +946,36 @@ private fun EditMenuItemDialog(
                     )
                     Text("Available", style = MaterialTheme.typography.bodyMedium)
                 }
+
+                // Modifier groups section
+                HorizontalDivider(color = CibusTextTertiary.copy(alpha = 0.3f))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Modifier Groups", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = RestTextPrimary)
+                    TextButton(onClick = {
+                        modifiers = (modifiers + ModifierGroupDto(
+                            id = "mg${System.currentTimeMillis()}",
+                            name = "New Group",
+                            required = false,
+                            maxSelections = 1,
+                            options = emptyList()
+                        )).toMutableList()
+                    }) {
+                        Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp), tint = CibusGreen)
+                        Spacer(Modifier.width(4.dp))
+                        Text("Add Group", fontSize = 12.sp, color = CibusGreen)
+                    }
+                }
+                modifiers.forEachIndexed { gIdx, group ->
+                    ModifierGroupEditor(
+                        group = group,
+                        onUpdate = { updated ->
+                            modifiers = modifiers.toMutableList().also { it[gIdx] = updated }
+                        },
+                        onDelete = {
+                            modifiers = modifiers.toMutableList().also { it.removeAt(gIdx) }
+                        }
+                    )
+                }
             }
         },
         confirmButton = {
@@ -941,4 +993,217 @@ private fun EditMenuItemDialog(
             }
         }
     )
+}
+
+// ── Modifier Group Editor ─────────────────────────────────────────────────
+
+@Composable
+private fun ModifierGroupEditor(
+    group: ModifierGroupDto,
+    onUpdate: (ModifierGroupDto) -> Unit,
+    onDelete: () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = CibusSurfaceSecondary,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    Modifier.weight(1f).clickable { expanded = !expanded },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        null, tint = CibusTextOnSurfaceSecondary, modifier = Modifier.size(16.dp)
+                    )
+                    Text(group.name, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = CibusTextOnSurface)
+                    Text("(${group.options.size} options)", fontSize = 11.sp, color = CibusTextOnSurfaceSecondary)
+                }
+                IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Default.Delete, null, tint = CibusRed.copy(alpha = 0.6f), modifier = Modifier.size(14.dp))
+                }
+            }
+
+            if (expanded) {
+                OutlinedTextField(
+                    value = group.name,
+                    onValueChange = { onUpdate(group.copy(name = it)) },
+                    label = { Text("Group name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = MaterialTheme.typography.bodySmall,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CibusGreen, cursorColor = CibusGreen)
+                )
+
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Checkbox(
+                        checked = group.required,
+                        onCheckedChange = { onUpdate(group.copy(required = it)) },
+                        colors = CheckboxDefaults.colors(checkedColor = CibusGreen),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text("Required", fontSize = 12.sp)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Max:", fontSize = 12.sp, color = CibusTextOnSurfaceSecondary)
+                    Surface(shape = RoundedCornerShape(6.dp), color = Color.White) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(
+                                onClick = { if (group.maxSelections > 1) onUpdate(group.copy(maxSelections = group.maxSelections - 1)) },
+                                modifier = Modifier.size(24.dp)
+                            ) { Text("-", fontWeight = FontWeight.Bold, color = CibusGreen) }
+                            Text("${group.maxSelections}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            IconButton(
+                                onClick = { onUpdate(group.copy(maxSelections = group.maxSelections + 1)) },
+                                modifier = Modifier.size(24.dp)
+                            ) { Text("+", fontWeight = FontWeight.Bold, color = CibusGreen) }
+                        }
+                    }
+                }
+
+                group.options.forEachIndexed { oIdx, option ->
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OutlinedTextField(
+                            value = option.name,
+                            onValueChange = { newName ->
+                                val newOpts = group.options.toMutableList()
+                                newOpts[oIdx] = option.copy(name = newName)
+                                onUpdate(group.copy(options = newOpts))
+                            },
+                            modifier = Modifier.weight(1f),
+                            textStyle = MaterialTheme.typography.bodySmall,
+                            shape = RoundedCornerShape(6.dp),
+                            placeholder = { Text("Option name", fontSize = 11.sp) },
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CibusGreen, cursorColor = CibusGreen)
+                        )
+                        OutlinedTextField(
+                            value = if (option.price > 0) option.price.toInt().toString() else "",
+                            onValueChange = { newPrice ->
+                                val newOpts = group.options.toMutableList()
+                                newOpts[oIdx] = option.copy(price = newPrice.toDoubleOrNull() ?: 0.0)
+                                onUpdate(group.copy(options = newOpts))
+                            },
+                            modifier = Modifier.width(60.dp),
+                            textStyle = MaterialTheme.typography.bodySmall,
+                            shape = RoundedCornerShape(6.dp),
+                            placeholder = { Text("Rs", fontSize = 11.sp) },
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CibusGreen, cursorColor = CibusGreen)
+                        )
+                        IconButton(
+                            onClick = {
+                                val newOpts = group.options.toMutableList()
+                                newOpts.removeAt(oIdx)
+                                onUpdate(group.copy(options = newOpts))
+                            },
+                            modifier = Modifier.size(20.dp)
+                        ) {
+                            Icon(Icons.Default.Close, null, tint = CibusRed.copy(alpha = 0.5f), modifier = Modifier.size(12.dp))
+                        }
+                    }
+                }
+
+                TextButton(onClick = {
+                    val newOpts = group.options + ModifierOptionDto(id = "mo${System.currentTimeMillis()}", name = "", price = 0.0)
+                    onUpdate(group.copy(options = newOpts))
+                }) {
+                    Icon(Icons.Default.Add, null, modifier = Modifier.size(12.dp), tint = CibusGreen)
+                    Spacer(Modifier.width(4.dp))
+                    Text("Add Option", fontSize = 11.sp, color = CibusGreen)
+                }
+            }
+        }
+    }
+}
+
+// ── Daypart Menu Section ──────────────────────────────────────────────────
+
+private data class DaypartConfig(
+    val name: String,
+    val startHour: Int,
+    val endHour: Int,
+    val enabled: Boolean = false,
+    val categories: Set<String> = emptySet()
+)
+
+@Composable
+fun DaypartMenuSection(categoryNames: List<String>) {
+    var dayparts by remember {
+        mutableStateOf(
+            listOf(
+                DaypartConfig("Breakfast", 7, 11),
+                DaypartConfig("Lunch", 11, 15),
+                DaypartConfig("Dinner", 18, 23)
+            )
+        )
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        shadowElevation = 3.dp,
+        color = CibusCardBg
+    ) {
+        Column(modifier = Modifier.padding(CibusDimens.cardPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text("DAYPART MENUS", fontWeight = FontWeight.Bold, fontSize = CibusDimens.labelSp, color = CibusGreen)
+                    Text("Show different items at different times", fontSize = 11.sp, color = CibusTextOnSurfaceSecondary)
+                }
+                Icon(Icons.Default.Schedule, null, tint = CibusGreen, modifier = Modifier.size(20.dp))
+            }
+
+            dayparts.forEachIndexed { idx, daypart ->
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (daypart.enabled) CibusGreen.copy(alpha = 0.06f) else CibusSurfaceSecondary,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Column {
+                                Text(daypart.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = CibusTextOnSurface)
+                                Text("${daypart.startHour}:00 – ${daypart.endHour}:00", fontSize = 12.sp, color = CibusTextOnSurfaceSecondary)
+                            }
+                            Switch(
+                                checked = daypart.enabled,
+                                onCheckedChange = {
+                                    dayparts = dayparts.toMutableList().also { list -> list[idx] = daypart.copy(enabled = it) }
+                                },
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = CibusGreen)
+                            )
+                        }
+
+                        if (daypart.enabled && categoryNames.isNotEmpty()) {
+                            Text("Categories:", fontSize = 11.sp, color = CibusTextOnSurfaceSecondary)
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                categoryNames.take(5).forEach { cat ->
+                                    val selected = cat in daypart.categories
+                                    FilterChip(
+                                        selected = selected,
+                                        onClick = {
+                                            val newCats = if (selected) daypart.categories - cat else daypart.categories + cat
+                                            dayparts = dayparts.toMutableList().also { list -> list[idx] = daypart.copy(categories = newCats) }
+                                        },
+                                        label = { Text(cat, fontSize = 10.sp) },
+                                        modifier = Modifier.height(26.dp),
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = CibusGreen,
+                                            selectedLabelColor = Color.White
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

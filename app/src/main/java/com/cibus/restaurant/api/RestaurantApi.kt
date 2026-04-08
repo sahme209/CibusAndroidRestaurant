@@ -373,6 +373,20 @@ data class DiscoverRestaurantsResponse(
     val total: Int = 0,
 )
 
+data class ModifierOptionDto(
+    val id: String = "",
+    val name: String = "",
+    val price: Double = 0.0,
+)
+
+data class ModifierGroupDto(
+    val id: String = "",
+    val name: String = "",
+    val required: Boolean = false,
+    @SerializedName("maxSelections") val maxSelections: Int = 1,
+    val options: List<ModifierOptionDto> = emptyList(),
+)
+
 data class MenuItemDto(
     val id: String = "",
     val name: String = "",
@@ -381,6 +395,7 @@ data class MenuItemDto(
     val available: Boolean = true,
     @SerializedName("imageUrl") val imageUrl: String = "",
     @SerializedName("isPopular") val isPopular: Boolean = false,
+    val modifiers: List<ModifierGroupDto> = emptyList(),
 )
 
 data class MenuCategoryDto(

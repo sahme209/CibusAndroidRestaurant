@@ -495,10 +495,80 @@ fun RestaurantAnalyticsContent() {
 
             item { LoyaltyInfoCard() }
 
-            item { Text("Suggestions", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary) }
-            item { SuggestionCard(Icons.Default.Restaurant, "Add combo meals", "Combo deals drive 30% more orders. Try adding meal combinations to your menu.") }
-            item { SuggestionCard(Icons.Default.Timer, "Optimize prep time", "Faster prep times lead to better ratings. Review your menu for quick-prep options.") }
-            item { SuggestionCard(Icons.Default.Star, "Promote top dishes", "Once your orders are live, spotlight your most popular dishes to drive repeat orders.") }
+            // ── Revenue Chart (weekly bar chart) ────────────────────────────
+            if (!loading && completedCount > 0) {
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.White,
+                        shadowElevation = 2.dp
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("Weekly Revenue", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+                            val weeklyData = remember(allOrders) { generateWeeklyRevenue(allOrders) }
+                            val maxVal = weeklyData.maxOfOrNull { it.second } ?: 1.0
+                            Row(
+                                modifier = Modifier.fillMaxWidth().height(120.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                verticalAlignment = Alignment.Bottom
+                            ) {
+                                weeklyData.forEach { (day, rev) ->
+                                    val fraction = (rev / maxVal).toFloat().coerceIn(0.05f, 1f)
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Bottom,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text("${rev.toInt()}", fontSize = 9.sp, color = RestTextSecondary)
+                                        Spacer(Modifier.height(2.dp))
+                                        Box(
+                                            Modifier
+                                                .width(20.dp)
+                                                .fillMaxHeight(fraction)
+                                                .background(CibusGreen, RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                        )
+                                        Spacer(Modifier.height(4.dp))
+                                        Text(day, fontSize = 10.sp, color = RestTextSecondary)
+                                    }
+                                }
+                            }
+                            // Peak hours hint
+                            Text("Peak hours: 12-2 PM, 7-9 PM", fontSize = 11.sp, color = CibusGreen, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                }
+            }
+
+            // Section break before smart suggestions
+            item { RestaurantSectionBreak() }
+
+            // ── Smart Suggestions (data-driven) ──────────────────────────────
+            item { Text("Smart Suggestions", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary) }
+            if (!loading) {
+                val suggestions = generateSmartSuggestions(totalOrdersToday, preparingCount, availability)
+                suggestions.forEach { suggestion ->
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = suggestion.color.copy(alpha = 0.06f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(14.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Icon(suggestion.icon, null, tint = suggestion.color, modifier = Modifier.size(24.dp))
+                                Column {
+                                    Text(suggestion.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+                                    Text(suggestion.body, fontSize = 12.sp, color = RestTextSecondary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             item { Spacer(Modifier.height(24.dp)) }
         }
@@ -694,6 +764,55 @@ private fun SuggestionCard(
     }
     }
 }
+
+/** Generate weekly revenue from order data. */
+private fun generateWeeklyRevenue(orders: List<com.cibus.restaurant.api.RestaurantOrderDto>): List<Pair<String, Double>> {
+    val dayNames = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val cal = java.util.Calendar.getInstance()
+    val today = cal.get(java.util.Calendar.DAY_OF_WEEK)
+    // Aggregate delivered orders by day of week
+    val byDay = mutableMapOf<Int, Double>()
+    orders.filter { it.status == "delivered" }.forEach { order ->
+        val ts = parseOrderCreatedAt(order.createdAt) ?: return@forEach
+        cal.timeInMillis = ts
+        val dow = cal.get(java.util.Calendar.DAY_OF_WEEK) // 1=Sun, 2=Mon, ...
+        val idx = if (dow == 1) 6 else dow - 2 // Convert to 0=Mon...6=Sun
+        byDay[idx] = (byDay[idx] ?: 0.0) + (order.total ?: 0.0)
+    }
+    return dayNames.mapIndexed { idx, name -> name to (byDay[idx] ?: 0.0) }
+}
+
+/** Generate smart suggestions based on real-time restaurant data. */
+private fun generateSmartSuggestions(
+    orderCount: Int,
+    preparingCount: Int,
+    availability: String
+): List<SuggestionData> {
+    val suggestions = mutableListOf<SuggestionData>()
+    if (orderCount == 0) {
+        suggestions.add(SuggestionData(Icons.Default.Campaign, "Boost visibility", "No orders yet today. Consider creating a promotion to attract customers.", CibusAmber))
+    }
+    if (preparingCount > 6) {
+        suggestions.add(SuggestionData(Icons.Default.PauseCircle, "Kitchen overloaded", "$preparingCount orders preparing. Consider pausing new orders to maintain quality.", CibusRed))
+    } else if (preparingCount > 3) {
+        suggestions.add(SuggestionData(Icons.Default.Speed, "Kitchen getting busy", "$preparingCount orders in prep. Monitor closely and consider adjusting prep times.", CibusOrange))
+    }
+    if (availability == "closed") {
+        suggestions.add(SuggestionData(Icons.Default.Store, "You're offline", "Your restaurant is currently closed. Open from the Store tab to start receiving orders.", CibusGreenDark))
+    }
+    if (orderCount > 0 && orderCount < 5) {
+        suggestions.add(SuggestionData(Icons.Default.Restaurant, "Add combo meals", "Combo deals drive 30% more orders. Try adding meal combinations to your menu.", CibusGreenDark))
+    }
+    suggestions.add(SuggestionData(Icons.Default.Star, "Maintain quality", "Consistent food quality and fast prep times lead to better ratings and more repeat customers.", CibusGreen))
+    return suggestions
+}
+
+private data class SuggestionData(
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val title: String,
+    val body: String,
+    val color: Color
+)
 
 /** Phase 125/126: Kitchen capacity management + prep prediction card. */
 @Composable

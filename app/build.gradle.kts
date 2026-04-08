@@ -27,6 +27,7 @@ android {
 
     buildTypes {
         debug {
+            signingConfig = signingConfigs.getByName("debug")
             buildConfigField("String", "BASE_URL", "\"https://api-vtadzgdqca-uc.a.run.app\"")
             buildConfigField("Boolean", "DEBUG_LOGGING", "true")
             // Digits only, e.g. 923218765432 — empty hides WhatsApp support buttons

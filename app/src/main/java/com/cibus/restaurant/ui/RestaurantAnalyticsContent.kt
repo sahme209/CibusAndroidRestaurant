@@ -29,10 +29,6 @@ import com.cibus.restaurant.ui.theme.CibusAmber
 import com.cibus.restaurant.ui.theme.CibusOrange
 import com.cibus.restaurant.ui.theme.CibusOrangeWarm
 import com.cibus.restaurant.ui.theme.CibusCoral
-import com.cibus.restaurant.ui.theme.CibusHeaderCard
-import com.cibus.restaurant.ui.theme.CibusTextSecondary
-import com.cibus.restaurant.ui.theme.CibusSurface
-import com.cibus.restaurant.ui.theme.CibusSurfaceNeutral
 import com.cibus.restaurant.ui.theme.CibusSurfaceGreen
 import com.cibus.restaurant.ui.theme.CibusDimens
 import androidx.compose.ui.text.font.FontWeight
@@ -223,14 +219,14 @@ fun RestaurantAnalyticsContent() {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Sales overview", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = CibusHeaderCard)
+                    Text("Sales overview", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
                     Spacer(Modifier.weight(1f))
                     SalesDateFilter.entries.forEach { filter ->
                         val selected = dateFilter == filter
                         Surface(
                             onClick = { dateFilter = filter },
                             shape = RoundedCornerShape(8.dp),
-                            color = if (selected) CibusGreenDark else CibusSurface,
+                            color = if (selected) CibusGreenDark else RestBackground,
                             modifier = Modifier
                         ) {
                             Text(
@@ -238,7 +234,7 @@ fun RestaurantAnalyticsContent() {
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                 fontSize = 12.sp,
                                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (selected) Color.White else CibusTextSecondary
+                                color = if (selected) Color.White else RestTextSecondary
                             )
                         }
                     }
@@ -260,14 +256,14 @@ fun RestaurantAnalyticsContent() {
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Today's goal", fontWeight = FontWeight.SemiBold, color = CibusHeaderCard)
-                                Text("Rs ${totalRevenue.toInt()} / ${goal.toInt()}", fontSize = 12.sp, color = CibusTextSecondary)
+                                Text("Today's goal", fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+                                Text("Rs ${totalRevenue.toInt()} / ${goal.toInt()}", fontSize = 12.sp, color = RestTextSecondary)
                             }
                             LinearProgressIndicator(
                                 progress = { progress.toFloat() },
                                 modifier = Modifier.fillMaxWidth().height(6.dp),
                                 color = CibusGreenDark,
-                                trackColor = CibusTextSecondary.copy(alpha = 0.2f),
+                                trackColor = RestTextSecondary.copy(alpha = 0.2f),
                             )
                         }
                     }
@@ -290,7 +286,7 @@ fun RestaurantAnalyticsContent() {
                             Icon(Icons.Default.CheckCircle, null, tint = CibusGreenDark, modifier = Modifier.size(20.dp))
                             Column {
                                 Text("All systems operational", fontWeight = FontWeight.SemiBold, color = CibusGreenDark)
-                                Text("No store alerts. Orders flowing normally.", fontSize = 12.sp, color = CibusTextSecondary)
+                                Text("No store alerts. Orders flowing normally.", fontSize = 12.sp, color = RestTextSecondary)
                             }
                         }
                     }
@@ -307,26 +303,26 @@ fun RestaurantAnalyticsContent() {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
-                            color = CibusSurface
+                            color = Color.White
                         ) {
                             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Text("Insights", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = CibusHeaderCard)
+                                Text("Insights", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
                                 if (ins.popularItems.isNotEmpty()) {
-                                    Text("Popular items (last ${ins.days} days)", fontSize = 12.sp, color = CibusTextSecondary)
+                                    Text("Popular items (last ${ins.days} days)", fontSize = 12.sp, color = RestTextSecondary)
                                     ins.popularItems.take(5).forEach { item ->
                                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text(item.name, fontSize = 13.sp, color = CibusHeaderCard, maxLines = 1)
-                                            Text("${item.count} orders", fontSize = 12.sp, color = CibusTextSecondary)
+                                            Text(item.name, fontSize = 13.sp, color = RestTextPrimary, maxLines = 1)
+                                            Text("${item.count} orders", fontSize = 12.sp, color = RestTextSecondary)
                                         }
                                     }
                                 }
                                 if (ins.peakHours.isNotEmpty()) {
-                                    Text("Peak hours", fontSize = 12.sp, color = CibusTextSecondary)
+                                    Text("Peak hours", fontSize = 12.sp, color = RestTextSecondary)
                                     ins.peakHours.take(5).forEach { ph ->
                                         val hourLabel = when (ph.hour) { 0 -> "12 AM"; in 1..12 -> "$ph.hour AM"; 12 -> "12 PM"; else -> "${ph.hour - 12} PM" }
                                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text(hourLabel, fontSize = 13.sp, color = CibusHeaderCard)
-                                            Text("${ph.count} orders", fontSize = 12.sp, color = CibusTextSecondary)
+                                            Text(hourLabel, fontSize = 13.sp, color = RestTextPrimary)
+                                            Text("${ph.count} orders", fontSize = 12.sp, color = RestTextSecondary)
                                         }
                                     }
                                 }
@@ -358,7 +354,7 @@ fun RestaurantAnalyticsContent() {
                             Icon(statusIcon, null, tint = statusColor, modifier = Modifier.size(16.dp))
                             Text(statusLabelFull, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = statusColor)
                             Spacer(Modifier.weight(1f))
-                            Text("Restaurant status", style = MaterialTheme.typography.labelSmall, color = CibusTextSecondary)
+                            Text("Restaurant status", style = MaterialTheme.typography.labelSmall, color = RestTextSecondary)
                         }
                     }
                 }
@@ -370,7 +366,7 @@ fun RestaurantAnalyticsContent() {
                     Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), color = CibusGreenDark.copy(alpha = 0.15f)) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Icon(Icons.Default.TrendingUp, null, tint = CibusGreenDark)
-                            Text("Visibility boost active — your restaurant is featured", fontSize = 14.sp, color = CibusHeaderCard)
+                            Text("Visibility boost active — your restaurant is featured", fontSize = 14.sp, color = RestTextPrimary)
                         }
                     }
                 }
@@ -499,7 +495,7 @@ fun RestaurantAnalyticsContent() {
 
             item { LoyaltyInfoCard() }
 
-            item { Text("Suggestions", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = CibusHeaderCard) }
+            item { Text("Suggestions", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary) }
             item { SuggestionCard(Icons.Default.Restaurant, "Add combo meals", "Combo deals drive 30% more orders. Try adding meal combinations to your menu.") }
             item { SuggestionCard(Icons.Default.Timer, "Optimize prep time", "Faster prep times lead to better ratings. Review your menu for quick-prep options.") }
             item { SuggestionCard(Icons.Default.Star, "Promote top dishes", "Once your orders are live, spotlight your most popular dishes to drive repeat orders.") }
@@ -532,10 +528,10 @@ private fun MetricCard(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Icon(icon, null, tint = CibusGreenDark, modifier = Modifier.size(18.dp))
-                Text(title, fontSize = 12.sp, color = CibusTextSecondary)
+                Text(title, fontSize = 12.sp, color = RestTextSecondary)
             }
-            Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = CibusHeaderCard)
-            Text(subtitle, fontSize = 11.sp, color = CibusTextSecondary)
+            Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = RestTextPrimary)
+            Text(subtitle, fontSize = 11.sp, color = RestTextSecondary)
         }
     }
 }
@@ -560,9 +556,9 @@ private fun TopDishRow(rank: Int, name: String, orders: Int) {
                     color = CibusGreenDark
                 )
             }
-            Text(name, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = CibusHeaderCard)
+            Text(name, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = RestTextPrimary)
         }
-        Text("$orders orders", fontSize = 13.sp, color = CibusTextSecondary)
+        Text("$orders orders", fontSize = 13.sp, color = RestTextSecondary)
     }
 }
 
@@ -574,7 +570,7 @@ private fun RowScope.PopularityChip(label: String, count: Int, color: Color) {
         color = color.copy(alpha = 0.12f)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(label, fontSize = 12.sp, color = CibusTextSecondary)
+            Text(label, fontSize = 12.sp, color = RestTextSecondary)
             Text("$count items", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = color)
         }
     }
@@ -586,7 +582,7 @@ private fun LoyaltyInfoCard() {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = CibusSurfaceNeutral
+        color = CibusGreenDark.copy(alpha = 0.06f)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -595,10 +591,10 @@ private fun LoyaltyInfoCard() {
         ) {
             Icon(Icons.Default.CardGiftcard, null, tint = CibusGreenDark, modifier = Modifier.size(24.dp))
             Column {
-                Text("Cibus Loyalty", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = CibusHeaderCard)
+                Text("Cibus Loyalty", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
                 Text(
                     "Your restaurant participates in Cibus Loyalty. Repeat customers earn points per order and get rewards like free delivery and discounts. Favourite restaurants earn 25% bonus points.",
-                    fontSize = 12.sp, color = CibusTextSecondary
+                    fontSize = 12.sp, color = RestTextSecondary
                 )
             }
         }
@@ -630,8 +626,8 @@ private fun QualityRiskCard(preparingCount: Int, readyCount: Int) {
         ) {
             Icon(riskIcon, null, tint = riskColor, modifier = Modifier.size(22.dp))
             Column {
-                Text("Quality risk level: ${qualityRisk.replaceFirstChar { it.uppercase() }}", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = CibusHeaderCard)
-                Text(riskLabel, fontSize = 12.sp, color = CibusTextSecondary)
+                Text("Quality risk level: ${qualityRisk.replaceFirstChar { it.uppercase() }}", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+                Text(riskLabel, fontSize = 12.sp, color = RestTextSecondary)
             }
         }
     }
@@ -657,12 +653,12 @@ private fun RiderPickupTimingCard(readyCount: Int) {
                     "Rider Pickup Window",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = CibusHeaderCard
+                    color = RestTextPrimary
                 )
                 Text(
                     "$readyCount order${if (readyCount > 1) "s" else ""} awaiting pickup · Rider expected in 8–12 min",
                     fontSize = 12.sp,
-                    color = CibusTextSecondary
+                    color = RestTextSecondary
                 )
                 Text(
                     "Keep food at temperature · Seal packaging",
@@ -692,8 +688,8 @@ private fun SuggestionCard(
     ) {
         Icon(icon, null, tint = CibusGreenDark, modifier = Modifier.size(24.dp))
         Column {
-            Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = CibusHeaderCard)
-            Text(body, fontSize = 12.sp, color = CibusTextSecondary)
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+            Text(body, fontSize = 12.sp, color = RestTextSecondary)
         }
     }
     }
@@ -738,7 +734,7 @@ private fun KitchenCapacityManagementCard(preparingCount: Int, readyCount: Int) 
                     "Kitchen: $capacityLabel · $preparingCount cooking",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = CibusHeaderCard
+                    color = RestTextPrimary
                 )
             }
             // Capacity bar
@@ -746,7 +742,7 @@ private fun KitchenCapacityManagementCard(preparingCount: Int, readyCount: Int) 
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(4.dp)
-                    .background(CibusSurfaceNeutral, RoundedCornerShape(2.dp))
+                    .background(RestDivider, RoundedCornerShape(2.dp))
             ) {
                 androidx.compose.foundation.layout.Box(
                     modifier = Modifier
@@ -759,7 +755,7 @@ private fun KitchenCapacityManagementCard(preparingCount: Int, readyCount: Int) 
                 Text(
                     "Next order: ~${prepPrediction} min prep",
                     fontSize = 11.sp,
-                    color = CibusTextSecondary
+                    color = RestTextSecondary
                 )
                 if (shouldThrottle) {
                     Text(

@@ -33,10 +33,10 @@ private val RestaurantLightColorScheme = lightColorScheme(
 
 @Composable
 fun CibusRestaurantTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false, // Always light mode to match iOS
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) RestaurantDarkColorScheme else RestaurantLightColorScheme
+    val colorScheme = RestaurantLightColorScheme
     MaterialTheme(
         colorScheme = colorScheme,
         content = content

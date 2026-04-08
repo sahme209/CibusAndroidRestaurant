@@ -102,37 +102,21 @@ fun NewPartnerFlowScreen(
     val stepLabels = listOf("Find Your Restaurant", "Your Details", "Review & Submit")
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { },
-                navigationIcon = {
-                    if (!isSubmitted) {
-                        if (step == 0) {
-                            IconButton(onClick = onDismiss) {
-                                Icon(Icons.Default.Close, contentDescription = "Cancel")
-                            }
-                        } else {
-                            IconButton(onClick = { step -= 1; errorMessage = null }) {
-                                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                            }
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = RestBackground)
-            )
-        },
         containerColor = RestBackground
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(bottom = padding.calculateBottomPadding())
         ) {
-            // ── Progress header with green gradient ──────────────────────
+            // ── Full green gradient header (nav + progress) ─────────────
             StepProgressHeader(
                 currentStep = step,
                 totalSteps = 3,
                 label = stepLabels[step],
+                isSubmitted = isSubmitted,
+                onBack = if (step > 0 && !isSubmitted) ({ step -= 1; errorMessage = null }) else null,
+                onCancel = if (step == 0 && !isSubmitted) onDismiss else null,
             )
 
             // ── Step content ────────────────────────────────────────────
@@ -265,18 +249,46 @@ private fun StepProgressHeader(
     currentStep: Int,
     totalSteps: Int,
     label: String,
+    isSubmitted: Boolean = false,
+    onBack: (() -> Unit)? = null,
+    onCancel: (() -> Unit)? = null,
 ) {
-    val gradient = Brush.horizontalGradient(listOf(CibusGreen, CibusGreenDark))
+    val gradient = Brush.linearGradient(listOf(CibusGreenDark, CibusGreen))
 
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(bottomStart = CibusDimens.radiusMd, bottomEnd = CibusDimens.radiusMd),
-        shadowElevation = 2.dp,
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(gradient)
+            .statusBarsPadding()
     ) {
+        // Nav row (Cancel / Back button)
+        if (!isSubmitted) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                when {
+                    onCancel != null -> {
+                        TextButton(onClick = onCancel) {
+                            Text("Cancel", color = Color.White, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                    onBack != null -> {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        }
+                    }
+                }
+            }
+        } else {
+            Spacer(Modifier.height(12.dp))
+        }
+
+        // Step label + counter + progress bar
         Column(
-            modifier = Modifier
-                .background(gradient)
-                .padding(horizontal = CibusDimens.screenHorizontal, vertical = CibusDimens.spacing12)
+            modifier = Modifier.padding(horizontal = CibusDimens.screenHorizontal, vertical = CibusDimens.spacing8)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -308,6 +320,7 @@ private fun StepProgressHeader(
                 }
             }
         }
+        Spacer(Modifier.height(4.dp))
     }
 }
 

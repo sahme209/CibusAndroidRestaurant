@@ -1,7 +1,8 @@
 package com.cibus.restaurant.ui
 
-// "More" tab — slimmed settings. Store controls moved to Store tab.
+// Settings content — light theme, matching iOS SettingsView.
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,20 +18,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.LocalOffer
-import androidx.compose.material.icons.filled.Mail
+import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,30 +42,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cibus.restaurant.api.RetrofitClient
 import com.cibus.restaurant.ui.theme.CibusDimens
 import com.cibus.restaurant.ui.theme.CibusGreen
-import com.cibus.restaurant.ui.theme.CibusGreenDark
 import com.cibus.restaurant.ui.theme.CibusRed
-import com.cibus.restaurant.ui.theme.CibusTextOnSurface
-import com.cibus.restaurant.ui.theme.CibusTextOnSurfaceSecondary
-import com.cibus.restaurant.ui.theme.CibusTextTertiary
 
-/** "More" tab — navigation to sub-screens + sign out. */
+/** Settings content — light theme. */
 @Composable
 fun RestaurantMoreContent(onLogout: () -> Unit = {}) {
     var restaurantName by remember { mutableStateOf("") }
     var partnerName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-
-    // Show existing tabs that were previously in the bottom bar
-    var showPromotions by remember { mutableStateOf(false) }
-    var showPayouts by remember { mutableStateOf(false) }
-    var showReviews by remember { mutableStateOf(false) }
-    var showIssues by remember { mutableStateOf(false) }
-    var showInbox by remember { mutableStateOf(false) }
+    var soundOnNewOrder by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         try {
@@ -79,150 +69,199 @@ fun RestaurantMoreContent(onLogout: () -> Unit = {}) {
         } catch (_: Exception) {}
     }
 
-    // Full-screen content for sub-tabs
-    if (showPromotions) { RestaurantPromotionsContent(); return }
-    if (showPayouts) { RestaurantPayoutsContent(); return }
-    if (showReviews) { RestaurantReviewsContent(); return }
-    if (showIssues) { RestaurantOrderIssuesContent(); return }
-    if (showInbox) { RestaurantInboxContent(); return }
-
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = CibusDimens.screenHorizontal),
-        verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing8)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header
-        item {
-            Spacer(Modifier.height(CibusDimens.spacing24))
-            Text("More", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = CibusTextOnSurface)
-            if (partnerName.isNotEmpty()) {
-                Spacer(Modifier.height(CibusDimens.spacing4))
-                Text(partnerName, fontSize = CibusDimens.bodySp, color = CibusTextOnSurfaceSecondary)
-            }
-            if (email.isNotEmpty()) {
-                Text(email, fontSize = CibusDimens.captionSp, color = CibusTextTertiary)
-            }
-            Spacer(Modifier.height(CibusDimens.spacing16))
-        }
+        item { Spacer(Modifier.height(8.dp)) }
 
-        // Management section
+        // Notifications card
         item {
-            Text("MANAGEMENT", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = CibusTextTertiary, letterSpacing = 1.sp)
-            Spacer(Modifier.height(CibusDimens.spacing8))
-        }
-
-        item {
-            Surface(
-                shape = RoundedCornerShape(CibusDimens.radiusLg),
-                shadowElevation = CibusDimens.cardElevation,
-                color = Color.White
-            ) {
-                Column {
-                    MoreMenuItem(Icons.Default.LocalOffer, "Promotions", "Manage deals & campaigns") {
-                        showPromotions = true
-                    }
-                    HorizontalDivider(color = Color(0xFFF0F0F0))
-                    MoreMenuItem(Icons.Default.AccountBalanceWallet, "Wallet & Payouts", "Balance, payout history") {
-                        showPayouts = true
-                    }
-                    HorizontalDivider(color = Color(0xFFF0F0F0))
-                    MoreMenuItem(Icons.Default.Star, "Reviews", "Customer feedback") {
-                        showReviews = true
-                    }
-                    HorizontalDivider(color = Color(0xFFF0F0F0))
-                    MoreMenuItem(Icons.Default.Warning, "Order Issues", "Disputes & refunds") {
-                        showIssues = true
-                    }
-                    HorizontalDivider(color = Color(0xFFF0F0F0))
-                    MoreMenuItem(Icons.Default.Mail, "Inbox", "Messages") {
-                        showInbox = true
+            SettingsCard {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SettingsSectionHeader(
+                        icon = Icons.Default.Notifications,
+                        iconColor = Color(0xFFF59E0B),
+                        title = "Notifications"
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "New Order Alerts",
+                                fontSize = CibusDimens.bodySp,
+                                color = RestTextPrimary,
+                            )
+                            Text(
+                                "Sound & vibration for incoming orders",
+                                fontSize = CibusDimens.labelSp,
+                                color = RestTextTertiary,
+                            )
+                        }
+                        Switch(
+                            checked = soundOnNewOrder,
+                            onCheckedChange = { soundOnNewOrder = it },
+                            colors = SwitchDefaults.colors(
+                                checkedTrackColor = CibusGreen,
+                                checkedThumbColor = Color.White,
+                            )
+                        )
                     }
                 }
             }
         }
 
-        // Settings section
+        // Language card
         item {
-            Spacer(Modifier.height(CibusDimens.spacing24))
-            Text("SETTINGS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = CibusTextTertiary, letterSpacing = 1.sp)
-            Spacer(Modifier.height(CibusDimens.spacing8))
-        }
-
-        item {
-            Surface(
-                shape = RoundedCornerShape(CibusDimens.radiusLg),
-                shadowElevation = CibusDimens.cardElevation,
-                color = Color.White
-            ) {
-                Column {
-                    MoreMenuItem(Icons.Default.Language, "Language", "English / اردو") {}
-                    HorizontalDivider(color = Color(0xFFF0F0F0))
-                    MoreMenuItem(Icons.Default.Notifications, "Notifications", "Push, sound, alerts") {}
-                    HorizontalDivider(color = Color(0xFFF0F0F0))
-                    MoreMenuItem(Icons.Default.Business, "Business Profile", restaurantName.ifEmpty { "View details" }) {}
-                    HorizontalDivider(color = Color(0xFFF0F0F0))
-                    MoreMenuItem(Icons.Default.Info, "Help & Support", "Contact partner support") {}
+            SettingsCard {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SettingsSectionHeader(
+                        icon = Icons.Default.Language,
+                        iconColor = Color(0xFF3B82F6),
+                        title = "Language"
+                    )
+                    Text(
+                        "Choose your preferred language",
+                        fontSize = CibusDimens.captionSp,
+                        color = RestTextSecondary,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        SettingsLanguageChip(label = "English", selected = true, onClick = {})
+                        SettingsLanguageChip(label = "Roman Urdu", selected = false, onClick = {})
+                    }
                 }
             }
+        }
+
+        // Action rows card
+        item {
+            SettingsCard {
+                Column {
+                    SettingsActionRow(
+                        icon = Icons.Default.HelpOutline,
+                        iconColor = CibusGreen,
+                        title = "Help & Support",
+                        onClick = {}
+                    )
+                    HorizontalDivider(color = RestDivider, modifier = Modifier.padding(start = 48.dp))
+                    SettingsActionRow(
+                        icon = Icons.Default.Message,
+                        iconColor = Color(0xFF25D366),
+                        title = "Chat on WhatsApp",
+                        onClick = {}
+                    )
+                }
+            }
+        }
+
+        // Version
+        item {
+            Text(
+                "HUBB Merchant v1.0",
+                fontSize = CibusDimens.captionSp,
+                color = RestTextTertiary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+            )
         }
 
         // Sign out
         item {
-            Spacer(Modifier.height(CibusDimens.spacing24))
             Button(
                 onClick = onLogout,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(CibusDimens.btnRadius),
-                colors = ButtonDefaults.buttonColors(containerColor = CibusRed),
+                shape = RoundedCornerShape(CibusDimens.radiusLg),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = CibusRed.copy(alpha = 0.08f),
+                    contentColor = CibusRed,
+                ),
+                border = BorderStroke(1.dp, CibusRed.copy(alpha = 0.2f)),
             ) {
                 Icon(Icons.AutoMirrored.Filled.ExitToApp, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Log out", color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text("Log out", fontWeight = FontWeight.Medium)
             }
-            Spacer(Modifier.height(CibusDimens.spacing16))
-            Text(
-                "HUBB Merchant v1.0",
-                fontSize = CibusDimens.captionSp,
-                color = CibusTextTertiary,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            Spacer(Modifier.height(CibusDimens.spacing32))
+        }
+
+        item { Spacer(Modifier.height(32.dp)) }
+    }
+}
+
+@Composable
+private fun SettingsCard(content: @Composable () -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(CibusDimens.radiusLg),
+        color = RestCardBG,
+        border = BorderStroke(1.dp, RestDivider),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            content()
         }
     }
 }
 
 @Composable
-private fun MoreMenuItem(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
+private fun SettingsSectionHeader(icon: ImageVector, iconColor: Color, title: String) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(18.dp))
+        Text(
+            title,
+            fontSize = CibusDimens.sectionTitleSp,
+            fontWeight = FontWeight.SemiBold,
+            color = RestTextPrimary,
+        )
+    }
+}
+
+@Composable
+private fun SettingsLanguageChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(999.dp),
+        color = if (selected) CibusGreen else RestBackground,
+        border = BorderStroke(1.dp, if (selected) CibusGreen else RestDivider),
+    ) {
+        Text(
+            label,
+            fontSize = CibusDimens.captionSp,
+            fontWeight = FontWeight.SemiBold,
+            color = if (selected) Color.White else RestTextPrimary,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+    }
+}
+
+@Composable
+private fun SettingsActionRow(icon: ImageVector, iconColor: Color, title: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = CibusDimens.cardPadding, vertical = CibusDimens.spacing12),
+            .padding(horizontal = 0.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CibusDimens.spacing12)
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            modifier = Modifier.size(22.dp),
-            tint = CibusGreen
+        Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(20.dp))
+        Text(
+            title,
+            fontSize = CibusDimens.bodySp,
+            fontWeight = FontWeight.Medium,
+            color = RestTextPrimary,
+            modifier = Modifier.weight(1f),
         )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontSize = CibusDimens.bodySp, fontWeight = FontWeight.Medium, color = CibusTextOnSurface)
-            Text(subtitle, fontSize = CibusDimens.captionSp, color = CibusTextOnSurfaceSecondary)
-        }
         Icon(
-            Icons.Default.Info,
+            Icons.Default.ChevronRight,
             contentDescription = null,
-            modifier = Modifier.size(14.dp),
-            tint = CibusTextTertiary
+            tint = RestTextTertiary,
+            modifier = Modifier.size(18.dp),
         )
     }
 }

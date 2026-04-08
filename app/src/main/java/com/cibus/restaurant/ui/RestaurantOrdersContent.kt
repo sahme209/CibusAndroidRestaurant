@@ -76,7 +76,7 @@ private fun PrepTimerDisplay(preparingAtMs: Long, warnAfterMs: Long = 15 * 60 * 
             if (isOvertime) {
                 Text("OVERTIME", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = fgColor)
             } else {
-                Text("prep time", style = MaterialTheme.typography.labelSmall, color = CibusTextSecondary)
+                Text("prep time", style = MaterialTheme.typography.labelSmall, color = RestTextSecondary)
             }
         }
     }
@@ -166,7 +166,7 @@ fun RestaurantOrdersContent() {
     val outForDelivery  = orders.filter { it.status in listOf("picked_up", "on_the_way", "arriving_soon") }
     val completedOrds   = orders.filter { it.status == "delivered" }
 
-    Box(modifier = Modifier.fillMaxSize().background(CibusSurfaceNeutral)) {
+    Box(modifier = Modifier.fillMaxSize().background(RestBackground)) {
         when {
             loading && orders.isEmpty() -> {
                 LazyColumn(
@@ -196,7 +196,7 @@ fun RestaurantOrdersContent() {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(Icons.Default.Warning, null, tint = CibusRed, modifier = Modifier.size(40.dp))
-                    Text(error ?: "Error", fontWeight = FontWeight.SemiBold, color = CibusHeaderCard)
+                    Text(error ?: "Error", fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
                 }
             }
             orders.isEmpty() -> {
@@ -206,8 +206,8 @@ fun RestaurantOrdersContent() {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(Icons.Default.Assignment, null, tint = Color(0xFF8A8A8A), modifier = Modifier.size(48.dp))
-                    Text("No active orders", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = CibusHeaderCard)
-                    Text("Incoming orders will appear here when customers place them.", style = MaterialTheme.typography.bodySmall, color = CibusTextSecondary, textAlign = TextAlign.Center)
+                    Text("No active orders", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+                    Text("Incoming orders will appear here when customers place them.", style = MaterialTheme.typography.bodySmall, color = RestTextSecondary, textAlign = TextAlign.Center)
                 }
             }
             else -> {
@@ -308,7 +308,7 @@ fun RestaurantOrdersContent() {
 
                     // ── COMPLETED ─────────────────────────────────────────
                     if (completedOrds.isNotEmpty()) {
-                        item { SectionHeader("Completed", Icons.Default.Done, CibusTextSecondary, completedOrds.size) }
+                        item { SectionHeader("Completed", Icons.Default.Done, RestTextSecondary, completedOrds.size) }
                         items(completedOrds, key = { it.id }) { order ->
                             OrderCard(order = order, isActionLoading = false, onAccept = {}, onReject = {}, onDelay = {}, onRunningLate = {}, onStartPreparing = {}, onMarkReady = {})
                         }
@@ -414,7 +414,7 @@ private fun StatPill(value: String, label: String, color: Color) {
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(value, fontWeight = FontWeight.Bold, color = color, fontSize = 14.sp)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = CibusTextSecondary)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = RestTextSecondary)
         }
     }
 }
@@ -429,7 +429,7 @@ private fun SectionHeader(title: String, icon: androidx.compose.ui.graphics.vect
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Icon(icon, null, tint = color, modifier = Modifier.size(15.dp))
-        Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = CibusTextSecondary)
+        Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = RestTextSecondary)
         Text("($count)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = color)
     }
 }
@@ -516,7 +516,7 @@ private fun OrderCard(
                         Text(
                             "Order #${order.id.takeLast(6)}",
                             fontWeight = FontWeight.SemiBold,
-                            color = CibusHeaderCard
+                            color = RestTextPrimary
                         )
                         val fmLabel = when (fm) {
                             "pickup" -> "Pickup"
@@ -531,7 +531,7 @@ private fun OrderCard(
                             Text(
                                 "${order.itemCount} item${if (order.itemCount != 1) "s" else ""}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = CibusTextSecondary
+                                color = RestTextSecondary
                             )
                         }
                         if (isNew) {
@@ -551,8 +551,8 @@ private fun OrderCard(
                     val area = (order.address?.get("area") as? String) ?: (order.address?.get("city") as? String) ?: ""
                     if (area.isNotEmpty()) {
                         Row(horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.LocationOn, null, tint = CibusTextSecondary, modifier = Modifier.size(11.dp))
-                            Text(area, style = MaterialTheme.typography.bodySmall, color = CibusTextSecondary)
+                            Icon(Icons.Default.LocationOn, null, tint = RestTextSecondary, modifier = Modifier.size(11.dp))
+                            Text(area, style = MaterialTheme.typography.bodySmall, color = RestTextSecondary)
                         }
                     }
                     // Call customer (Uber Eats-style)
@@ -586,7 +586,7 @@ private fun OrderCard(
                             val ageColor = when {
                                 ageMins >= 10 -> CibusRed
                                 ageMins >= 5 -> CibusAmber
-                                else -> CibusTextSecondary
+                                else -> RestTextSecondary
                             }
                             Text(
                                 "${ageMins} min ago",
@@ -595,7 +595,7 @@ private fun OrderCard(
                                 color = ageColor
                             )
                         } else {
-                            Text(ts.take(16).replace("T", " "), style = MaterialTheme.typography.labelSmall, color = CibusTextSecondary.copy(alpha = 0.6f))
+                            Text(ts.take(16).replace("T", " "), style = MaterialTheme.typography.labelSmall, color = RestTextSecondary.copy(alpha = 0.6f))
                         }
                     }
                 }
@@ -614,7 +614,7 @@ private fun OrderCard(
                 "${qty}× $name"
             }
             if (!itemsSummary.isNullOrEmpty()) {
-                Text(itemsSummary, style = MaterialTheme.typography.bodySmall, color = CibusTextSecondary, maxLines = 2)
+                Text(itemsSummary, style = MaterialTheme.typography.bodySmall, color = RestTextSecondary, maxLines = 2)
             }
 
             // ── Prep timer ─────────────────────────────────────────────────
@@ -623,7 +623,7 @@ private fun OrderCard(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     PrepTimerDisplay(preparingAtMs = preparingAtMs, warnAfterMs = warnMs)
                     if (order.prepTimeMinutes != null) {
-                        Text("/ ${order.prepTimeMinutes} min expected", style = MaterialTheme.typography.labelSmall, color = CibusTextSecondary)
+                        Text("/ ${order.prepTimeMinutes} min expected", style = MaterialTheme.typography.labelSmall, color = RestTextSecondary)
                     }
                 }
             }
@@ -675,10 +675,10 @@ private fun OrderCard(
                                         else -> "Awaiting rider"
                                     },
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = CibusTextSecondary
+                                    color = RestTextSecondary
                                 )
                             } else {
-                                Text("Awaiting rider assignment…", style = MaterialTheme.typography.labelSmall, color = CibusTextSecondary)
+                                Text("Awaiting rider assignment…", style = MaterialTheme.typography.labelSmall, color = RestTextSecondary)
                             }
                         }
                         if (isRiderArrived) {

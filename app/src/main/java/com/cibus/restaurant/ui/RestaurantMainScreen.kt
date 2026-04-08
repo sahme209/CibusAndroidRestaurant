@@ -4,6 +4,7 @@ package com.cibus.restaurant.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -26,9 +27,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cibus.restaurant.api.RetrofitClient
+import com.cibus.restaurant.ui.theme.CibusDimens
 import com.cibus.restaurant.ui.theme.CibusGreen
 import com.cibus.restaurant.ui.theme.CibusTextOnSurfaceSecondary
 
@@ -57,7 +61,11 @@ fun RestaurantMainScreen(onLogout: () -> Unit = {}) {
 
     Scaffold(
         bottomBar = {
-            NavigationBar(modifier = Modifier.navigationBarsPadding()) {
+            NavigationBar(
+                modifier = Modifier.navigationBarsPadding(),
+                containerColor = Color.White,
+                tonalElevation = 0.dp,
+            ) {
                 RestaurantTabItem.entries.forEach { tab ->
                     NavigationBarItem(
                         selected = selectedTab == tab,

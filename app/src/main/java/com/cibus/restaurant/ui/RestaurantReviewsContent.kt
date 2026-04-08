@@ -12,15 +12,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.cibus.restaurant.ui.theme.CibusTextPrimary
-import com.cibus.restaurant.ui.theme.CibusTextSecondary
 
 @Composable
 fun RestaurantReviewsContent() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Reviews", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = CibusTextPrimary)
-            Text("Customer feedback and ratings coming soon", style = MaterialTheme.typography.bodyMedium, color = CibusTextSecondary, modifier = Modifier.padding(horizontal = 32.dp))
+            Text("Reviews", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = RestTextPrimary)
+            Text("Customer feedback and ratings coming soon", style = MaterialTheme.typography.bodyMedium, color = RestTextSecondary, modifier = Modifier.padding(horizontal = 32.dp))
         }
     }
 }

@@ -117,8 +117,9 @@ fun RestaurantApp() {
                 onCompleted = { token, _ ->
                     RetrofitClient.getTokenStore().saveToken(token)
                     isLoggedIn = true
-                    isOperational = true
-                    navController.navigate(RestaurantRoute.Main.route) {
+                    isOperational = false
+                    listingState = RestaurantListingState.CLAIM_SUBMITTED
+                    navController.navigate(RestaurantRoute.Onboarding.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 },
@@ -137,8 +138,9 @@ fun RestaurantApp() {
                 onCompleted = { token, _ ->
                     RetrofitClient.getTokenStore().saveToken(token)
                     isLoggedIn = true
-                    isOperational = true
-                    navController.navigate(RestaurantRoute.Main.route) {
+                    isOperational = false
+                    listingState = RestaurantListingState.CLAIM_SUBMITTED
+                    navController.navigate(RestaurantRoute.Onboarding.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
@@ -160,6 +162,9 @@ fun RestaurantApp() {
                     navController.navigate(RestaurantRoute.Main.route) {
                         popUpTo(RestaurantRoute.Onboarding.route) { inclusive = true }
                     }
+                },
+                onGetStarted = {
+                    navController.navigate(RestaurantRoute.NewPartner.route)
                 }
             )
         }

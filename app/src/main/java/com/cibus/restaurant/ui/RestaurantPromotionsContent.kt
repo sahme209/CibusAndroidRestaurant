@@ -63,11 +63,11 @@ fun RestaurantPromotionsContent() {
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("0", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = CibusGreenDark)
-                        Text("Redemptions", fontSize = 11.sp, color = CibusTextSecondary)
+                        Text("Redemptions", fontSize = 11.sp, color = RestTextSecondary)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("0", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A1A))
-                        Text("New customers", fontSize = 11.sp, color = CibusTextSecondary)
+                        Text("New customers", fontSize = 11.sp, color = RestTextSecondary)
                     }
                 }
             }
@@ -106,7 +106,7 @@ fun RestaurantPromotionsContent() {
                 Text(
                     "Featured dishes will be pulled from your menu once orders are live.",
                     fontSize = 14.sp,
-                    color = CibusTextSecondary,
+                    color = RestTextSecondary,
                     modifier = Modifier.padding(16.dp)
                 )
             }
@@ -166,7 +166,7 @@ private fun PromotionCard(promo: RestaurantPromo) {
                 Text("Valid: ${promo.validUntil}", fontSize = 11.sp, color = Color(0xFF8E8E8E))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 4.dp)) {
                     Text("0 redemptions", fontSize = 11.sp, color = CibusGreenDark)
-                    Text("0 new", fontSize = 11.sp, color = CibusTextSecondary)
+                    Text("0 new", fontSize = 11.sp, color = RestTextSecondary)
                 }
             }
             Text(promo.value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = CibusGreenDark)

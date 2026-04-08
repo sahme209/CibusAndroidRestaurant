@@ -49,11 +49,11 @@ fun RestaurantInboxContent() {
     val faqs = remember {
         listOf(
             FaqItem("How do I update my menu?", "Go to the Menu tab and tap any item to edit. You can change names, prices, descriptions, and availability. Use the import feature to load a template."),
-            FaqItem("When do I get paid?", "Payouts are processed weekly. Revenue from delivered orders minus the 15% platform fee is credited to your wallet. You can view your balance in the Payouts section."),
+            FaqItem("When do I get paid?", "Payouts are processed weekly. Revenue from delivered orders minus the platform fee is credited to your wallet. Check the Payouts section for your rate and balance."),
             FaqItem("How do I pause orders?", "Go to the Store tab and toggle 'Pause New Orders'. This temporarily stops incoming orders while you catch up with your kitchen queue."),
             FaqItem("What if I need to reject an order?", "Tap the X button on any new order and select a reason. Please try to accept orders whenever possible to maintain your rating."),
             FaqItem("How do promotions work?", "Create promotions from the More tab > Promotions. You can offer discounts, BOGO deals, or free delivery to attract more customers."),
-            FaqItem("How is commission calculated?", "HUBB charges a 15% platform fee on completed orders. This is automatically deducted from your revenue before payout."),
+            FaqItem("How is commission calculated?", "HUBB charges a platform fee on completed orders. The rate is shown in your Payouts section and is automatically deducted from your revenue before payout."),
             FaqItem("How do I contact support?", "Use the Support tab here to create a ticket, or reach us via WhatsApp for urgent issues.")
         )
     }
@@ -74,7 +74,9 @@ fun RestaurantInboxContent() {
             1 -> SupportTab(
                 onCreateTicket = { showCreateTicket = true },
                 onWhatsApp = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/923001234567?text=Hi%20HUBB%20Support"))
+                    // TODO: Load WhatsApp support number from server config / remote config
+                    val supportNumber = "923001234567"
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$supportNumber?text=Hi%20HUBB%20Support"))
                     context.startActivity(intent)
                 }
             )

@@ -98,19 +98,28 @@ private fun PayoutOverview(wallet: RestaurantWalletResponse) {
             PayoutKpi(Modifier.weight(1f), "Completed", "${wallet.completedPayoutsCount}", Icons.Default.CheckCircle, Color(0xFF2196F3))
         }
 
-        // Commission breakdown
+        // Commission breakdown — only shown when commission rate is available from API
         val revenue = wallet.last30Revenue ?: 0.0
-        val rate = wallet.commissionRate ?: 0.15
-        val commission = revenue * rate
-        val net = revenue - commission
-
-        Surface(shape = RoundedCornerShape(12.dp), color = CibusCardBg, shadowElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Earnings Breakdown (30 days)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
-                BreakdownRow("Gross Revenue", revenue, RestTextPrimary)
-                BreakdownRow("Platform Fee (${(rate * 100).toInt()}%)", -commission, CibusRed)
-                HorizontalDivider(color = Color(0xFFE0E0E0))
-                BreakdownRow("Net Earnings", net, CibusGreenDark, bold = true)
+        val rate = wallet.commissionRate
+        if (rate != null && revenue > 0) {
+            val commission = revenue * rate
+            val net = revenue - commission
+            Surface(shape = RoundedCornerShape(12.dp), color = CibusCardBg, shadowElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Earnings Breakdown (30 days)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+                    BreakdownRow("Gross Revenue", revenue, RestTextPrimary)
+                    BreakdownRow("Platform Fee (${(rate * 100).toInt()}%)", -commission, CibusRed)
+                    HorizontalDivider(color = Color(0xFFE0E0E0))
+                    BreakdownRow("Net Earnings", net, CibusGreenDark, bold = true)
+                }
+            }
+        } else if (revenue > 0) {
+            Surface(shape = RoundedCornerShape(12.dp), color = CibusCardBg, shadowElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Earnings (30 days)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+                    BreakdownRow("Gross Revenue", revenue, RestTextPrimary)
+                    Text("Commission breakdown will appear once your rate is configured.", fontSize = 12.sp, color = RestTextSecondary)
+                }
             }
         }
 
@@ -149,14 +158,30 @@ private fun PayoutTransactions(wallet: RestaurantWalletResponse) {
         } else {
             if (wallet.pendingPayoutsCount > 0) {
                 Text("PENDING (${wallet.pendingPayoutsCount})", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = CibusAmber)
-                repeat(wallet.pendingPayoutsCount) { i ->
-                    TransactionRow("Payout #${i + 1}", "Processing", Icons.Default.Schedule, CibusAmber, "Pending")
+                wallet.pendingPayouts?.forEachIndexed { index, payout ->
+                    val amount = (payout["amount"] as? Number)?.toInt()
+                    val date = payout["createdAt"] as? String
+                    TransactionRow(
+                        title = if (amount != null) "Rs $amount" else "Payout pending",
+                        subtitle = date ?: "Processing",
+                        icon = Icons.Default.Schedule,
+                        color = CibusAmber,
+                        status = "Pending"
+                    )
                 }
             }
             if (wallet.completedPayoutsCount > 0) {
                 Text("COMPLETED (${wallet.completedPayoutsCount})", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = CibusGreen)
-                repeat(minOf(wallet.completedPayoutsCount, 10)) { i ->
-                    TransactionRow("Payout #${i + 1}", "Transferred to bank", Icons.Default.CheckCircle, CibusGreen, "Complete")
+                wallet.completedPayouts?.take(10)?.forEachIndexed { index, payout ->
+                    val amount = (payout["amount"] as? Number)?.toInt()
+                    val date = payout["createdAt"] as? String
+                    TransactionRow(
+                        title = if (amount != null) "Rs $amount" else "Payout completed",
+                        subtitle = date ?: "Transferred to bank",
+                        icon = Icons.Default.CheckCircle,
+                        color = CibusGreen,
+                        status = "Complete"
+                    )
                 }
             }
         }

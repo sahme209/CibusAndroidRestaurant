@@ -244,11 +244,9 @@ fun RestaurantAnalyticsContent() {
             // Section break after dashboard header
             item { RestaurantSectionBreak() }
 
-            // ── Today's goal (Uber Eats) ─────────────────────────────────────
+            // ── Revenue summary ─────────────────────────────────────
             if (!loading && totalRevenue > 0) {
                 item {
-                    val goal = 15000.0
-                    val progress = (totalRevenue / goal).coerceIn(0.0, 1.0)
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
@@ -256,15 +254,10 @@ fun RestaurantAnalyticsContent() {
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Today's goal", fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
-                                Text("Rs ${totalRevenue.toInt()} / ${goal.toInt()}", fontSize = 12.sp, color = RestTextSecondary)
+                                Text("Revenue so far", fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+                                Text("Rs ${totalRevenue.toInt()}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = CibusGreenDark)
                             }
-                            LinearProgressIndicator(
-                                progress = { progress.toFloat() },
-                                modifier = Modifier.fillMaxWidth().height(6.dp),
-                                color = CibusGreenDark,
-                                trackColor = RestTextSecondary.copy(alpha = 0.2f),
-                            )
+                            Text("From $completedCount completed orders", fontSize = 12.sp, color = RestTextSecondary)
                         }
                     }
                 }
@@ -533,8 +526,14 @@ fun RestaurantAnalyticsContent() {
                                     }
                                 }
                             }
-                            // Peak hours hint
-                            Text("Peak hours: 12-2 PM, 7-9 PM", fontSize = 11.sp, color = CibusGreen, fontWeight = FontWeight.Medium)
+                            // Peak hours from insights API if available
+                            insights?.peakHours?.takeIf { it.isNotEmpty() }?.let { peaks ->
+                                val topHours = peaks.sortedByDescending { it.count }.take(2)
+                                val label = topHours.joinToString(", ") { ph ->
+                                    when (ph.hour) { 0 -> "12 AM"; in 1..11 -> "${ph.hour} AM"; 12 -> "12 PM"; else -> "${ph.hour - 12} PM" }
+                                }
+                                Text("Peak hours: $label", fontSize = 11.sp, color = CibusGreen, fontWeight = FontWeight.Medium)
+                            }
                         }
                     }
                 }
@@ -801,9 +800,11 @@ private fun generateSmartSuggestions(
         suggestions.add(SuggestionData(Icons.Default.Store, "You're offline", "Your restaurant is currently closed. Open from the Store tab to start receiving orders.", CibusGreenDark))
     }
     if (orderCount > 0 && orderCount < 5) {
-        suggestions.add(SuggestionData(Icons.Default.Restaurant, "Add combo meals", "Combo deals drive 30% more orders. Try adding meal combinations to your menu.", CibusGreenDark))
+        suggestions.add(SuggestionData(Icons.Default.Restaurant, "Add combo meals", "Try adding meal combinations to your menu to increase average order value.", CibusGreenDark))
     }
-    suggestions.add(SuggestionData(Icons.Default.Star, "Maintain quality", "Consistent food quality and fast prep times lead to better ratings and more repeat customers.", CibusGreen))
+    if (suggestions.isEmpty()) {
+        suggestions.add(SuggestionData(Icons.Default.Star, "Keep it up", "Consistent food quality and fast prep times lead to better ratings and more repeat customers.", CibusGreen))
+    }
     return suggestions
 }
 

@@ -30,6 +30,7 @@ sealed class RestaurantRoute(val route: String) {
     data object Documents  : RestaurantRoute("documents/{claimId}")
     data object Status     : RestaurantRoute("status")
     data object Main       : RestaurantRoute("main")
+    data object OnboardingMenu : RestaurantRoute("onboarding_menu")
 }
 
 private fun navigateToEntry(navController: androidx.navigation.NavController) {
@@ -175,6 +176,9 @@ fun RestaurantApp() {
                             popUpTo(RestaurantRoute.Onboarding.route) { inclusive = true }
                         }
                     }
+                },
+                onViewMenu = {
+                    navController.navigate(RestaurantRoute.OnboardingMenu.route)
                 }
             )
         }
@@ -227,6 +231,10 @@ fun RestaurantApp() {
                     popUpTo(RestaurantRoute.Main.route) { inclusive = true }
                 }
             })
+        }
+
+        composable(RestaurantRoute.OnboardingMenu.route) {
+            RestaurantMenuContent()
         }
     }
 }

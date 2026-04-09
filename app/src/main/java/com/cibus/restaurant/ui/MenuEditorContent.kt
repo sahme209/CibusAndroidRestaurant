@@ -112,8 +112,9 @@ fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false)
                     menuReviewStatus = response.body()?.menuReviewStatus
                     menuReviewNote = response.body()?.menuReviewNote
                 }
-            } catch (e: Exception) {
-                errorMsg = e.message
+            } catch (_: Exception) {
+                // On error (e.g. 404 / no menu yet), show empty editor so user can add items
+                categories = emptyList()
             }
             isLoading = false
         }

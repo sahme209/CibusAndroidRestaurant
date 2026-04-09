@@ -53,6 +53,7 @@ fun PartnerOnboardingScreen(
     onVerified: () -> Unit,
     onGetStarted: () -> Unit = {},
     onClaimRefreshed: (ClaimStatusSummary) -> Unit = {},
+    onViewMenu: () -> Unit = {},
 ) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -205,7 +206,8 @@ fun PartnerOnboardingScreen(
                                     } catch (_: Exception) { }
                                     isRefreshing = false
                                 }
-                            }
+                            },
+                            onViewMenu = onViewMenu,
                         )
                     }
 
@@ -372,7 +374,7 @@ private fun BenefitRow(icon: ImageVector, text: String, accent: Color) {
 // ── Status sections (waiting, needs info, rejected, suspended) ──────────────
 
 @Composable
-private fun WaitingSection(isRefreshing: Boolean = false, onRefresh: () -> Unit) {
+private fun WaitingSection(isRefreshing: Boolean = false, onRefresh: () -> Unit, onViewMenu: () -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -407,6 +409,23 @@ private fun WaitingSection(isRefreshing: Boolean = false, onRefresh: () -> Unit)
             color = RestTextSecondary,
             textAlign = TextAlign.Center,
         )
+
+        // View & Edit Menu button
+        Button(
+            onClick = onViewMenu,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(CibusDimens.btnHeight),
+            shape = RoundedCornerShape(CibusDimens.btnRadius),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = CibusGreen,
+                contentColor = Color.White,
+            ),
+        ) {
+            Icon(Icons.Default.MenuBook, null, Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("View & Edit Menu", fontWeight = FontWeight.SemiBold)
+        }
 
         Button(
             onClick = onRefresh,

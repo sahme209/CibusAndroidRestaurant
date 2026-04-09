@@ -200,8 +200,7 @@ fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false)
             MenuReviewBanner(status = menuReviewStatus, note = menuReviewNote)
 
             // ── Submit for review button ──────────────────────────────────────
-            val hideSubmitStatuses = setOf("pending_review", "live", "approved")
-            if (categories.isNotEmpty() && menuReviewStatus !in hideSubmitStatuses && !isLoading) {
+            if (categories.isNotEmpty() && menuReviewStatus == "changes_requested" && !isLoading) {
                 Button(
                     onClick = {
                         isSubmittingForReview = true
@@ -244,7 +243,7 @@ fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false)
                     }
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        if (menuReviewStatus == "changes_requested") "Re-submit for Review" else "Submit Menu for Review",
+                        "Re-submit for Review",
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White
                     )

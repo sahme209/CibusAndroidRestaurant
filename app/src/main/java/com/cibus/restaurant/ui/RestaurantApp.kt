@@ -165,6 +165,16 @@ fun RestaurantApp() {
                 },
                 onGetStarted = {
                     navController.navigate(RestaurantRoute.NewPartner.route)
+                },
+                onClaimRefreshed = { status ->
+                    claimStatus = status
+                    listingState = status.state
+                    if (status.canOperate) {
+                        isOperational = true
+                        navController.navigate(RestaurantRoute.Main.route) {
+                            popUpTo(RestaurantRoute.Onboarding.route) { inclusive = true }
+                        }
+                    }
                 }
             )
         }

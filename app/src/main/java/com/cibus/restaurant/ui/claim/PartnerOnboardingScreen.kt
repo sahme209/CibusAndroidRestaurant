@@ -2,10 +2,8 @@ package com.cibus.restaurant.ui.claim
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -22,6 +20,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cibus.restaurant.ResL10n
+import com.cibus.restaurant.api.RetrofitClient
+import com.cibus.restaurant.api.fetchClaimStatus
 import com.cibus.restaurant.claim.ClaimStatusSummary
 import com.cibus.restaurant.claim.RestaurantListingState
 import com.cibus.restaurant.ui.RestaurantPrimaryButton
@@ -37,6 +37,7 @@ import com.cibus.restaurant.ui.theme.CibusGreenDark
 import com.cibus.restaurant.ui.theme.CibusGreenLight
 import com.cibus.restaurant.ui.theme.CibusOrange
 import com.cibus.restaurant.ui.theme.CibusSuccess
+import kotlinx.coroutines.launch
 
 /**
  * PartnerOnboardingScreen — hub for unverified restaurant partners.
@@ -51,9 +52,12 @@ fun PartnerOnboardingScreen(
     onStatusNavigate: () -> Unit,
     onVerified: () -> Unit,
     onGetStarted: () -> Unit = {},
+    onClaimRefreshed: (ClaimStatusSummary) -> Unit = {},
 ) {
     val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
     var showHomeKitchenOnboarding by remember { mutableStateOf(false) }
+    var isRefreshing by remember { mutableStateOf(false) }
 
     // Home Kitchen onboarding full-screen dialog
     if (showHomeKitchenOnboarding) {
@@ -66,56 +70,50 @@ fun PartnerOnboardingScreen(
         return
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val heroHeight = maxHeight * 0.36f
+    // Pure weight layout — no BoxWithConstraints, no inset padding.
+    // Background and content both use weight(0.48) / weight(0.52) for alignment.
+    Box(modifier = Modifier.fillMaxSize()) {
 
-        // Background: green gradient hero top, light below
+        // ── Background ──────────────────────────────────────────────
         Column(modifier = Modifier.fillMaxSize()) {
             Box(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth()
-                    .height(heroHeight)
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(CibusGreenDark, CibusGreen)
-                        )
-                    )
+                    .weight(0.48f)
+                    .background(Brush.linearGradient(listOf(CibusGreenDark, CibusGreen)))
             )
             Box(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .weight(0.52f)
                     .background(RestBackground)
             )
         }
 
-        // Content
+        // ── Content ─────────────────────────────────────────────────
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // ── Hero Section (on dark green) ────────────────────────
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(heroHeight),
+                    .weight(0.48f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(36.dp))
 
                 // Storefront icon with concentric glow rings
                 Box(contentAlignment = Alignment.Center) {
                     Box(
-                        modifier = Modifier
+                        Modifier
                             .size(80.dp)
                             .clip(CircleShape)
                             .background(Color.White.copy(alpha = 0.10f))
                     )
                     Box(
-                        modifier = Modifier
+                        Modifier
                             .size(64.dp)
                             .clip(CircleShape)
                             .background(Color.White.copy(alpha = 0.15f))
@@ -176,38 +174,59 @@ fun PartnerOnboardingScreen(
             }
 
             // ── Content Section (below hero) ────────────────────────
-            when (listingState) {
-                RestaurantListingState.UNCLAIMED,
-                RestaurantListingState.IMPORTED_PUBLIC -> {
-                    FindAndClaimSection(
-                        ctx = ctx,
-                        onGetStarted = onGetStarted,
-                        onHomeKitchen = { showHomeKitchenOnboarding = true },
-                    )
-                }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(0.52f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                when (listingState) {
+                    RestaurantListingState.UNCLAIMED,
+                    RestaurantListingState.IMPORTED_PUBLIC -> {
+                        FindAndClaimSection(
+                            ctx = ctx,
+                            onGetStarted = onGetStarted,
+                            onHomeKitchen = { showHomeKitchenOnboarding = true },
+                        )
+                    }
 
-                RestaurantListingState.CLAIM_SUBMITTED,
-                RestaurantListingState.UNDER_REVIEW -> {
-                    WaitingSection(onRefresh = onStatusNavigate)
-                }
+                    RestaurantListingState.CLAIM_SUBMITTED,
+                    RestaurantListingState.UNDER_REVIEW -> {
+                        WaitingSection(
+                            isRefreshing = isRefreshing,
+                            onRefresh = {
+                                scope.launch {
+                                    isRefreshing = true
+                                    try {
+                                        val status = RetrofitClient.restaurantApi.fetchClaimStatus()
+                                        if (status != null) {
+                                            onClaimRefreshed(status)
+                                        }
+                                    } catch (_: Exception) { }
+                                    isRefreshing = false
+                                }
+                            }
+                        )
+                    }
 
-                RestaurantListingState.NEEDS_MORE_INFO -> {
-                    NeedsInfoSection(
-                        reviewNote = claimStatus?.reviewNote,
-                        onUpdateDocs = onStatusNavigate
-                    )
-                }
+                    RestaurantListingState.NEEDS_MORE_INFO -> {
+                        NeedsInfoSection(
+                            reviewNote = claimStatus?.reviewNote,
+                            onUpdateDocs = onStatusNavigate
+                        )
+                    }
 
-                RestaurantListingState.REJECTED -> {
-                    RejectedSection(reviewNote = claimStatus?.reviewNote)
-                }
+                    RestaurantListingState.REJECTED -> {
+                        RejectedSection(reviewNote = claimStatus?.reviewNote)
+                    }
 
-                RestaurantListingState.SUSPENDED -> {
-                    SuspendedSection()
-                }
+                    RestaurantListingState.SUSPENDED -> {
+                        SuspendedSection()
+                    }
 
-                RestaurantListingState.VERIFIED_PARTNER -> {
-                    LaunchedEffect(Unit) { onVerified() }
+                    RestaurantListingState.VERIFIED_PARTNER -> {
+                        LaunchedEffect(Unit) { onVerified() }
+                    }
                 }
             }
         }
@@ -353,7 +372,7 @@ private fun BenefitRow(icon: ImageVector, text: String, accent: Color) {
 // ── Status sections (waiting, needs info, rejected, suspended) ──────────────
 
 @Composable
-private fun WaitingSection(onRefresh: () -> Unit) {
+private fun WaitingSection(isRefreshing: Boolean = false, onRefresh: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -391,6 +410,7 @@ private fun WaitingSection(onRefresh: () -> Unit) {
 
         Button(
             onClick = onRefresh,
+            enabled = !isRefreshing,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(CibusDimens.btnRadius),
             colors = ButtonDefaults.buttonColors(
@@ -399,9 +419,20 @@ private fun WaitingSection(onRefresh: () -> Unit) {
             ),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
         ) {
-            Icon(Icons.Default.Refresh, null, Modifier.size(16.dp))
+            if (isRefreshing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = CibusGreen,
+                )
+            } else {
+                Icon(Icons.Default.Refresh, null, Modifier.size(16.dp))
+            }
             Spacer(Modifier.width(6.dp))
-            Text("Refresh Status", fontWeight = FontWeight.SemiBold)
+            Text(
+                if (isRefreshing) "Checking…" else "Refresh Status",
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }

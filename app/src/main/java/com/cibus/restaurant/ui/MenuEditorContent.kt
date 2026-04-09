@@ -200,7 +200,8 @@ fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false)
             MenuReviewBanner(status = menuReviewStatus, note = menuReviewNote)
 
             // ── Submit for review button ──────────────────────────────────────
-            if (categories.isNotEmpty() && menuReviewStatus != "pending_review" && !isLoading) {
+            val hideSubmitStatuses = setOf("pending_review", "live", "approved")
+            if (categories.isNotEmpty() && menuReviewStatus !in hideSubmitStatuses && !isLoading) {
                 Button(
                     onClick = {
                         isSubmittingForReview = true

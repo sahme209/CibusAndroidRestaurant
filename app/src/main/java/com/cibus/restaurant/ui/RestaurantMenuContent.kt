@@ -51,17 +51,6 @@ fun RestaurantMenuContent() {
         restaurantId.isNullOrBlank() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("No restaurant linked. Complete onboarding first.")
         }
-        menuSelfServeBlocked -> Box(
-            Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                "Menu setup pending approval. Your new venue is being reviewed. Once operations approves registration, you can add and edit your menu here.",
-                textAlign = TextAlign.Center
-            )
-        }
-        else -> MenuEditorContent(restaurantId = restaurantId!!)
+        else -> MenuEditorContent(restaurantId = restaurantId!!, isVenueUnderReview = menuSelfServeBlocked)
     }
 }

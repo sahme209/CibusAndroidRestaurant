@@ -21,12 +21,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Context
+import android.util.Base64
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import com.cibus.restaurant.api.MenuCategoryDto
 import com.cibus.restaurant.api.MenuImportRequest
 import com.cibus.restaurant.api.MenuItemDto
@@ -37,11 +42,17 @@ import com.cibus.restaurant.api.ModifierOptionDto
 import com.cibus.restaurant.api.RetrofitClient
 import com.cibus.restaurant.ui.theme.*
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
-fun MenuEditorContent(restaurantId: String) {
+fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false) {
+    val context = LocalContext.current
     var categories by remember { mutableStateOf<List<MenuCategoryDto>>(emptyList()) }
     var menuStatus by remember { mutableStateOf("pending_partner_onboarding") }
+    var menuReviewStatus by remember { mutableStateOf<String?>(null) }
+    var menuReviewNote by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
@@ -51,7 +62,44 @@ fun MenuEditorContent(restaurantId: String) {
     var addItemCategory by remember { mutableStateOf("") }
     var showEditItemDialog by remember { mutableStateOf(false) }
     var editingItem by remember { mutableStateOf<Pair<String, MenuItemDto>?>(null) }
+    var isSubmittingForReview by remember { mutableStateOf(false) }
+    var reviewSubmitMessage by remember { mutableStateOf<String?>(null) }
+    var isImportingPhoto by remember { mutableStateOf(false) }
+    var photoImportMessage by remember { mutableStateOf<String?>(null) }
+    var aiImportsRemaining by remember { mutableStateOf(AIImportTracker.remainingImports(context)) }
     val scope = rememberCoroutineScope()
+
+    // Photo picker launcher
+    val photoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            isImportingPhoto = true
+            try {
+                val bytes = context.contentResolver.openInputStream(uri)?.readBytes()
+                if (bytes != null) {
+                    val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                    val r = RetrofitClient.restaurantApi.importMenu(
+                        restaurantId,
+                        MenuImportRequest(
+                            source = "menu_photo_ai",
+                            imageBase64 = base64,
+                            contentType = "image/jpeg",
+                            replaceExisting = true
+                        )
+                    )
+                    if (r.isSuccessful) {
+                        categories = r.body()?.categories ?: categories
+                        AIImportTracker.recordImport(context)
+                        aiImportsRemaining = AIImportTracker.remainingImports(context)
+                        photoImportMessage = r.body()?.message ?: "AI imported ${r.body()?.totalItems ?: 0} items!"
+                    }
+                }
+            } catch (e: Exception) {
+                photoImportMessage = "Import failed: ${e.message}"
+            }
+            isImportingPhoto = false
+        }
+    }
 
     fun loadMenu() {
         scope.launch {
@@ -61,6 +109,8 @@ fun MenuEditorContent(restaurantId: String) {
                 if (response.isSuccessful) {
                     categories = response.body()?.categories ?: emptyList()
                     menuStatus = response.body()?.menuStatus ?: "pending_partner_onboarding"
+                    menuReviewStatus = response.body()?.menuReviewStatus
+                    menuReviewNote = response.body()?.menuReviewNote
                 }
             } catch (e: Exception) {
                 errorMsg = e.message
@@ -80,7 +130,15 @@ fun MenuEditorContent(restaurantId: String) {
                 categoryCount = categories.size,
                 itemCount = totalItems,
                 isLoading = isLoading,
-                onImportClick = { showImportDialog = true }
+                onImportClick = { showImportDialog = true },
+                onPhotoScanClick = {
+                    if (AIImportTracker.remainingImports(context) > 0) {
+                        photoLauncher.launch("image/*")
+                    } else {
+                        photoImportMessage = "You've used all 3 AI scans this month. Resets next month."
+                    }
+                },
+                aiImportsRemaining = aiImportsRemaining,
             )
 
             // ── Saving indicator strip ───────────────────────────────────────
@@ -112,6 +170,68 @@ fun MenuEditorContent(restaurantId: String) {
                 }
             }
 
+            // ── Venue under review banner ─────────────────────────────────────
+            if (isVenueUnderReview) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(CibusOrange.copy(alpha = 0.08f))
+                        .padding(horizontal = CibusDimens.screenHorizontal, vertical = CibusDimens.spacing8),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.Info, null, Modifier.size(16.dp), tint = CibusOrange)
+                    Text(
+                        "Your venue is under review. You can edit your menu now \u2014 it will go live once approved.",
+                        fontSize = CibusDimens.captionSp,
+                        color = CibusOrange
+                    )
+                }
+            }
+
+            // ── Menu review status banner ─────────────────────────────────────
+            MenuReviewBanner(status = menuReviewStatus, note = menuReviewNote)
+
+            // ── Submit for review button ──────────────────────────────────────
+            if (categories.isNotEmpty() && menuReviewStatus != "pending_review" && !isLoading) {
+                Button(
+                    onClick = {
+                        isSubmittingForReview = true
+                        scope.launch {
+                            try {
+                                val r = RetrofitClient.restaurantApi.submitMenuForOpsReview(restaurantId)
+                                if (r.isSuccessful) {
+                                    menuReviewStatus = "pending_review"
+                                    reviewSubmitMessage = "Menu submitted for review!"
+                                }
+                            } catch (e: Exception) {
+                                reviewSubmitMessage = "Failed: ${e.message}"
+                            }
+                            isSubmittingForReview = false
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = CibusDimens.screenHorizontal, vertical = CibusDimens.spacing8)
+                        .height(CibusDimens.btnHeight),
+                    enabled = !isSubmittingForReview,
+                    colors = ButtonDefaults.buttonColors(containerColor = CibusGreen),
+                    shape = RoundedCornerShape(CibusDimens.btnRadius)
+                ) {
+                    if (isSubmittingForReview) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.Default.Send, null, Modifier.size(16.dp))
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (menuReviewStatus == "changes_requested") "Re-submit for Review" else "Submit Menu for Review",
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                }
+            }
+
             // ── Content ──────────────────────────────────────────────────────
             if (isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -119,6 +239,14 @@ fun MenuEditorContent(restaurantId: String) {
                 }
             } else if (categories.isEmpty()) {
                 MenuEmptyState(
+                    onPhotoScan = {
+                        if (AIImportTracker.remainingImports(context) > 0) {
+                            photoLauncher.launch("image/*")
+                        } else {
+                            photoImportMessage = "You've used all 3 AI scans this month. Resets next month."
+                        }
+                    },
+                    aiImportsRemaining = aiImportsRemaining,
                     onImportTemplate = { showImportDialog = true },
                     onAddCategoryManually = {
                         val name = "New Category ${categories.size + 1}"
@@ -317,6 +445,62 @@ fun MenuEditorContent(restaurantId: String) {
                     }
                 ) { Text(msg, color = Color.White) }
             }
+
+            // Review submit feedback
+            reviewSubmitMessage?.let { msg ->
+                LaunchedEffect(msg) {
+                    kotlinx.coroutines.delay(3000)
+                    reviewSubmitMessage = null
+                }
+                Snackbar(
+                    modifier = Modifier.padding(CibusDimens.spacing8),
+                    containerColor = CibusGreenDark,
+                    action = { TextButton(onClick = { reviewSubmitMessage = null }) { Text("OK", color = Color.White) } }
+                ) { Text(msg, color = Color.White) }
+            }
+
+            // Photo import feedback
+            photoImportMessage?.let { msg ->
+                LaunchedEffect(msg) {
+                    kotlinx.coroutines.delay(3000)
+                    photoImportMessage = null
+                }
+                Snackbar(
+                    modifier = Modifier.padding(CibusDimens.spacing8),
+                    containerColor = CibusGreenDark,
+                    action = { TextButton(onClick = { photoImportMessage = null }) { Text("OK", color = Color.White) } }
+                ) { Text(msg, color = Color.White) }
+            }
+        }
+
+        // Photo import loading overlay
+        if (isImportingPhoto) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(CibusDimens.radiusLg),
+                    color = CibusCardBg,
+                    shadowElevation = 8.dp,
+                ) {
+                    Column(
+                        modifier = Modifier.padding(CibusDimens.spacing32),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(CibusDimens.spacing16)
+                    ) {
+                        CircularProgressIndicator(color = CibusGreen)
+                        Text(
+                            "AI is reading your menu\u2026",
+                            fontWeight = FontWeight.Medium,
+                            fontSize = CibusDimens.bodySp,
+                            color = CibusTextOnSurface
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -396,7 +580,11 @@ private fun MenuHeroHeader(
     itemCount: Int,
     isLoading: Boolean,
     onImportClick: () -> Unit,
+    onPhotoScanClick: () -> Unit = {},
+    aiImportsRemaining: Int = 3,
 ) {
+    var showDropdown by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -433,14 +621,100 @@ private fun MenuHeroHeader(
                     )
                 }
             }
-            IconButton(onClick = onImportClick) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "Import menu",
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
+            Box {
+                IconButton(onClick = { showDropdown = true }) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add menu items",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                DropdownMenu(
+                    expanded = showDropdown,
+                    onDismissRequest = { showDropdown = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Scan Menu Photo (AI) [$aiImportsRemaining/3]") },
+                        leadingIcon = { Icon(Icons.Default.CameraAlt, null) },
+                        onClick = { showDropdown = false; onPhotoScanClick() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Import Template") },
+                        leadingIcon = { Icon(Icons.Default.AutoAwesome, null) },
+                        onClick = { showDropdown = false; onImportClick() }
+                    )
+                }
             }
+        }
+    }
+}
+
+// ── Menu Review Status Banner ────────────────────────────────────────────────
+
+@Composable
+private fun MenuReviewBanner(status: String?, note: String?) {
+    if (status == null || status == "live") return
+    val isPending = status == "pending_review"
+    val color = if (isPending) CibusOrange else Color(0xFFEA580C)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(color.copy(alpha = 0.08f))
+            .padding(horizontal = CibusDimens.screenHorizontal, vertical = CibusDimens.spacing12)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                if (isPending) Icons.Default.HourglassTop else Icons.Default.Warning,
+                null, Modifier.size(16.dp), tint = color
+            )
+            Text(
+                if (isPending) "Menu submitted for review" else "Changes requested",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = CibusDimens.bodySp,
+                color = color
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            if (isPending) "Your menu is being reviewed by our team. You can continue editing."
+            else (note ?: "Our team has requested changes to your menu."),
+            fontSize = CibusDimens.captionSp,
+            color = CibusTextOnSurfaceSecondary
+        )
+    }
+}
+
+// ── AI Import Tracker (3/month limit) ────────────────────────────────────────
+
+object AIImportTracker {
+    private const val PREF_NAME = "restaurant_ai_import"
+    private const val KEY_COUNT = "ai_import_count"
+    private const val KEY_MONTH = "ai_import_month"
+    private const val LIMIT = 3
+
+    private fun currentMonth(): String =
+        SimpleDateFormat("yyyy-MM", Locale.US).format(Date())
+
+    fun remainingImports(context: Context): Int {
+        val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        val stored = prefs.getString(KEY_MONTH, "") ?: ""
+        if (stored != currentMonth()) return LIMIT
+        return (LIMIT - prefs.getInt(KEY_COUNT, 0)).coerceAtLeast(0)
+    }
+
+    fun recordImport(context: Context) {
+        val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        val current = currentMonth()
+        val stored = prefs.getString(KEY_MONTH, "") ?: ""
+        if (stored != current) {
+            prefs.edit().putString(KEY_MONTH, current).putInt(KEY_COUNT, 1).apply()
+        } else {
+            prefs.edit().putInt(KEY_COUNT, prefs.getInt(KEY_COUNT, 0) + 1).apply()
         }
     }
 }
@@ -449,6 +723,8 @@ private fun MenuHeroHeader(
 
 @Composable
 private fun MenuEmptyState(
+    onPhotoScan: () -> Unit = {},
+    aiImportsRemaining: Int = 3,
     onImportTemplate: () -> Unit,
     onAddCategoryManually: () -> Unit,
 ) {
@@ -496,20 +772,46 @@ private fun MenuEmptyState(
 
         Spacer(Modifier.height(CibusDimens.spacing28))
 
-        // Primary CTA: Import Menu Template
+        // Primary CTA: Scan Menu Photo (AI)
+        Button(
+            onClick = onPhotoScan,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(CibusDimens.btnHeight),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (aiImportsRemaining > 0) CibusGreen else CibusTextOnSurfaceSecondary
+            ),
+            shape = RoundedCornerShape(CibusDimens.btnRadius)
+        ) {
+            Icon(Icons.Default.CameraAlt, null, Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "Scan Menu Photo (AI) [$aiImportsRemaining/3]",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = CibusDimens.bodySp,
+                color = Color.White
+            )
+        }
+
+        Spacer(Modifier.height(CibusDimens.spacing12))
+
+        // Secondary CTA: Import Menu Template
         Button(
             onClick = onImportTemplate,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(CibusDimens.btnHeight),
-            colors = ButtonDefaults.buttonColors(containerColor = CibusGreen),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = CibusGreen.copy(alpha = 0.10f),
+                contentColor = CibusGreen
+            ),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
             shape = RoundedCornerShape(CibusDimens.btnRadius)
         ) {
             Text(
                 "Import Menu Template",
                 fontWeight = FontWeight.SemiBold,
-                fontSize = CibusDimens.bodySp,
-                color = Color.White
+                fontSize = CibusDimens.bodySp
             )
         }
 

@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.cibus.restaurant.api.RetrofitClient
 import com.cibus.restaurant.ui.theme.*
 
 private data class SupportTicket(
@@ -39,12 +40,32 @@ private data class FaqItem(
 @Composable
 fun RestaurantInboxContent() {
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("FAQ", "Support", "My Tickets")
+    val tabs = listOf("Alerts", "FAQ", "Support", "My Tickets")
     var tickets by remember { mutableStateOf<List<SupportTicket>>(emptyList()) }
     var showCreateTicket by remember { mutableStateOf(false) }
     var newSubject by remember { mutableStateOf("") }
     var newMessage by remember { mutableStateOf("") }
     val context = LocalContext.current
+
+    // Notification state — fetched from menu review status
+    var menuReviewStatus by remember { mutableStateOf<String?>(null) }
+    var menuReviewNote by remember { mutableStateOf<String?>(null) }
+    var loadingAlerts by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        try {
+            val meResp = RetrofitClient.restaurantApi.getMe()
+            val rid = meResp.body()?.restaurantId
+            if (meResp.isSuccessful && !rid.isNullOrBlank()) {
+                val menuResp = RetrofitClient.restaurantApi.getMenuTyped(rid)
+                if (menuResp.isSuccessful) {
+                    menuReviewStatus = menuResp.body()?.menuReviewStatus
+                    menuReviewNote = menuResp.body()?.menuReviewNote
+                }
+            }
+        } catch (_: Exception) {}
+        loadingAlerts = false
+    }
 
     val faqs = remember {
         listOf(
@@ -70,8 +91,13 @@ fun RestaurantInboxContent() {
         }
 
         when (selectedTab) {
-            0 -> FaqTab(faqs)
-            1 -> SupportTab(
+            0 -> AlertsTab(
+                menuReviewStatus = menuReviewStatus,
+                menuReviewNote = menuReviewNote,
+                loading = loadingAlerts
+            )
+            1 -> FaqTab(faqs)
+            2 -> SupportTab(
                 onCreateTicket = { showCreateTicket = true },
                 onWhatsApp = {
                     // TODO: Load WhatsApp support number from server config / remote config
@@ -80,7 +106,7 @@ fun RestaurantInboxContent() {
                     context.startActivity(intent)
                 }
             )
-            2 -> TicketsTab(tickets)
+            3 -> TicketsTab(tickets)
         }
     }
 
@@ -122,7 +148,7 @@ fun RestaurantInboxContent() {
                             newSubject = ""
                             newMessage = ""
                             showCreateTicket = false
-                            selectedTab = 2 // Switch to My Tickets
+                            selectedTab = 3 // Switch to My Tickets
                         }
                     },
                     enabled = newSubject.isNotBlank() && newMessage.isNotBlank(),
@@ -134,6 +160,82 @@ fun RestaurantInboxContent() {
                 TextButton(onClick = { showCreateTicket = false }) { Text("Cancel", color = CibusGreen) }
             }
         )
+    }
+}
+
+@Composable
+private fun AlertsTab(menuReviewStatus: String?, menuReviewNote: String?, loading: Boolean) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("Notifications", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = RestTextPrimary)
+
+        if (loading) {
+            Box(Modifier.fillMaxWidth().padding(top = 32.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = CibusGreen, modifier = Modifier.size(32.dp))
+            }
+        } else if (menuReviewStatus == "changes_requested") {
+            // Changes requested notification card
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = CibusAmber.copy(alpha = 0.06f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Surface(shape = RoundedCornerShape(10.dp), color = CibusAmber.copy(alpha = 0.12f)) {
+                            Icon(Icons.Default.Warning, null, tint = CibusAmber, modifier = Modifier.padding(8.dp).size(20.dp))
+                        }
+                        Column {
+                            Text("Menu Changes Requested", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = RestTextPrimary)
+                            Text("From HUBB Team", fontSize = 11.sp, color = RestTextTertiary)
+                        }
+                    }
+                    Text(
+                        menuReviewNote ?: "Our team has requested changes to your menu. Please check the Menu tab for details.",
+                        fontSize = 14.sp,
+                        color = RestTextSecondary
+                    )
+                }
+            }
+        } else if (menuReviewStatus == "pending_review") {
+            // Pending review notification card
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFFF59E0B).copy(alpha = 0.06f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Surface(shape = RoundedCornerShape(10.dp), color = Color(0xFFF59E0B).copy(alpha = 0.12f)) {
+                            Icon(Icons.Default.HourglassTop, null, tint = Color(0xFFF59E0B), modifier = Modifier.padding(8.dp).size(20.dp))
+                        }
+                        Column {
+                            Text("Menu Under Review", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = RestTextPrimary)
+                            Text("From HUBB Team", fontSize = 11.sp, color = RestTextTertiary)
+                        }
+                    }
+                    Text(
+                        "Your menu has been submitted and is being reviewed by our team. You can continue editing in the meantime.",
+                        fontSize = 14.sp,
+                        color = RestTextSecondary
+                    )
+                }
+            }
+        } else {
+            // Empty state
+            Box(Modifier.fillMaxWidth().padding(top = 32.dp), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.NotificationsNone, null, tint = RestTextSecondary.copy(alpha = 0.4f), modifier = Modifier.size(48.dp))
+                    Spacer(Modifier.height(8.dp))
+                    Text("No notifications", fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+                    Text("You're all caught up! Alerts from our team will appear here.", fontSize = 13.sp, color = RestTextSecondary, textAlign = TextAlign.Center)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
     }
 }
 

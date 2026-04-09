@@ -101,7 +101,7 @@ fun RestaurantMainScreen(onLogout: () -> Unit = {}) {
                     }
                 }
                 RestaurantTabItem.STORE -> StoreContent()
-                RestaurantTabItem.MORE -> RestaurantMoreContent(onLogout = onLogout)
+                RestaurantTabItem.MORE -> RestaurantMoreScreen(hasChain = false, onLogout = onLogout)
             }
         }
     }

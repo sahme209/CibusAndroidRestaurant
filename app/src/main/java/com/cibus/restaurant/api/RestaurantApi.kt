@@ -404,7 +404,7 @@ data class MenuCategoryDto(
 )
 
 data class MenuResponseDto(
-    val categories: List<MenuCategoryDto> = emptyList(),
+    @SerializedName(value = "categories", alternate = ["menu"]) val categories: List<MenuCategoryDto> = emptyList(),
     @SerializedName("menuStatus") val menuStatus: String = "pending_partner_onboarding",
     @SerializedName("menuReviewStatus") val menuReviewStatus: String? = null,
     @SerializedName("publishedCategoryCount") val publishedCategoryCount: Int? = null,

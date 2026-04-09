@@ -107,13 +107,19 @@ fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false)
             try {
                 val response = RetrofitClient.restaurantApi.getMenuTyped(restaurantId)
                 if (response.isSuccessful) {
-                    categories = response.body()?.categories ?: emptyList()
-                    menuStatus = response.body()?.menuStatus ?: "pending_partner_onboarding"
-                    menuReviewStatus = response.body()?.menuReviewStatus
-                    menuReviewNote = response.body()?.menuReviewNote
+                    val body = response.body()
+                    categories = body?.categories ?: emptyList()
+                    menuStatus = body?.menuStatus ?: "pending_partner_onboarding"
+                    menuReviewStatus = body?.menuReviewStatus
+                    menuReviewNote = body?.menuReviewNote
+                    android.util.Log.d("MenuEditor", "Loaded ${categories.size} categories for $restaurantId, status=$menuStatus")
+                } else {
+                    val errorBody = response.errorBody()?.string()?.take(500) ?: ""
+                    android.util.Log.e("MenuEditor", "getMenu HTTP ${response.code()} for $restaurantId: $errorBody")
+                    categories = emptyList()
                 }
-            } catch (_: Exception) {
-                // On error (e.g. 404 / no menu yet), show empty editor so user can add items
+            } catch (e: Exception) {
+                android.util.Log.e("MenuEditor", "loadMenu failed for $restaurantId", e)
                 categories = emptyList()
             }
             isLoading = false

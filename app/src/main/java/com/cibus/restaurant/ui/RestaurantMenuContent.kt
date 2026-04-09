@@ -32,11 +32,14 @@ fun RestaurantMenuContent() {
                 val body = me.body()
                 restaurantId = body?.restaurantId
                 menuSelfServeBlocked = body?.menuSelfServeBlocked == true
+                android.util.Log.d("MenuContent", "getMe restaurantId=${restaurantId}, blocked=$menuSelfServeBlocked")
             } else {
-                error = "Could not load profile"
+                error = "Could not load profile (HTTP ${me.code()})"
+                android.util.Log.e("MenuContent", "getMe failed: HTTP ${me.code()}")
             }
         } catch (e: Exception) {
             error = e.message ?: "Error"
+            android.util.Log.e("MenuContent", "getMe exception", e)
         }
         loading = false
     }

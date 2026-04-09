@@ -206,7 +206,10 @@ fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false)
                         isSubmittingForReview = true
                         scope.launch {
                             try {
-                                val r = RetrofitClient.restaurantApi.submitMenuForOpsReview(restaurantId)
+                                val r = RetrofitClient.restaurantApi.patchMenu(
+                                    restaurantId,
+                                    mapOf("menuReviewStatus" to "pending_review")
+                                )
                                 if (r.isSuccessful) {
                                     menuReviewStatus = "pending_review"
                                     reviewSubmitMessage = "Menu submitted for review!"

@@ -208,11 +208,19 @@ fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false)
                             try {
                                 val r = RetrofitClient.restaurantApi.patchMenu(
                                     restaurantId,
-                                    mapOf("menuReviewStatus" to "pending_review")
+                                    mapOf(
+                                        "menuCategories" to categories,
+                                        "menuStatus" to "active",
+                                        "menuReviewStatus" to "pending_review"
+                                    )
                                 )
                                 if (r.isSuccessful) {
                                     menuReviewStatus = "pending_review"
                                     reviewSubmitMessage = "Menu submitted for review!"
+                                } else {
+                                    val errBody = r.errorBody()?.string() ?: ""
+                                    android.util.Log.e("MenuEditor", "submitForReview HTTP ${r.code()}: $errBody")
+                                    reviewSubmitMessage = "Failed (HTTP ${r.code()})"
                                 }
                             } catch (e: Exception) {
                                 reviewSubmitMessage = "Failed: ${e.message}"

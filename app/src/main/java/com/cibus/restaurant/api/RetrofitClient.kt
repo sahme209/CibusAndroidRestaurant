@@ -98,7 +98,9 @@ object RetrofitClient {
                 .writeTimeout(180, TimeUnit.SECONDS)
                 .addInterceptor(noCacheInterceptor)
                 .addInterceptor(resilientRetryInterceptor)
-                .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
+                .addInterceptor(HttpLoggingInterceptor().apply {
+                    level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
+                })
                 .build()
         } else {
             OkHttpClient.Builder()
@@ -108,7 +110,9 @@ object RetrofitClient {
                 .addInterceptor(noCacheInterceptor)
                 .addInterceptor(resilientRetryInterceptor)
                 .addInterceptor(RestaurantAuthInterceptor(store))
-                .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
+                .addInterceptor(HttpLoggingInterceptor().apply {
+                    level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
+                })
                 .build()
         }
     }

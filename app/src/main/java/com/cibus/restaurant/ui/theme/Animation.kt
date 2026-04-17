@@ -37,4 +37,14 @@ object CibusMotion {
 
     // Stagger delay per list item (ms)
     const val STAGGER_MS = 40
+
+    // Phase 300: Premium Motion Curves
+    val silkSpring = spring<Float>(dampingRatio = 0.92f, stiffness = 260f)
+    val snapSpring = spring<Float>(dampingRatio = 0.72f, stiffness = 600f)
+    val elasticPop = spring<Float>(dampingRatio = 0.45f, stiffness = 350f)
+    val fluidSpring = spring<Float>(dampingRatio = 0.85f, stiffness = 280f)
+    val microDelight = spring<Float>(dampingRatio = 0.50f, stiffness = 500f)
+    val modalReveal = spring<Float>(dampingRatio = 0.86f, stiffness = 300f)
+    const val CASCADE_STAGGER_MS = 30
+    const val BREATHE_DURATION_MS = 2000
 }

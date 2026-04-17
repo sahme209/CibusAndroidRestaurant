@@ -39,6 +39,59 @@ private fun navigateToEntry(navController: androidx.navigation.NavController) {
     }
 }
 
+private data class RestaurantSessionState(
+    val listingState: RestaurantListingState,
+    val claimStatus: ClaimStatusSummary?,
+    val isOperational: Boolean,
+)
+
+private suspend fun loadRestaurantSessionState(): RestaurantSessionState? {
+    val store = RetrofitClient.getTokenStore()
+    if (!store.hasValidToken()) return null
+
+    val meResponse = try {
+        RetrofitClient.restaurantApi.getMe()
+    } catch (_: Exception) {
+        return null
+    }
+
+    if (meResponse.code() == 401) {
+        store.clear()
+        return null
+    }
+
+    if (!meResponse.isSuccessful) return null
+    val me = meResponse.body() ?: return null
+
+    val appStatus = me.applicationStatus.orEmpty().lowercase()
+    val isPendingReview = me.newVenuePendingReview == true ||
+        me.menuSelfServeBlocked == true ||
+        appStatus.contains("pending") ||
+        appStatus.contains("submitted") ||
+        appStatus.contains("review")
+
+    val status = RetrofitClient.restaurantApi.fetchClaimStatus()
+    if (status != null) {
+        return RestaurantSessionState(
+            listingState = status.state,
+            claimStatus = status,
+            isOperational = status.canOperate,
+        )
+    }
+
+    val hasRestaurant = !me.restaurantId.isNullOrBlank()
+    val isOperational = hasRestaurant && !isPendingReview
+    return RestaurantSessionState(
+        listingState = if (isOperational) {
+            RestaurantListingState.VERIFIED_PARTNER
+        } else {
+            RestaurantListingState.CLAIM_SUBMITTED
+        },
+        claimStatus = null,
+        isOperational = isOperational,
+    )
+}
+
 @Composable
 fun RestaurantApp() {
     val navController = rememberNavController()
@@ -58,28 +111,15 @@ fun RestaurantApp() {
     }
 
     LaunchedEffect(Unit) {
-        val store = RetrofitClient.getTokenStore()
-        if (store.hasValidToken()) {
-            var proceedToMain = true
-            try {
-                val resp = RetrofitClient.restaurantApi.getMe()
-                if (resp.code() == 401) proceedToMain = false
-            } catch (_: Exception) { }
+        val sessionState = loadRestaurantSessionState()
+        if (sessionState != null) {
+            isLoggedIn = true
+            claimStatus = sessionState.claimStatus
+            listingState = sessionState.listingState
+            isOperational = sessionState.isOperational
 
-            if (proceedToMain) {
-                isLoggedIn = true
-                try {
-                    val status = RetrofitClient.restaurantApi.fetchClaimStatus()
-                    if (status != null) {
-                        claimStatus = status
-                        listingState = status.state
-                        isOperational = status.canOperate
-                    }
-                } catch (_: Exception) { }
-
-                val dest = if (isOperational) RestaurantRoute.Main.route else RestaurantRoute.Onboarding.route
-                navController.navigate(dest) { popUpTo(0) { inclusive = true } }
-            }
+            val dest = if (sessionState.isOperational) RestaurantRoute.Main.route else RestaurantRoute.Onboarding.route
+            navController.navigate(dest) { popUpTo(0) { inclusive = true } }
         }
     }
 
@@ -100,9 +140,24 @@ fun RestaurantApp() {
                 onApplyClick = { navController.navigate(RestaurantRoute.Apply.route) },
                 onRegisterClick = { navController.navigate(RestaurantRoute.NewPartner.route) },
                 onLoginSuccess = {
-                    isLoggedIn = true
-                    navController.navigate(RestaurantRoute.Onboarding.route) {
-                        popUpTo(RestaurantRoute.Entry.route) { inclusive = true }
+                    val sessionState = loadRestaurantSessionState()
+                    if (sessionState == null) {
+                        "We could not load your restaurant account. Please try again."
+                    } else {
+                        isLoggedIn = true
+                        claimStatus = sessionState.claimStatus
+                        listingState = sessionState.listingState
+                        isOperational = sessionState.isOperational
+
+                        val dest = if (sessionState.isOperational) {
+                            RestaurantRoute.Main.route
+                        } else {
+                            RestaurantRoute.Onboarding.route
+                        }
+                        navController.navigate(dest) {
+                            popUpTo(RestaurantRoute.Entry.route) { inclusive = true }
+                        }
+                        null
                     }
                 }
             )

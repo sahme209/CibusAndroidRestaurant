@@ -18,6 +18,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.border
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import com.cibus.restaurant.api.MerchantDeliveryMode
 import com.cibus.restaurant.api.RetrofitClient
 import com.cibus.restaurant.ui.theme.*
 import kotlinx.coroutines.launch
@@ -47,6 +51,12 @@ fun StoreContent() {
     var pickupInstructions by remember { mutableStateOf("") }
     var savingStore by remember { mutableStateOf(false) }
     var storeMessage by remember { mutableStateOf<String?>(null) }
+
+    // Delivery mode state
+    var deliveryMode by remember { mutableStateOf(MerchantDeliveryMode.PLATFORM_RIDER) }
+    var selfDeliveryRadiusKm by remember { mutableStateOf(5f) }
+    var selfDeliveryFee by remember { mutableStateOf("") }
+    var estimatedSelfDeliveryMinutes by remember { mutableStateOf(30f) }
 
     val isOpen = availability == "open" || availability == "busy" || availability == "closing_soon"
 
@@ -85,6 +95,10 @@ fun StoreContent() {
                         oh.open?.takeIf { it.isNotEmpty() }?.let { openHoursOpen = it }
                         oh.close?.takeIf { it.isNotEmpty() }?.let { openHoursClose = it }
                     }
+                    deliveryMode = MerchantDeliveryMode.from(me.deliveryMode)
+                    me.selfDeliveryRadiusKm?.let { selfDeliveryRadiusKm = it.toFloat().coerceIn(1f, 20f) }
+                    me.selfDeliveryFee?.let { selfDeliveryFee = if (it == 0.0) "0" else it.toInt().toString() }
+                    me.estimatedSelfDeliveryMinutes?.let { estimatedSelfDeliveryMinutes = it.toFloat().coerceIn(10f, 90f) }
                 }
             } catch (_: Exception) { }
             loadingAvailability = false
@@ -126,13 +140,20 @@ fun StoreContent() {
         scope.launch {
             savingStore = true
             storeMessage = null
-            val body = mapOf<String, Any>(
+            val body = mutableMapOf<String, Any>(
                 "openHours" to mapOf("open" to openHoursOpen, "close" to openHoursClose),
                 "deliveryRadiusKm" to deliveryRadiusKm,
                 "kitchenPrepMinutes" to defaultPrepMinutes,
                 "pickupInstructions" to pickupInstructions,
                 "availability" to availability,
+                "deliveryMode" to deliveryMode.apiValue,
+                "selfDeliveryEnabled" to (deliveryMode == MerchantDeliveryMode.MERCHANT_SELF),
             )
+            if (deliveryMode == MerchantDeliveryMode.MERCHANT_SELF) {
+                body["selfDeliveryRadiusKm"] = selfDeliveryRadiusKm.toDouble()
+                body["selfDeliveryFee"] = selfDeliveryFee.toDoubleOrNull() ?: 0.0
+                body["estimatedSelfDeliveryMinutes"] = estimatedSelfDeliveryMinutes.toInt()
+            }
             try {
                 val resp = RetrofitClient.restaurantApi.patchRestaurantStore(body)
                 storeMessage = if (resp.isSuccessful) "Store settings saved" else "Could not save. Try again."
@@ -439,6 +460,172 @@ fun StoreContent() {
                                 color = Color.White
                             )
                         }
+                    }
+                }
+            }
+        }
+
+        // ── Delivery Mode Card ────────────────────────────────────────────
+        item {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = CibusDimens.spacing16)
+                    .padding(top = CibusDimens.spacing16),
+                shape = RoundedCornerShape(16.dp),
+                shadowElevation = 3.dp,
+                color = CibusCardBg
+            ) {
+                Column(modifier = Modifier.padding(CibusDimens.spacing16)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.LocalShipping,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp),
+                            tint = CibusGreen
+                        )
+                        Text(
+                            "Delivery Mode",
+                            fontSize = CibusDimens.sectionTitleSp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = CibusTextOnSurface
+                        )
+                    }
+
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Choose who delivers orders to your customers.",
+                        fontSize = CibusDimens.captionSp,
+                        color = CibusTextOnSurfaceSecondary
+                    )
+
+                    Spacer(Modifier.height(CibusDimens.spacing12))
+
+                    // Mode selector chips
+                    Row(horizontalArrangement = Arrangement.spacedBy(CibusDimens.spacing8)) {
+                        MerchantDeliveryMode.entries.forEach { mode ->
+                            val isSelected = deliveryMode == mode
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { deliveryMode = mode },
+                                shape = RoundedCornerShape(CibusDimens.radiusMd),
+                                color = if (isSelected) CibusGreen.copy(alpha = 0.12f) else CibusSurfaceSecondary,
+                                border = if (isSelected) androidx.compose.foundation.BorderStroke(1.5.dp, CibusGreen) else null
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(CibusDimens.spacing12),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        if (mode == MerchantDeliveryMode.PLATFORM_RIDER) Icons.Default.TwoWheeler else Icons.Default.LocalShipping,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp),
+                                        tint = if (isSelected) CibusGreen else CibusTextTertiary
+                                    )
+                                    Text(
+                                        mode.displayName,
+                                        fontSize = CibusDimens.captionSp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) CibusGreen else CibusTextOnSurface
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Self delivery settings
+                    if (deliveryMode == MerchantDeliveryMode.MERCHANT_SELF) {
+                        Spacer(Modifier.height(CibusDimens.spacing16))
+
+                        HorizontalDivider(color = CibusTextTertiary.copy(alpha = 0.3f))
+
+                        Spacer(Modifier.height(CibusDimens.spacing12))
+
+                        Text(
+                            "Self Delivery Settings",
+                            fontSize = CibusDimens.bodySp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = CibusTextOnSurface
+                        )
+
+                        Spacer(Modifier.height(CibusDimens.spacing12))
+
+                        // Delivery radius slider
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Delivery radius", fontSize = CibusDimens.bodySp, color = CibusTextOnSurface)
+                            Text(
+                                "${selfDeliveryRadiusKm.toInt()} km",
+                                fontSize = CibusDimens.bodySp,
+                                fontWeight = FontWeight.Bold,
+                                color = CibusGreen
+                            )
+                        }
+                        Slider(
+                            value = selfDeliveryRadiusKm,
+                            onValueChange = { selfDeliveryRadiusKm = it },
+                            valueRange = 1f..20f,
+                            steps = 18,
+                            colors = SliderDefaults.colors(thumbColor = CibusGreen, activeTrackColor = CibusGreen)
+                        )
+
+                        Spacer(Modifier.height(CibusDimens.spacing8))
+
+                        // Delivery fee
+                        Text("Delivery fee (Rs)", fontSize = CibusDimens.labelSp, color = CibusTextTertiary)
+                        Spacer(Modifier.height(6.dp))
+                        OutlinedTextField(
+                            value = selfDeliveryFee,
+                            onValueChange = { v ->
+                                val filtered = v.filter { it.isDigit() || it == '.' }
+                                val num = filtered.toDoubleOrNull()
+                                if (num == null || num <= 500) selfDeliveryFee = filtered
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("e.g. 100", fontSize = CibusDimens.bodySp) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            shape = RoundedCornerShape(CibusDimens.radiusMd),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedContainerColor = CibusSurfaceSecondary,
+                                focusedContainerColor = CibusSurfaceSecondary,
+                                unfocusedBorderColor = Color.Transparent,
+                                focusedBorderColor = CibusGreen
+                            )
+                        )
+                        Text("Set 0 for free delivery. Maximum Rs 500.", fontSize = CibusDimens.captionSp, color = CibusTextOnSurfaceSecondary)
+
+                        Spacer(Modifier.height(CibusDimens.spacing12))
+
+                        // Estimated delivery time slider
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Estimated delivery time", fontSize = CibusDimens.bodySp, color = CibusTextOnSurface)
+                            Text(
+                                "${estimatedSelfDeliveryMinutes.toInt()} min",
+                                fontSize = CibusDimens.bodySp,
+                                fontWeight = FontWeight.Bold,
+                                color = CibusGreen
+                            )
+                        }
+                        Slider(
+                            value = estimatedSelfDeliveryMinutes,
+                            onValueChange = { estimatedSelfDeliveryMinutes = it },
+                            valueRange = 10f..90f,
+                            steps = 15,
+                            colors = SliderDefaults.colors(thumbColor = CibusGreen, activeTrackColor = CibusGreen)
+                        )
                     }
                 }
             }

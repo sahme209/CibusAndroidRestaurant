@@ -10,6 +10,17 @@ import retrofit2.http.Path
 import retrofit2.http.POST
 import retrofit2.http.Query
 
+// ── Merchant Self-Delivery Mode ───────────────────────────────────────────────
+enum class MerchantDeliveryMode(val apiValue: String, val displayName: String) {
+    PLATFORM_RIDER("platform_rider", "HubB Riders"),
+    MERCHANT_SELF("merchant_self", "Self Delivery");
+
+    companion object {
+        fun from(value: String?): MerchantDeliveryMode =
+            entries.firstOrNull { it.apiValue == value } ?: PLATFORM_RIDER
+    }
+}
+
 data class RestaurantSignInRequest(val email: String, val password: String)
 data class RestaurantApplyRequest(
     @SerializedName("partnerName") val partnerName: String,
@@ -55,6 +66,11 @@ data class RestaurantMeResponse(
     @SerializedName("reviewCount") val reviewCount: Int? = null,
     @SerializedName("menuSelfServeBlocked") val menuSelfServeBlocked: Boolean? = null,
     @SerializedName("newVenuePendingReview") val newVenuePendingReview: Boolean? = null,
+    @SerializedName("deliveryMode") val deliveryMode: String? = null,
+    @SerializedName("selfDeliveryEnabled") val selfDeliveryEnabled: Boolean? = null,
+    @SerializedName("selfDeliveryRadiusKm") val selfDeliveryRadiusKm: Double? = null,
+    @SerializedName("selfDeliveryFee") val selfDeliveryFee: Double? = null,
+    @SerializedName("estimatedSelfDeliveryMinutes") val estimatedSelfDeliveryMinutes: Int? = null,
 )
 
 data class ChainMeResponse(
@@ -161,7 +177,7 @@ interface RestaurantApi {
     suspend fun discoverRestaurants(
         @Query("q") query: String = "",
         @Query("sector") sector: String = "",
-        @Query("city") city: String = "Islamabad",
+        @Query("city") city: String,
     ): Response<DiscoverRestaurantsResponse>
 
     @GET("restaurants/discover/menu-suggestion")
@@ -259,6 +275,7 @@ data class RestaurantOrderDto(
     @SerializedName("fulfillmentMode") val fulfillmentMode: String? = null,
     @SerializedName("entityType") val entityType: String? = null,
     @SerializedName("reportedIssue") val reportedIssue: Map<String, Any>? = null,
+    @SerializedName("deliveryFulfillmentType") val deliveryFulfillmentType: String? = null,
 ) {
     val itemCount: Int get() = items?.sumOf { item ->
         (item["quantity"] as? Double)?.toInt() ?: (item["quantity"] as? Int) ?: 1
@@ -287,6 +304,10 @@ data class AdaptiveOnboardingRequest(
     @SerializedName("kitchenPrepMinutes") val kitchenPrepMinutes: Int? = null,
     @SerializedName("menuItems")         val menuItems: List<OnboardingMenuItemDto>? = null,
     @SerializedName("linkedRestaurantId") val linkedRestaurantId: String? = null,
+    @SerializedName("deliveryMode") val deliveryMode: String? = null,
+    @SerializedName("selfDeliveryRadiusKm") val selfDeliveryRadiusKm: Double? = null,
+    @SerializedName("selfDeliveryFee") val selfDeliveryFee: Double? = null,
+    @SerializedName("estimatedSelfDeliveryMinutes") val estimatedSelfDeliveryMinutes: Int? = null,
 )
 
 data class OnboardingMenuItemDto(

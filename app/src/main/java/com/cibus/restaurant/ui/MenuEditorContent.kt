@@ -274,7 +274,7 @@ fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false)
                                     restaurantId,
                                     AddMenuItemRequest(
                                         categoryName = name,
-                                        item = MenuItemDto(id = "", name = "Sample Item", price = 100.0)
+                                        item = MenuItemDto(id = "", name = "New Item", price = 0.0)
                                     )
                                 )
                                 if (r.isSuccessful) {

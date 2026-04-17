@@ -57,4 +57,29 @@ object CibusDimens {
 
     const val motionPrimaryDuration = 180
     const val motionRowDuration = 160
+
+    // Phase 300: Premium design tokens
+    val radiusPill = 999.dp
+    val sectionVertical = 16.dp
+    val headerCurveRadius = 24.dp
+    val emptyStateIconContainer = 80.dp
+    val scrollBottomGap = 120.dp
+    val iconSizeRow = 14.dp
+    val iconSizeCard = 16.dp
+
+    // Shadow elevation tiers
+    val shadowSection = 1.dp
+    val cardShadowElevation = 2.dp
+    val floatingShadowElevation = 6.dp
+    val heroShadowElevation = 8.dp
+
+    // Press feedback
+    const val pressScaleButton = 0.97f
+    const val pressScaleRow = 0.975f
+    const val pressOpacityButton = 0.92f
+
+    // Motion tokens
+    const val motionFast = 150
+    const val motionSlow = 300
+    const val motionStaggerDelay = 40L
 }

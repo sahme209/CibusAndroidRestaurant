@@ -17,7 +17,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Green status bar to blend with hero; no enableEdgeToEdge() so layout is stable
         @Suppress("DEPRECATION")
-        window.statusBarColor = 0xFF1B5E20.toInt()
+        window.statusBarColor = 0xFF1B4332.toInt() // CibusGreenDark — matches gradient top
         @Suppress("DEPRECATION")
         window.navigationBarColor = 0xFFFFFFFF.toInt()
         val insetsController = WindowInsetsControllerCompat(window, window.decorView)

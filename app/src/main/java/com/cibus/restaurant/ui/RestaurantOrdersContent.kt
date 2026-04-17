@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.media.AudioManager
 import android.media.ToneGenerator
+import com.cibus.restaurant.api.MerchantDeliveryMode
 import com.cibus.restaurant.api.RestaurantOrderDto
 import com.cibus.restaurant.api.RetrofitClient
 import kotlinx.coroutines.delay
@@ -183,8 +184,9 @@ fun RestaurantOrdersContent() {
     // Group orders by workflow stage — queue-first, operator-friendly
     val newOrders       = orders.filter { it.status == "order_placed" }
     val preparingOrds   = orders.filter { it.status == "accepted" || it.status == "preparing" }
-    val readyForPickup  = orders.filter { it.status in listOf("ready_for_pickup", "dispatch_pending", "rider_assigned", "rider_en_route", "rider_arrived") }
-    val outForDelivery  = orders.filter { it.status in listOf("picked_up", "on_the_way", "arriving_soon") }
+    val readyForPickup  = orders.filter { it.status in listOf("ready_for_pickup", "dispatch_pending", "rider_assigned", "rider_en_route", "rider_arrived") && it.deliveryFulfillmentType != "merchant_self" }
+    val selfDeliveryReady = orders.filter { it.status in listOf("ready_for_pickup", "on_the_way") && it.deliveryFulfillmentType == "merchant_self" }
+    val outForDelivery  = orders.filter { it.status in listOf("picked_up", "on_the_way", "arriving_soon") && it.deliveryFulfillmentType != "merchant_self" }
     val completedOrds   = orders.filter { it.status == "delivered" }
 
     Box(modifier = Modifier.fillMaxSize().background(RestBackground)) {
@@ -322,6 +324,7 @@ fun RestaurantOrdersContent() {
                             if (newOrders.isNotEmpty()) StatPill("${newOrders.size}", "New", CibusRed)
                             if (preparingOrds.isNotEmpty()) StatPill("${preparingOrds.size}", "Preparing", CibusGreenDark)
                             if (readyForPickup.isNotEmpty()) StatPill("${readyForPickup.size}", "Ready", CibusAmber)
+                            if (selfDeliveryReady.isNotEmpty()) StatPill("${selfDeliveryReady.size}", "Self Dlv", Color(0xFF7C3AED))
                             if (outForDelivery.isNotEmpty()) StatPill("${outForDelivery.size}", "En Route", Color(0xFF2563EB))
                             Spacer(Modifier.weight(1f))
                             if (loading) CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = CibusGreenDark)
@@ -380,6 +383,35 @@ fun RestaurantOrdersContent() {
                                 onRunningLate = {},
                                 onStartPreparing = {},
                                 onMarkReady = {}
+                            )
+                        }
+                    }
+
+                    // ── SELF DELIVERY ──────────────────────────────────────
+                    if (selfDeliveryReady.isNotEmpty()) {
+                        item { SectionHeader("Self Delivery", Icons.Default.LocalShipping, Color(0xFF7C3AED), selfDeliveryReady.size) }
+                        items(selfDeliveryReady, key = { it.id }) { order ->
+                            OrderCard(
+                                order = order,
+                                isActionLoading = actionLoadingId == order.id,
+                                onAccept = {},
+                                onReject = {},
+                                onDelay = {},
+                                onRunningLate = {},
+                                onStartPreparing = {},
+                                onMarkReady = {},
+                                onOutForDelivery = {
+                                    scope.launch {
+                                        actionLoadingId = order.id
+                                        try { runOrderAction(order.id, "on_the_way", restaurantId, ::refresh, onError = onActionError) } finally { actionLoadingId = null }
+                                    }
+                                },
+                                onMarkDelivered = {
+                                    scope.launch {
+                                        actionLoadingId = order.id
+                                        try { runOrderAction(order.id, "delivered", restaurantId, ::refresh, onError = onActionError) } finally { actionLoadingId = null }
+                                    }
+                                }
                             )
                         }
                     }
@@ -513,6 +545,8 @@ private suspend fun runOrderAction(
             "reject"           -> api.rejectOrder(orderId, if (rejectReason != null) mapOf("reason" to rejectReason) else emptyMap())
             "preparing"        -> api.patchOrderStatus(orderId, mapOf("status" to "preparing"))
             "ready_for_pickup" -> api.patchOrderStatus(orderId, mapOf("status" to "ready_for_pickup") as Map<String, Any>)
+            "on_the_way"       -> api.patchOrderStatus(orderId, mapOf("status" to "on_the_way") as Map<String, Any>)
+            "delivered"        -> api.patchOrderStatus(orderId, mapOf("status" to "delivered") as Map<String, Any>)
             "running_late"     -> runDelayOrder(orderId, 15, restaurantId, refresh)
         }
         restaurantId?.let { refresh(it) }
@@ -573,7 +607,10 @@ private fun OrderCard(
     onRunningLate: () -> Unit,
     onStartPreparing: () -> Unit,
     onMarkReady: () -> Unit,
+    onOutForDelivery: () -> Unit = {},
+    onMarkDelivered: () -> Unit = {},
 ) {
+    val isSelfDelivery = order.deliveryFulfillmentType == "merchant_self"
     val status = order.status ?: ""
     val fm = (order.fulfillmentMode ?: "delivery").lowercase()
     val isNew        = status == "order_placed"
@@ -655,6 +692,18 @@ private fun OrderCard(
                         Surface(shape = RoundedCornerShape(4.dp), color = CibusGreenDark.copy(alpha = 0.12f)) {
                             Text(fmLabel, modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = CibusGreenDark)
+                        }
+                        if (isSelfDelivery) {
+                            Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF7C3AED).copy(alpha = 0.12f)) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
+                                    Icon(Icons.Default.Storefront, null, tint = Color(0xFF7C3AED), modifier = Modifier.size(10.dp))
+                                    Text("Self Delivery", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFF7C3AED))
+                                }
+                            }
                         }
                         if (order.itemCount > 0) {
                             Text(
@@ -757,9 +806,71 @@ private fun OrderCard(
                 }
             }
 
+            // ── Self-delivery merchant controls ─────────────────────────────
+            if (isSelfDelivery && (isReady || status == "on_the_way")) {
+                val isOnTheWay = status == "on_the_way"
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFF7C3AED).copy(alpha = 0.07f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF7C3AED).copy(alpha = 0.2f))
+                ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.LocalShipping, null, tint = Color(0xFF7C3AED), modifier = Modifier.size(18.dp))
+                            Text(
+                                if (isOnTheWay) "Out for delivery" else "Ready — deliver with your team",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF7C3AED)
+                            )
+                        }
+                        if (!isActionLoading) {
+                            if (isOnTheWay) {
+                                Button(
+                                    onClick = onMarkDelivered,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = CibusGreenDark)
+                                ) {
+                                    Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Mark Delivered", fontWeight = FontWeight.SemiBold)
+                                }
+                            } else {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(
+                                        onClick = onOutForDelivery,
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED))
+                                    ) {
+                                        Icon(Icons.Default.LocalShipping, null, modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text("Out for Delivery", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                                    }
+                                    Button(
+                                        onClick = onMarkDelivered,
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = CibusGreenDark)
+                                    ) {
+                                        Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text("Delivered", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // ── Rider status (Uber Eats-style: ETA + tap-to-call) ───────────
             val isDelivery = (order.fulfillmentMode ?: "delivery").lowercase() == "delivery"
-            if (isDelivery && (isReady || isRiderAssigned || isRiderEnRoute || isRiderArrived)) {
+            if (!isSelfDelivery && isDelivery && (isReady || isRiderAssigned || isRiderEnRoute || isRiderArrived)) {
                 val riderBg = if (isRiderArrived) CibusGreenDark.copy(alpha = 0.15f) else CibusGreenDark.copy(alpha = 0.07f)
                 val ctx = androidx.compose.ui.platform.LocalContext.current
                 Surface(

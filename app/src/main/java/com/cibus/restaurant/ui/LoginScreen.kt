@@ -74,7 +74,7 @@ fun LoginScreen(
     onBackToEntry: (() -> Unit)? = null,
     onApplyClick: () -> Unit = {},
     onRegisterClick: () -> Unit = {},
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: suspend () -> String?
 ) {
     val ctx = LocalContext.current
     var lang by remember { mutableStateOf(ctx.getAppLang()) }
@@ -100,8 +100,14 @@ fun LoginScreen(
                     val data = response.body()?.data
                     if (data != null) {
                         RetrofitClient.getTokenStore().saveToken(data.accessToken)
+                        val sessionError = onLoginSuccess()
+                        if (sessionError != null) {
+                            RetrofitClient.getTokenStore().clear()
+                            errorMessage = sessionError
+                        }
+                    } else {
+                        errorMessage = "Login failed"
                     }
-                    onLoginSuccess()
                 } else {
                     errorMessage = response.message() ?: "Login failed"
                 }

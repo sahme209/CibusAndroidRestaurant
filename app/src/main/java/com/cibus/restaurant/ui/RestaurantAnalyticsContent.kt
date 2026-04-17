@@ -17,20 +17,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.cibus.restaurant.ui.theme.CibusGreen
-import com.cibus.restaurant.ui.theme.CibusGreenDark
-import com.cibus.restaurant.ui.theme.CibusGreenLight
-import com.cibus.restaurant.ui.theme.CibusRed
-import com.cibus.restaurant.ui.theme.CibusRedHot
-import com.cibus.restaurant.ui.theme.CibusAmber
-import com.cibus.restaurant.ui.theme.CibusOrange
-import com.cibus.restaurant.ui.theme.CibusOrangeWarm
-import com.cibus.restaurant.ui.theme.CibusCoral
-import com.cibus.restaurant.ui.theme.CibusSurfaceGreen
-import com.cibus.restaurant.ui.theme.CibusDimens
+import com.cibus.restaurant.ui.theme.*
+import com.cibus.restaurant.ui.theme.RestShadows.restDepthCard
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -151,7 +143,7 @@ fun RestaurantAnalyticsContent() {
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // ── Green gradient hero header ─────────────────────────────────────
+        // ── Green gradient hero header with ambient glow ───────────────────
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -160,6 +152,7 @@ fun RestaurantAnalyticsContent() {
                         colors = listOf(CibusGreenDark, CibusGreen)
                     )
                 )
+                .restAmbientGlow(color = RestEmeraldMid, radius = 60.dp, alpha = 0.12f)
                 .padding(
                     start = CibusDimens.screenHorizontal + 2.dp,
                     end = CibusDimens.screenHorizontal + 2.dp,

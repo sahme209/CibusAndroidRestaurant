@@ -2,11 +2,19 @@ package com.cibus.restaurant.ui
 
 // 5-tab architecture matching iOS: Home | Orders | Menu | Store | More
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Dashboard
@@ -25,16 +33,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cibus.restaurant.api.RetrofitClient
-import com.cibus.restaurant.ui.theme.CibusDimens
-import com.cibus.restaurant.ui.theme.CibusGreen
-import com.cibus.restaurant.ui.theme.CibusTextOnSurfaceSecondary
+import com.cibus.restaurant.ui.theme.*
 
 /** Five-tab enum matching the iOS RestaurantTab. */
 enum class RestaurantTabItem(val title: String, val icon: ImageVector) {
@@ -61,30 +70,76 @@ fun RestaurantMainScreen(onLogout: () -> Unit = {}) {
 
     Scaffold(
         bottomBar = {
-            NavigationBar(
-                modifier = Modifier.navigationBarsPadding(),
-                containerColor = Color.White,
-                tonalElevation = 0.dp,
-            ) {
-                RestaurantTabItem.entries.forEach { tab ->
-                    NavigationBarItem(
-                        selected = selectedTab == tab,
-                        onClick = { selectedTab = tab },
-                        icon = { Icon(tab.icon, contentDescription = tab.title) },
-                        label = {
-                            Text(
-                                tab.title,
-                                fontSize = 11.sp,
-                                fontWeight = if (selectedTab == tab) FontWeight.SemiBold else FontWeight.Normal
+            Column {
+                // Premium gradient top border on navigation bar
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(
+                                    Color.Transparent,
+                                    CibusGreen.copy(alpha = 0.4f),
+                                    RestEmeraldMid.copy(alpha = 0.6f),
+                                    CibusGreen.copy(alpha = 0.4f),
+                                    Color.Transparent
+                                )
                             )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = CibusGreen,
-                            selectedTextColor = CibusGreen,
-                            unselectedIconColor = CibusTextOnSurfaceSecondary,
-                            unselectedTextColor = CibusTextOnSurfaceSecondary,
                         )
-                    )
+                )
+                NavigationBar(
+                    modifier = Modifier.navigationBarsPadding(),
+                    containerColor = Color.White,
+                    tonalElevation = 0.dp,
+                ) {
+                    RestaurantTabItem.entries.forEach { tab ->
+                        val isSelected = selectedTab == tab
+                        // Spring scale animation on tab switch
+                        val tabScale by animateFloatAsState(
+                            targetValue = if (isSelected) 1f else 0.92f,
+                            animationSpec = CibusMotion.snapSpring,
+                            label = "tab_scale_${tab.name}"
+                        )
+                        NavigationBarItem(
+                            selected = isSelected,
+                            onClick = { selectedTab = tab },
+                            icon = {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
+                                    Icon(
+                                        tab.icon,
+                                        contentDescription = tab.title,
+                                        modifier = Modifier.scale(tabScale)
+                                    )
+                                    // Active tab dot indicator
+                                    if (isSelected) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(5.dp)
+                                                .background(CibusGreen, CircleShape)
+                                        )
+                                    }
+                                }
+                            },
+                            label = {
+                                Text(
+                                    tab.title,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                                )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = CibusGreen,
+                                selectedTextColor = CibusGreen,
+                                unselectedIconColor = CibusTextOnSurfaceSecondary,
+                                unselectedTextColor = CibusTextOnSurfaceSecondary,
+                                indicatorColor = Color.Transparent,
+                            )
+                        )
+                    }
                 }
             }
         }

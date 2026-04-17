@@ -21,6 +21,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,6 +36,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cibus.restaurant.api.AdaptiveOnboardingRequest
+import com.cibus.restaurant.api.MerchantDeliveryMode
 import com.cibus.restaurant.ui.theme.CibusDimens
 import com.cibus.restaurant.api.DiscoveredRestaurantDto
 import com.cibus.restaurant.api.OnboardingMenuItemDto
@@ -79,7 +82,7 @@ fun AdaptiveOnboardingWizard(
 ) {
     val scope = rememberCoroutineScope()
     var step by remember { mutableStateOf(0) }
-    val totalSteps = 7  // Phase 140: +1 for discovery step
+    val totalSteps = 8  // Phase 140: +1 for discovery step, +1 for delivery mode
 
     // Partner type — restaurant or shop
     var partnerType by remember { mutableStateOf("restaurant") }
@@ -109,6 +112,12 @@ fun AdaptiveOnboardingWizard(
     var posApiKey by remember { mutableStateOf("") }
     var posWebhookUrl by remember { mutableStateOf("") }
 
+    // Step 3 — Delivery mode
+    var deliveryMode by remember { mutableStateOf(MerchantDeliveryMode.PLATFORM_RIDER) }
+    var selfDeliveryRadius by remember { mutableStateOf(5f) }
+    var selfDeliveryFee by remember { mutableStateOf("") }
+    var selfDeliveryMinutes by remember { mutableStateOf(30f) }
+
     // Step 4 — Menu
     val menuItems = remember { mutableStateListOf<OnboardingMenuItem>() }
     var newItemName by remember { mutableStateOf("") }
@@ -137,8 +146,8 @@ fun AdaptiveOnboardingWizard(
         1 -> restaurantName.isNotBlank() && ownerName.isNotBlank() && email.isNotBlank() &&
              emailAvailable && password.isNotBlank() &&
              phone.filter { it.isDigit() }.length >= 10 && address.isNotBlank()
-        3 -> if (integrationType == IntegrationType.POS) posApiEndpoint.isNotBlank() && posApiKey.isNotBlank() else true
-        6 -> completedAccessToken != null
+        4 -> if (integrationType == IntegrationType.POS) posApiEndpoint.isNotBlank() && posApiKey.isNotBlank() else true
+        7 -> completedAccessToken != null
         else -> true
     }
 
@@ -200,6 +209,10 @@ fun AdaptiveOnboardingWizard(
                             kitchenPrepMinutes = kitchenPrep.toInt(),
                             menuItems = menuItemsForBackend,
                             linkedRestaurantId = linkedRestaurantId,
+                            deliveryMode = deliveryMode.apiValue,
+                            selfDeliveryRadiusKm = if (deliveryMode == MerchantDeliveryMode.MERCHANT_SELF) selfDeliveryRadius.toDouble() else null,
+                            selfDeliveryFee = if (deliveryMode == MerchantDeliveryMode.MERCHANT_SELF) selfDeliveryFee.toDoubleOrNull() else null,
+                            estimatedSelfDeliveryMinutes = if (deliveryMode == MerchantDeliveryMode.MERCHANT_SELF) selfDeliveryMinutes.toInt() else null,
                         )
                         val resp = RetrofitClient.restaurantApi.submitOnboarding(req)
                         val data = resp.body()?.data
@@ -340,14 +353,24 @@ fun AdaptiveOnboardingWizard(
                             shopType = shopType, onShopTypeChange = { shopType = it },
                         )
                         2 -> Step1IntegrationTypeContent(selected = integrationType, onSelect = { integrationType = it })
-                        3 -> Step2AdaptiveConfigContent(
+                        3 -> StepDeliveryModeContent(
+                            deliveryMode = deliveryMode,
+                            onDeliveryModeChange = { deliveryMode = it },
+                            selfDeliveryRadius = selfDeliveryRadius,
+                            onSelfDeliveryRadiusChange = { selfDeliveryRadius = it },
+                            selfDeliveryFee = selfDeliveryFee,
+                            onSelfDeliveryFeeChange = { selfDeliveryFee = it },
+                            selfDeliveryMinutes = selfDeliveryMinutes,
+                            onSelfDeliveryMinutesChange = { selfDeliveryMinutes = it },
+                        )
+                        4 -> Step2AdaptiveConfigContent(
                             type = integrationType,
                             posProvider = posProvider, onPosProviderChange = { posProvider = it },
                             posApiEndpoint = posApiEndpoint, onPosEndpointChange = { posApiEndpoint = it },
                             posApiKey = posApiKey, onPosApiKeyChange = { posApiKey = it },
                             posWebhookUrl = posWebhookUrl, onPosWebhookChange = { posWebhookUrl = it },
                         )
-                        4 -> Step3MenuSetupContent(
+                        5 -> Step3MenuSetupContent(
                             items = menuItems,
                             newItemName = newItemName, onNewNameChange = { newItemName = it },
                             newItemPrice = newItemPrice, onNewPriceChange = { newItemPrice = it },
@@ -359,7 +382,7 @@ fun AdaptiveOnboardingWizard(
                                 }
                             },
                         )
-                        5 -> Step4StoreStatusContent(
+                        6 -> Step4StoreStatusContent(
                             openHoursOpen = openHoursOpen, onOpenChange = { openHoursOpen = it },
                             openHoursClose = openHoursClose, onCloseChange = { openHoursClose = it },
                             deliveryRadius = deliveryRadius, onRadiusChange = { deliveryRadius = it },
@@ -405,7 +428,7 @@ private fun WizardProgressBar(step: Int, total: Int) {
     }
 }
 
-private fun stepTitle(step: Int) = listOf("Restaurant Info", "Order System", "Configuration", "Menu Setup", "Store Hours", "Ready to Go!").getOrElse(step) { "" }
+private fun stepTitle(step: Int) = listOf("Restaurant Info", "Order System", "Delivery Mode", "Configuration", "Menu Setup", "Store Hours", "Ready to Go!").getOrElse(step) { "" }
 
 // ── Step 0: Basic Info ────────────────────────────────────────────────────────
 
@@ -558,6 +581,118 @@ private fun Step1IntegrationTypeContent(
                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF2D6A4F))
                 } else {
                     Box(modifier = Modifier.size(24.dp).clip(CircleShape).border(1.dp, RestDivider, CircleShape))
+                }
+            }
+        }
+    }
+}
+
+// ── Step: Delivery Mode ──────────────────────────────────────────────────────
+
+@Composable
+private fun StepDeliveryModeContent(
+    deliveryMode: MerchantDeliveryMode,
+    onDeliveryModeChange: (MerchantDeliveryMode) -> Unit,
+    selfDeliveryRadius: Float,
+    onSelfDeliveryRadiusChange: (Float) -> Unit,
+    selfDeliveryFee: String,
+    onSelfDeliveryFeeChange: (String) -> Unit,
+    selfDeliveryMinutes: Float,
+    onSelfDeliveryMinutesChange: (Float) -> Unit,
+) {
+    Text("How will orders be delivered?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+    Text("Choose who delivers orders to your customers. You can change this later in Store settings.", style = MaterialTheme.typography.bodySmall, color = RestTextSecondary)
+
+    // Card 1: Platform Riders
+    val modes = listOf(
+        Triple(MerchantDeliveryMode.PLATFORM_RIDER, "HubB Riders", "We'll assign riders to pick up and deliver your orders"),
+        Triple(MerchantDeliveryMode.MERCHANT_SELF, "Self Delivery", "You deliver orders yourself using your own team"),
+    )
+    val modeIcons = listOf(Icons.Default.TwoWheeler, Icons.Default.LocalShipping)
+
+    modes.forEachIndexed { idx, (mode, title, desc) ->
+        val isSelected = deliveryMode == mode
+        Surface(
+            modifier = Modifier.fillMaxWidth().clickable { onDeliveryModeChange(mode) },
+            shape = RoundedCornerShape(14.dp),
+            color = if (isSelected) Color(0xFF2D6A4F).copy(alpha = 0.06f) else Color.White,
+            border = androidx.compose.foundation.BorderStroke(
+                if (isSelected) 1.5.dp else 0.5.dp,
+                if (isSelected) Color(0xFF2D6A4F) else RestDivider
+            )
+        ) {
+            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Box(
+                    modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp))
+                        .background(if (isSelected) Color(0xFF2D6A4F) else Color(0xFFF0F0F0)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(modeIcons[idx], contentDescription = null, tint = if (isSelected) Color.White else RestTextSecondary, modifier = Modifier.size(22.dp))
+                }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(title, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                    Text(desc, style = MaterialTheme.typography.bodySmall, color = RestTextSecondary)
+                }
+                if (isSelected) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF2D6A4F))
+                } else {
+                    Box(modifier = Modifier.size(24.dp).clip(CircleShape).border(1.dp, RestDivider, CircleShape))
+                }
+            }
+        }
+    }
+
+    // Self delivery configuration — visible only when merchant_self
+    if (deliveryMode == MerchantDeliveryMode.MERCHANT_SELF) {
+        OnboardingCard(title = "Self Delivery Settings", icon = "🚚") {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                // Delivery radius slider
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Text("Delivery radius", style = MaterialTheme.typography.bodySmall)
+                        Text("${selfDeliveryRadius.toInt()} km", color = Color(0xFF2D6A4F), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                    }
+                    Slider(
+                        value = selfDeliveryRadius,
+                        onValueChange = onSelfDeliveryRadiusChange,
+                        valueRange = 1f..20f,
+                        steps = 18,
+                        colors = SliderDefaults.colors(thumbColor = RestGreen, activeTrackColor = RestGreen)
+                    )
+                }
+
+                // Delivery fee input
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Delivery fee (Rs)", style = MaterialTheme.typography.labelSmall, color = RestTextSecondary)
+                    OutlinedTextField(
+                        value = selfDeliveryFee,
+                        onValueChange = { v ->
+                            val filtered = v.filter { it.isDigit() || it == '.' }
+                            val num = filtered.toDoubleOrNull()
+                            if (num == null || num <= 500) onSelfDeliveryFeeChange(filtered)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("e.g. 100") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(10.dp),
+                    )
+                    Text("Set 0 for free delivery. Maximum Rs 500.", style = MaterialTheme.typography.labelSmall, color = RestTextSecondary)
+                }
+
+                // Estimated delivery time slider
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Text("Estimated delivery time", style = MaterialTheme.typography.bodySmall)
+                        Text("${selfDeliveryMinutes.toInt()} min", color = Color(0xFF2D6A4F), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                    }
+                    Slider(
+                        value = selfDeliveryMinutes,
+                        onValueChange = onSelfDeliveryMinutesChange,
+                        valueRange = 10f..90f,
+                        steps = 15,
+                        colors = SliderDefaults.colors(thumbColor = RestGreen, activeTrackColor = RestGreen)
+                    )
                 }
             }
         }

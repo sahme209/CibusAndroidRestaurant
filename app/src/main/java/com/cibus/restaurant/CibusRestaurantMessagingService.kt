@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
  * Supported event_type values from the backend:
  *   - "new_order" / "new_order_incoming"  → new order received
  *   - "order_cancelled"                   → customer cancelled
+ *   - "restaurant_timeout"                → restaurant didn't accept in time, order auto-cancelled
  *   - generic                             → show notification with body text
  *
  * Token registration happens here (onNewToken) and also at login time
@@ -36,6 +37,8 @@ class CibusRestaurantMessagingService : FirebaseMessagingService() {
         val (title, body) = when {
             eventType.contains("new_order", ignoreCase = true) ->
                 "New Order!" to "A new order has arrived. Open the app to accept."
+            eventType.contains("restaurant_timeout", ignoreCase = true) ->
+                "Auto-Cancelled (Timed Out)" to "An order was auto-cancelled because it wasn\u2019t accepted in time."
             eventType.contains("cancel", ignoreCase = true) ->
                 "Order Cancelled" to "An order has been cancelled by the customer."
             message.notification != null ->

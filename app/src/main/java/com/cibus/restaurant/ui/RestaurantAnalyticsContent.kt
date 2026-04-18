@@ -119,6 +119,8 @@ fun RestaurantAnalyticsContent() {
     val preparingCount = filteredOrders.count { it.status == "preparing" || it.status == "accepted" }
     val readyCount = filteredOrders.count { it.status in listOf("ready_for_pickup", "dispatch_pending", "rider_assigned", "rider_en_route") }
     val completedCount = filteredOrders.count { it.status == "delivered" }
+    val cancelledCount = filteredOrders.count { it.status in listOf("cancelled", "rejected", "restaurant_timeout", "delivery_failed") }
+    val timedOutCount = filteredOrders.count { it.status == "restaurant_timeout" }
     val totalOrdersToday = filteredOrders.size
     val totalRevenue = filteredOrders.filter { it.status == "delivered" }.sumOf { it.total ?: 0.0 }
     val avgTicketSize = if (completedCount > 0) totalRevenue / completedCount else 0.0
@@ -404,6 +406,28 @@ fun RestaurantAnalyticsContent() {
                         icon = Icons.Default.DirectionsBike,
                         modifier = Modifier.weight(1f)
                     )
+                }
+            }
+
+            // ── Cancelled / Timed Out row ─────────────────────────────────────
+            if (!loading && cancelledCount > 0) {
+                item {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        MetricCard(
+                            title = "Cancelled",
+                            value = "$cancelledCount",
+                            subtitle = if (timedOutCount > 0) "$timedOutCount auto-timed out" else "In period",
+                            icon = Icons.Default.Cancel,
+                            modifier = Modifier.weight(1f)
+                        )
+                        MetricCard(
+                            title = "Completion %",
+                            value = if (completedCount + cancelledCount > 0) "${(completedCount * 100 / (completedCount + cancelledCount))}%" else "\u2014",
+                            subtitle = "Delivered vs total",
+                            icon = Icons.Default.TrendingUp,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 

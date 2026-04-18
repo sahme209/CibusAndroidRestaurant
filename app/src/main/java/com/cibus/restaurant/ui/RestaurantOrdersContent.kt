@@ -188,6 +188,7 @@ fun RestaurantOrdersContent() {
     val selfDeliveryReady = orders.filter { it.status in listOf("ready_for_pickup", "on_the_way") && it.deliveryFulfillmentType == "merchant_self" }
     val outForDelivery  = orders.filter { it.status in listOf("picked_up", "on_the_way", "arriving_soon") && it.deliveryFulfillmentType != "merchant_self" }
     val completedOrds   = orders.filter { it.status == "delivered" }
+    val cancelledOrds   = orders.filter { it.status in listOf("cancelled", "rejected", "restaurant_timeout", "delivery_failed") }
 
     Box(modifier = Modifier.fillMaxSize().background(RestBackground)) {
         when {
@@ -326,6 +327,7 @@ fun RestaurantOrdersContent() {
                             if (readyForPickup.isNotEmpty()) StatPill("${readyForPickup.size}", "Ready", CibusAmber)
                             if (selfDeliveryReady.isNotEmpty()) StatPill("${selfDeliveryReady.size}", "Self Dlv", Color(0xFF7C3AED))
                             if (outForDelivery.isNotEmpty()) StatPill("${outForDelivery.size}", "En Route", Color(0xFF2563EB))
+                            if (cancelledOrds.isNotEmpty()) StatPill("${cancelledOrds.size}", "Cancelled", Color(0xFF9E9E9E))
                             Spacer(Modifier.weight(1f))
                             if (loading) CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = CibusGreenDark)
                         }
@@ -441,36 +443,10 @@ fun RestaurantOrdersContent() {
                         }
                     }
 
-                    // ── SCHEDULED ORDERS INFO ─────────────────────────────────
-                    item {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            color = CibusGreenDark.copy(alpha = 0.06f)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(14.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Icon(Icons.Default.Schedule, null, tint = CibusGreenDark, modifier = Modifier.size(22.dp))
-                                Column {
-                                    Text("Scheduled Orders", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = RestTextPrimary)
-                                    Text(
-                                        "Pre-orders for future time slots will appear here. Customers can schedule orders up to 7 days in advance.",
-                                        fontSize = 12.sp,
-                                        color = RestTextSecondary
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Show scheduled orders if any exist
-                    val scheduledOrders = orders.filter { it.status == "scheduled" }
-                    if (scheduledOrders.isNotEmpty()) {
-                        item { SectionHeader("Scheduled", Icons.Default.CalendarMonth, CibusGreenDark, scheduledOrders.size) }
-                        items(scheduledOrders, key = { it.id }) { order ->
+                    // ── CANCELLED / TIMED OUT ─────────────────────────────────
+                    if (cancelledOrds.isNotEmpty()) {
+                        item { SectionHeader("Cancelled", Icons.Default.Cancel, CibusRed, cancelledOrds.size) }
+                        items(cancelledOrds, key = { it.id }) { order ->
                             OrderCard(order = order, isActionLoading = false, onAccept = {}, onReject = {}, onDelay = {}, onRunningLate = {}, onStartPreparing = {}, onMarkReady = {})
                         }
                     }
@@ -620,6 +596,8 @@ private fun OrderCard(
     val isRiderAssigned = status == "rider_assigned"
     val isRiderEnRoute  = status == "rider_en_route"
     val isRiderArrived  = status == "rider_arrived" || order.riderArrivedAt != null
+    val isRestaurantTimeout = status == "restaurant_timeout"
+    val isCancelled  = status in listOf("cancelled", "rejected", "restaurant_timeout", "delivery_failed")
 
     // Parse preparingAt to epoch ms for timer
     val preparingAtMs: Long? = remember(order.preparingAt) {
@@ -638,11 +616,18 @@ private fun OrderCard(
             .padding(horizontal = 16.dp, vertical = 6.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isNew) CibusRed.copy(alpha = 0.03f) else Color.White
+            containerColor = when {
+                isNew -> CibusRed.copy(alpha = 0.03f)
+                isCancelled -> Color(0xFFFAFAFA)
+                else -> Color.White
+            }
         ),
-        border = if (isNew) androidx.compose.foundation.BorderStroke(1.5.dp, CibusRed.copy(alpha = 0.25f))
-                 else if (isReady || isRiderAssigned || isRiderEnRoute || isRiderArrived) androidx.compose.foundation.BorderStroke(1.5.dp, CibusAmber.copy(alpha = 0.4f))
-                 else null,
+        border = when {
+            isNew -> androidx.compose.foundation.BorderStroke(1.5.dp, CibusRed.copy(alpha = 0.25f))
+            isCancelled -> androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
+            isReady || isRiderAssigned || isRiderEnRoute || isRiderArrived -> androidx.compose.foundation.BorderStroke(1.5.dp, CibusAmber.copy(alpha = 0.4f))
+            else -> null
+        },
         elevation = CardDefaults.cardElevation(defaultElevation = if (isNew) 3.dp else 1.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -716,6 +701,18 @@ private fun OrderCard(
                             Surface(shape = RoundedCornerShape(4.dp), color = CibusRed) {
                                 Text("NEW", modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
                                     style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        }
+                        if (isCancelled) {
+                            val cancelLabel = when (status) {
+                                "restaurant_timeout" -> "TIMED OUT"
+                                "rejected" -> "REJECTED"
+                                "delivery_failed" -> "FAILED"
+                                else -> "CANCELLED"
+                            }
+                            Surface(shape = RoundedCornerShape(4.dp), color = CibusRed.copy(alpha = 0.12f)) {
+                                Text(cancelLabel, modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                    style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = CibusRed)
                             }
                         }
                         if (order.paymentMethod?.lowercase() in listOf("cod", "cash")) {

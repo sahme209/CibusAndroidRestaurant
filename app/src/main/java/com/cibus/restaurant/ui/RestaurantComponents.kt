@@ -14,7 +14,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -52,7 +54,12 @@ fun RestaurantPrimaryButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().height(if (isLargeCTA) CibusDimens.btnHeightLarge else CibusDimens.btnHeight),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(if (isLargeCTA) CibusDimens.btnHeightLarge else CibusDimens.btnHeight)
+            // Dual-layer shadow for floating depth
+            .shadow(3.dp, RoundedCornerShape(CibusDimens.btnRadius), spotColor = RestGreen.copy(alpha = 0.25f))
+            .shadow(8.dp, RoundedCornerShape(CibusDimens.btnRadius), ambientColor = RestGreen.copy(alpha = 0.12f)),
         enabled = enabled && !isLoading,
         shape = RoundedCornerShape(CibusDimens.btnRadius),
         colors = ButtonDefaults.buttonColors(
@@ -63,7 +70,8 @@ fun RestaurantPrimaryButton(
         if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
         } else {
-            Text(text, fontSize = CibusDimens.bodySp, fontWeight = FontWeight.SemiBold, color = Color.White)
+            // Specular highlight text for premium feel
+            Text(text, fontSize = CibusDimens.bodySp, fontWeight = FontWeight.Bold, color = Color.White)
         }
     }
 }
@@ -76,9 +84,14 @@ fun RestaurantSurfaceCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            // Multi-layer shadow: close (crisp edge), mid (form), far (ambient)
+            .shadow(1.dp, RoundedCornerShape(CibusDimens.cardRadius), ambientColor = Color.Black.copy(alpha = 0.02f))
+            .shadow(4.dp, RoundedCornerShape(CibusDimens.cardRadius), ambientColor = Color.Black.copy(alpha = 0.05f))
+            .shadow(12.dp, RoundedCornerShape(CibusDimens.cardRadius), ambientColor = Color.Black.copy(alpha = 0.03f)),
         shape = RoundedCornerShape(CibusDimens.cardRadius),
-        elevation = CardDefaults.cardElevation(defaultElevation = CibusDimens.cardElevation),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(containerColor = RestCardBG)
     ) {
         Column(modifier = Modifier.padding(CibusDimens.cardPadding), content = content)

@@ -114,6 +114,7 @@ drawable ic_call_decline
 drawable ic_call_decline_low
 drawable ic_launcher_background
 drawable ic_launcher_foreground
+drawable ic_launcher_logo
 drawable notification_action_background
 drawable notification_bg
 drawable notification_bg_low
@@ -356,7 +357,7 @@ style TextAppearance_Compat_Notification_Info
 style TextAppearance_Compat_Notification_Line2
 style TextAppearance_Compat_Notification_Time
 style TextAppearance_Compat_Notification_Title
-style Theme_CibusRestaurant
+style Theme_HubbRestaurant
 style Widget_Compat_NotificationActionContainer
 style Widget_Compat_NotificationActionText
 styleable ActivityNavigator android_name action data dataPattern targetPackage
@@ -375,3 +376,4 @@ styleable NavHost navGraph
 styleable NavInclude graph
 styleable Navigator android_label android_id route
 styleable SignInButton buttonSize colorScheme scopeUris
+xml file_paths

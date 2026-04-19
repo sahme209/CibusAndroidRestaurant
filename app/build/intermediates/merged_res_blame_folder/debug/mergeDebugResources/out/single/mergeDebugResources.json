@@ -1,11 +1,31 @@
 [
     {
-        "merged": "com.cibus.restaurant.app-debug-58:/drawable_ic_launcher_background.xml.flat",
-        "source": "com.cibus.restaurant.app-main-60:/drawable/ic_launcher_background.xml"
+        "merged": "com.cibus.restaurant.app-debug-58:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "com.cibus.restaurant.app-main-60:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.cibus.restaurant.app-debug-58:/mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "com.cibus.restaurant.app-main-60:/mipmap-xhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.cibus.restaurant.app-debug-58:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "com.cibus.restaurant.app-main-60:/mipmap-xxxhdpi/ic_launcher_round.png"
     },
     {
         "merged": "com.cibus.restaurant.app-debug-58:/drawable_ic_launcher_foreground.xml.flat",
         "source": "com.cibus.restaurant.app-main-60:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.cibus.restaurant.app-debug-58:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "com.cibus.restaurant.app-main-60:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.cibus.restaurant.app-debug-58:/mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "com.cibus.restaurant.app-main-60:/mipmap-mdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.cibus.restaurant.app-debug-58:/drawable-nodpi_ic_launcher_logo.png.flat",
+        "source": "com.cibus.restaurant.app-main-60:/drawable-nodpi/ic_launcher_logo.png"
     },
     {
         "merged": "com.cibus.restaurant.app-debug-58:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
@@ -14,5 +34,33 @@
     {
         "merged": "com.cibus.restaurant.app-debug-58:/mipmap-anydpi-v26_ic_launcher.xml.flat",
         "source": "com.cibus.restaurant.app-main-60:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.cibus.restaurant.app-debug-58:/mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "com.cibus.restaurant.app-main-60:/mipmap-hdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.cibus.restaurant.app-debug-58:/drawable_ic_launcher_background.xml.flat",
+        "source": "com.cibus.restaurant.app-main-60:/drawable/ic_launcher_background.xml"
+    },
+    {
+        "merged": "com.cibus.restaurant.app-debug-58:/mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "com.cibus.restaurant.app-main-60:/mipmap-xxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.cibus.restaurant.app-debug-58:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "com.cibus.restaurant.app-main-60:/mipmap-mdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.cibus.restaurant.app-debug-58:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "com.cibus.restaurant.app-main-60:/mipmap-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.cibus.restaurant.app-debug-58:/xml_file_paths.xml.flat",
+        "source": "com.cibus.restaurant.app-main-60:/xml/file_paths.xml"
+    },
+    {
+        "merged": "com.cibus.restaurant.app-debug-58:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "com.cibus.restaurant.app-main-60:/mipmap-xxhdpi/ic_launcher.png"
     }
 ]

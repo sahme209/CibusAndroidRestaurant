@@ -47,4 +47,10 @@ object CibusMotion {
     val modalReveal = spring<Float>(dampingRatio = 0.86f, stiffness = 300f)
     const val CASCADE_STAGGER_MS = 30
     const val BREATHE_DURATION_MS = 2000
+
+    // Premium Motion: liquid and crisp springs for refined interactions
+    /** Liquid feel — smooth, slightly under-damped for natural deceleration */
+    val liquidSpring = spring<Float>(dampingRatio = 0.88f, stiffness = 240f)
+    /** Crisp snap — tight response for toggles, chips, quick state changes */
+    val crispSnap = spring<Float>(dampingRatio = 0.72f, stiffness = 580f)
 }

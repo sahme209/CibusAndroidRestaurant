@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -269,9 +270,17 @@ fun StoreContent() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = CibusDimens.spacing16)
-                    .padding(top = CibusDimens.spacing16),
+                    .padding(top = CibusDimens.spacing16)
+                    // Color-coded shadow: green glow when open, neutral when closed
+                    .shadow(1.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.02f))
+                    .shadow(4.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.04f))
+                    .shadow(
+                        12.dp,
+                        RoundedCornerShape(16.dp),
+                        spotColor = if (isOpen) CibusGreen.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.04f)
+                    ),
                 shape = RoundedCornerShape(16.dp),
-                shadowElevation = 3.dp,
+                shadowElevation = 0.dp,
                 color = CibusCardBg
             ) {
                 Column(modifier = Modifier.padding(CibusDimens.spacing16)) {
@@ -299,7 +308,7 @@ fun StoreContent() {
                             } else {
                                 Icon(
                                     if (isOpen) Icons.Default.Storefront else Icons.Default.DarkMode,
-                                    contentDescription = null,
+                                    contentDescription = if (isOpen) "Store is open" else "Store is closed",
                                     modifier = Modifier.size(24.dp),
                                     tint = if (isOpen) CibusGreen else CibusTextTertiary
                                 )
@@ -368,9 +377,12 @@ fun StoreContent() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = CibusDimens.spacing16)
-                        .padding(top = CibusDimens.spacing16),
+                        .padding(top = CibusDimens.spacing16)
+                        .shadow(1.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.02f))
+                        .shadow(4.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.04f))
+                        .shadow(10.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.03f)),
                     shape = RoundedCornerShape(16.dp),
-                    shadowElevation = 3.dp,
+                    shadowElevation = 0.dp,
                     color = CibusCardBg
                 ) {
                     Column(modifier = Modifier.padding(CibusDimens.spacing16)) {
@@ -399,9 +411,16 @@ fun StoreContent() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = CibusDimens.spacing16)
-                    .padding(top = CibusDimens.spacing8),
+                    .padding(top = CibusDimens.spacing8)
+                    .shadow(1.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.02f))
+                    .shadow(4.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.04f))
+                    .shadow(
+                        10.dp,
+                        RoundedCornerShape(16.dp),
+                        spotColor = if (orderingPaused) CibusAmberLight.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.03f)
+                    ),
                 shape = RoundedCornerShape(16.dp),
-                shadowElevation = 3.dp,
+                shadowElevation = 0.dp,
                 color = if (orderingPaused) CibusAmberLight.copy(alpha = 0.08f) else CibusCardBg
             ) {
                 Column(modifier = Modifier.padding(CibusDimens.spacing16)) {
@@ -471,9 +490,12 @@ fun StoreContent() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = CibusDimens.spacing16)
-                    .padding(top = CibusDimens.spacing16),
+                    .padding(top = CibusDimens.spacing16)
+                    .shadow(1.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.02f))
+                    .shadow(4.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.04f))
+                    .shadow(10.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.03f)),
                 shape = RoundedCornerShape(16.dp),
-                shadowElevation = 3.dp,
+                shadowElevation = 0.dp,
                 color = CibusCardBg
             ) {
                 Column(modifier = Modifier.padding(CibusDimens.spacing16)) {
@@ -637,9 +659,12 @@ fun StoreContent() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = CibusDimens.spacing16)
-                    .padding(top = CibusDimens.spacing16),
+                    .padding(top = CibusDimens.spacing16)
+                    .shadow(1.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.02f))
+                    .shadow(4.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.04f))
+                    .shadow(10.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.03f)),
                 shape = RoundedCornerShape(16.dp),
-                shadowElevation = 3.dp,
+                shadowElevation = 0.dp,
                 color = CibusCardBg
             ) {
                 Column(modifier = Modifier.padding(CibusDimens.spacing16)) {
@@ -703,9 +728,12 @@ fun StoreContent() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = CibusDimens.spacing16)
-                    .padding(top = CibusDimens.spacing8),
+                    .padding(top = CibusDimens.spacing8)
+                    .shadow(1.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.02f))
+                    .shadow(4.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.04f))
+                    .shadow(10.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.03f)),
                 shape = RoundedCornerShape(16.dp),
-                shadowElevation = 3.dp,
+                shadowElevation = 0.dp,
                 color = CibusCardBg
             ) {
                 Column(modifier = Modifier.padding(CibusDimens.spacing16)) {
@@ -852,9 +880,12 @@ fun StoreContent() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = CibusDimens.spacing16)
-                    .padding(top = CibusDimens.spacing16),
+                    .padding(top = CibusDimens.spacing16)
+                    .shadow(1.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.015f))
+                    .shadow(4.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.03f))
+                    .shadow(8.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.02f)),
                 shape = RoundedCornerShape(16.dp),
-                shadowElevation = 3.dp,
+                shadowElevation = 0.dp,
                 color = CibusCardBg
             ) {
                 Column(modifier = Modifier.padding(CibusDimens.spacing16)) {

@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -119,7 +120,7 @@ fun RestaurantAnalyticsContent() {
     val preparingCount = filteredOrders.count { it.status == "preparing" || it.status == "accepted" }
     val readyCount = filteredOrders.count { it.status in listOf("ready_for_pickup", "dispatch_pending", "rider_assigned", "rider_en_route") }
     val completedCount = filteredOrders.count { it.status == "delivered" }
-    val cancelledCount = filteredOrders.count { it.status in listOf("cancelled", "rejected", "restaurant_timeout", "delivery_failed") }
+    val cancelledCount = filteredOrders.count { it.status in listOf("cancelled", "restaurant_rejected", "rejected", "restaurant_timeout", "delivery_failed") }
     val timedOutCount = filteredOrders.count { it.status == "restaurant_timeout" }
     val totalOrdersToday = filteredOrders.size
     val totalRevenue = filteredOrders.filter { it.status == "delivered" }.sumOf { it.total ?: 0.0 }
@@ -246,14 +247,18 @@ fun RestaurantAnalyticsContent() {
             if (!loading && totalRevenue > 0) {
                 item {
                     Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(1.dp, RoundedCornerShape(14.dp), ambientColor = Color.Black.copy(alpha = 0.02f))
+                            .shadow(4.dp, RoundedCornerShape(14.dp), ambientColor = Color.Black.copy(alpha = 0.04f))
+                            .shadow(10.dp, RoundedCornerShape(14.dp), ambientColor = Color.Black.copy(alpha = 0.03f)),
+                        shape = RoundedCornerShape(14.dp),
                         color = Color.White
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("Revenue so far", fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
-                                Text("Rs ${totalRevenue.toInt()}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = CibusGreenDark)
+                                Text("Rs ${totalRevenue.toInt()}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = CibusGreenDark)
                             }
                             Text("From $completedCount completed orders", fontSize = 12.sp, color = RestTextSecondary)
                         }
@@ -438,11 +443,15 @@ fun RestaurantAnalyticsContent() {
             if (!loading && walletBalance != null) {
                 item {
                     Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(2.dp, RoundedCornerShape(14.dp), ambientColor = CibusGreenDark.copy(alpha = 0.08f))
+                            .shadow(8.dp, RoundedCornerShape(14.dp), ambientColor = CibusGreenDark.copy(alpha = 0.15f))
+                            .shadow(16.dp, RoundedCornerShape(14.dp), spotColor = CibusGreenDark.copy(alpha = 0.10f)),
+                        shape = RoundedCornerShape(14.dp),
                         color = CibusGreenDark
                     ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -452,7 +461,7 @@ fun RestaurantAnalyticsContent() {
                                     Text("Wallet Balance", fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
                                     Text(
                                         "Rs ${walletBalance!!.toInt()}",
-                                        fontSize = 22.sp,
+                                        fontSize = 24.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White
                                     )
@@ -802,10 +811,13 @@ private fun MetricCard(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier
+            .shadow(1.dp, RoundedCornerShape(14.dp), ambientColor = Color.Black.copy(alpha = 0.02f))
+            .shadow(4.dp, RoundedCornerShape(14.dp), ambientColor = Color.Black.copy(alpha = 0.05f))
+            .shadow(10.dp, RoundedCornerShape(14.dp), ambientColor = Color.Black.copy(alpha = 0.03f)),
         shape = RoundedCornerShape(14.dp),
         color = Color.White,
-        shadowElevation = 3.dp
+        shadowElevation = 0.dp
     ) {
         Column(
             modifier = Modifier.padding(16.dp),

@@ -22,6 +22,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -54,17 +57,25 @@ private fun PrepTimerDisplay(preparingAtMs: Long, warnAfterMs: Long = 15 * 60 * 
     val fgColor = if (isOvertime) CibusRed else CibusAmber
     val bgColor = if (isOvertime) CibusRed.copy(alpha = 0.08f) else CibusAmber.copy(alpha = 0.12f)
 
-    Surface(shape = RoundedCornerShape(6.dp), color = bgColor) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = bgColor,
+        shadowElevation = if (isOvertime) 2.dp else 0.dp,
+        border = if (isOvertime)
+            androidx.compose.foundation.BorderStroke(1.dp, CibusRed.copy(alpha = 0.3f))
+        else
+            androidx.compose.foundation.BorderStroke(0.5.dp, CibusAmber.copy(alpha = 0.2f))
+    ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Icon(
                 if (isOvertime) Icons.Default.Warning else Icons.Default.Timer,
                 contentDescription = null,
                 tint = fgColor,
-                modifier = Modifier.size(12.dp)
+                modifier = Modifier.size(13.dp)
             )
             Text(
                 "%d:%02d".format(minutes, seconds),
@@ -188,7 +199,7 @@ fun RestaurantOrdersContent() {
     val selfDeliveryReady = orders.filter { it.status in listOf("ready_for_pickup", "on_the_way") && it.deliveryFulfillmentType == "merchant_self" }
     val outForDelivery  = orders.filter { it.status in listOf("picked_up", "on_the_way", "arriving_soon") && it.deliveryFulfillmentType != "merchant_self" }
     val completedOrds   = orders.filter { it.status == "delivered" }
-    val cancelledOrds   = orders.filter { it.status in listOf("cancelled", "rejected", "restaurant_timeout", "delivery_failed") }
+    val cancelledOrds   = orders.filter { it.status in listOf("cancelled", "restaurant_rejected", "rejected", "restaurant_timeout", "delivery_failed") }
 
     Box(modifier = Modifier.fillMaxSize().background(RestBackground)) {
         when {
@@ -597,7 +608,7 @@ private fun OrderCard(
     val isRiderEnRoute  = status == "rider_en_route"
     val isRiderArrived  = status == "rider_arrived" || order.riderArrivedAt != null
     val isRestaurantTimeout = status == "restaurant_timeout"
-    val isCancelled  = status in listOf("cancelled", "rejected", "restaurant_timeout", "delivery_failed")
+    val isCancelled  = status in listOf("cancelled", "restaurant_rejected", "rejected", "restaurant_timeout", "delivery_failed")
 
     // Parse preparingAt to epoch ms for timer
     val preparingAtMs: Long? = remember(order.preparingAt) {
@@ -613,7 +624,16 @@ private fun OrderCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            // Multi-layer shadow for depth
+            .shadow(1.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.02f))
+            .shadow(if (isNew) 6.dp else 3.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.05f))
+            .shadow(if (isNew) 14.dp else 8.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.03f))
+            // New order glow
+            .then(
+                if (isNew) Modifier.shadow(12.dp, RoundedCornerShape(16.dp), spotColor = CibusRed.copy(alpha = 0.18f))
+                else Modifier
+            ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = when {
@@ -628,7 +648,7 @@ private fun OrderCard(
             isReady || isRiderAssigned || isRiderEnRoute || isRiderArrived -> androidx.compose.foundation.BorderStroke(1.5.dp, CibusAmber.copy(alpha = 0.4f))
             else -> null
         },
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isNew) 3.dp else 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             // ── Customer notes (Uber Eats-style: prominent when present) ────
@@ -706,7 +726,7 @@ private fun OrderCard(
                         if (isCancelled) {
                             val cancelLabel = when (status) {
                                 "restaurant_timeout" -> "TIMED OUT"
-                                "rejected" -> "REJECTED"
+                                "restaurant_rejected", "rejected" -> "REJECTED"
                                 "delivery_failed" -> "FAILED"
                                 else -> "CANCELLED"
                             }
@@ -1003,23 +1023,29 @@ private fun OrderCard(
                             ) { Text("Reject", fontWeight = FontWeight.SemiBold) }
                             Button(
                                 onClick = { onAccept() },
-                                modifier = Modifier.weight(1.6f),
+                                modifier = Modifier
+                                    .weight(1.6f)
+                                    .shadow(4.dp, RoundedCornerShape(10.dp), spotColor = CibusGreenDark.copy(alpha = 0.3f))
+                                    .shadow(8.dp, RoundedCornerShape(10.dp), ambientColor = CibusGreenDark.copy(alpha = 0.15f)),
                                 shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = CibusGreenDark)
-                            ) { Text("Accept Order", fontWeight = FontWeight.SemiBold) }
+                            ) { Text("Accept Order", fontWeight = FontWeight.Bold) }
                         }
                     }
                 }
                 isAccepted -> {
                     Button(
                         onClick = { onStartPreparing() },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(3.dp, RoundedCornerShape(10.dp), spotColor = CibusGreenDark.copy(alpha = 0.25f))
+                            .shadow(8.dp, RoundedCornerShape(10.dp), ambientColor = CibusGreenDark.copy(alpha = 0.12f)),
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = CibusGreenDark)
                     ) {
                         Icon(Icons.Default.Whatshot, null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Start Preparing", fontWeight = FontWeight.SemiBold)
+                        Text("Start Preparing", fontWeight = FontWeight.Bold)
                     }
                 }
                 isPreparing -> {
@@ -1037,13 +1063,16 @@ private fun OrderCard(
                         }
                         Button(
                             onClick = { onMarkReady() },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .shadow(3.dp, RoundedCornerShape(10.dp), spotColor = Color(0xFF40916C).copy(alpha = 0.25f))
+                                .shadow(6.dp, RoundedCornerShape(10.dp), ambientColor = Color(0xFF40916C).copy(alpha = 0.10f)),
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF40916C))
                         ) {
                             Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Mark Ready", fontWeight = FontWeight.SemiBold)
+                            Text("Mark Ready", fontWeight = FontWeight.Bold)
                         }
                     }
                 }

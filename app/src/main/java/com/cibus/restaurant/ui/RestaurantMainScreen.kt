@@ -3,6 +3,7 @@ package com.cibus.restaurant.ui
 // 5-tab architecture matching iOS: Home | Orders | Menu | Store | More
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -30,18 +32,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import com.cibus.restaurant.api.RetrofitClient
 import com.cibus.restaurant.ui.theme.*
 
@@ -71,7 +77,7 @@ fun RestaurantMainScreen(onLogout: () -> Unit = {}) {
     Scaffold(
         bottomBar = {
             Column {
-                // Premium gradient top border on navigation bar
+                // Premium gradient top border on navigation bar — 7-stop rich emerald
                 Box(
                     Modifier
                         .fillMaxWidth()
@@ -80,18 +86,26 @@ fun RestaurantMainScreen(onLogout: () -> Unit = {}) {
                             Brush.horizontalGradient(
                                 listOf(
                                     Color.Transparent,
-                                    CibusGreen.copy(alpha = 0.4f),
-                                    RestEmeraldMid.copy(alpha = 0.6f),
-                                    CibusGreen.copy(alpha = 0.4f),
+                                    CibusGreen.copy(alpha = 0.15f),
+                                    RestEmeraldMid.copy(alpha = 0.45f),
+                                    RestEmeraldStart.copy(alpha = 0.7f),
+                                    RestEmeraldMid.copy(alpha = 0.45f),
+                                    CibusGreen.copy(alpha = 0.15f),
                                     Color.Transparent
                                 )
                             )
                         )
                 )
                 NavigationBar(
-                    modifier = Modifier.navigationBarsPadding(),
-                    containerColor = Color.White,
-                    tonalElevation = 0.dp,
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .shadow(
+                            elevation = 8.dp,
+                            ambientColor = Color.Black.copy(alpha = 0.06f),
+                            spotColor = Color.Black.copy(alpha = 0.04f)
+                        ),
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 2.dp,
                 ) {
                     RestaurantTabItem.entries.forEach { tab ->
                         val isSelected = selectedTab == tab
@@ -101,6 +115,20 @@ fun RestaurantMainScreen(onLogout: () -> Unit = {}) {
                             animationSpec = CibusMotion.snapSpring,
                             label = "tab_scale_${tab.name}"
                         )
+                        // Bounce-on-select — matches iOS .symbolEffect(.bounce)
+                        var bounceScale by remember { mutableFloatStateOf(1f) }
+                        val animatedBounce by animateFloatAsState(
+                            targetValue = bounceScale,
+                            animationSpec = spring(dampingRatio = 0.4f, stiffness = 500f),
+                            label = "tab_bounce_${tab.name}"
+                        )
+                        LaunchedEffect(isSelected) {
+                            if (isSelected) {
+                                bounceScale = 1.15f
+                                delay(100)
+                                bounceScale = 1f
+                            }
+                        }
                         NavigationBarItem(
                             selected = isSelected,
                             onClick = { selectedTab = tab },
@@ -112,7 +140,7 @@ fun RestaurantMainScreen(onLogout: () -> Unit = {}) {
                                     Icon(
                                         tab.icon,
                                         contentDescription = tab.title,
-                                        modifier = Modifier.scale(tabScale)
+                                        modifier = Modifier.scale(tabScale * animatedBounce)
                                     )
                                     // Active tab dot indicator
                                     if (isSelected) {

@@ -348,7 +348,7 @@ private fun DiscoverStep(
         isSearching = true
         try {
             val response = RetrofitClient.restaurantApi.discoverRestaurants(
-                query = query, sector = "", city = city
+                query = query, sector = "", city = ""
             )
             if (response.isSuccessful) {
                 results = response.body()?.results ?: emptyList()

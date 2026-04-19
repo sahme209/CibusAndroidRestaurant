@@ -13,4 +13,6 @@ public final class BuildConfig {
   public static final String BASE_URL = "https://api-vtadzgdqca-uc.a.run.app";
   // Field from build type: debug
   public static final Boolean DEBUG_LOGGING = true;
+  // Field from build type: debug
+  public static final String PARTNER_SUPPORT_WHATSAPP_DIGITS = "";
 }

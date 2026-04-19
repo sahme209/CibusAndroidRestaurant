@@ -12,9 +12,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.*
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -33,6 +35,23 @@ object RestGradients {
     val primaryCTA = Brush.verticalGradient(
         colors = listOf(Color(0xFF07D172), CibusAccentGreen, Color(0xFF05A858))
     )
+    /** 3-stop emerald CTA with specular highlight overlay for premium buttons */
+    val richCTAGradient = Brush.verticalGradient(
+        colorStops = arrayOf(
+            0f to Color(0xFF10D87E),
+            0.45f to Color(0xFF06C167),
+            1.0f to Color(0xFF038A45)
+        )
+    )
+    /** Specular highlight overlay — draw on top of richCTAGradient for glass-like sheen */
+    val specularOverlay = Brush.verticalGradient(
+        colorStops = arrayOf(
+            0f to Color.White.copy(alpha = 0.28f),
+            0.35f to Color.White.copy(alpha = 0.08f),
+            0.5f to Color.Transparent,
+            1.0f to Color.Transparent
+        )
+    )
     val darkSurface = Brush.verticalGradient(
         colors = listOf(CibusGreenDark, Color(0xFF0E2A1B))
     )
@@ -42,12 +61,14 @@ object RestGradients {
     val heroOverlay = Brush.verticalGradient(
         colors = listOf(Color.Transparent, Color.Transparent, Color.Black.copy(alpha = 0.55f))
     )
+    /** 5-stop cinematic hero overlay — richer depth for hero images */
     val cinematicHero = Brush.verticalGradient(
         colorStops = arrayOf(
             0f to Color.Transparent,
-            0.3f to Color.Black.copy(alpha = 0.03f),
-            0.65f to Color.Black.copy(alpha = 0.25f),
-            1.0f to Color.Black.copy(alpha = 0.65f)
+            0.2f to Color.Black.copy(alpha = 0.02f),
+            0.45f to Color.Black.copy(alpha = 0.12f),
+            0.72f to Color.Black.copy(alpha = 0.38f),
+            1.0f to Color.Black.copy(alpha = 0.72f)
         )
     )
     val successCelebration = Brush.linearGradient(
@@ -220,13 +241,23 @@ fun RestAnimatedCheckmark(modifier: Modifier = Modifier, size: Dp = 72.dp, color
 // ══════════════════════════════════════════════════════════════════════════════
 
 fun Modifier.restGlassCard(cornerRadius: Dp = 16.dp): Modifier = this
-    .shadow(1.dp, RoundedCornerShape(cornerRadius), ambientColor = Color.Black.copy(alpha = 0.02f))
-    .shadow(8.dp, RoundedCornerShape(cornerRadius), ambientColor = Color.Black.copy(alpha = 0.06f))
+    .shadow(0.5.dp, RoundedCornerShape(cornerRadius), ambientColor = Color.Black.copy(alpha = 0.015f))
+    .shadow(4.dp, RoundedCornerShape(cornerRadius), ambientColor = Color.Black.copy(alpha = 0.04f))
+    .shadow(12.dp, RoundedCornerShape(cornerRadius), ambientColor = Color.Black.copy(alpha = 0.06f))
     .clip(RoundedCornerShape(cornerRadius))
     .background(Color.White.copy(alpha = 0.92f))
     .drawWithContent {
         drawContent()
-        drawRect(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.4f), Color.Transparent), endY = size.height * 0.3f))
+        // Specular top highlight
+        drawRect(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.45f), Color.Transparent), endY = size.height * 0.25f))
+        // Subtle glass border (inner stroke effect)
+        drawRoundRect(
+            brush = Brush.linearGradient(
+                colors = listOf(Color.White.copy(alpha = 0.7f), Color.White.copy(alpha = 0.15f), Color.Black.copy(alpha = 0.04f))
+            ),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(cornerRadius.toPx()),
+            style = Stroke(0.5.dp.toPx())
+        )
     }
 
 // Ambient glow

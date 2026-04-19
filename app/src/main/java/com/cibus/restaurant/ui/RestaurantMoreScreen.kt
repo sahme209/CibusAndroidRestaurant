@@ -258,7 +258,7 @@ private fun MoreHubList(
                 ) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Business, contentDescription = null, tint = RestGreen, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Business, contentDescription = "Business information", tint = RestGreen, modifier = Modifier.size(18.dp))
                             Text(
                                 ResL10n.moreHubPakistanTipTitle(ctx),
                                 fontSize = CibusDimens.bodySp,

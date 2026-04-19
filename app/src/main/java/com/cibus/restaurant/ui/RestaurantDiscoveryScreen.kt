@@ -51,7 +51,7 @@ fun RestaurantDiscoveryScreen(
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.Default.Search, contentDescription = null, tint = CibusGreen, modifier = Modifier.size(28.dp))
+                Icon(Icons.Default.Search, contentDescription = "Search restaurants", tint = CibusGreen, modifier = Modifier.size(28.dp))
                 Text("Find Your Restaurant", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(4.dp))

@@ -20,7 +20,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -31,12 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cibus.restaurant.ResL10n
-import com.cibus.restaurant.ui.theme.CibusDimens
-import com.cibus.restaurant.ui.theme.CibusGreen
-import com.cibus.restaurant.ui.theme.CibusGreenDark
-import com.cibus.restaurant.ui.theme.CibusGreenLight
-import com.cibus.restaurant.ui.theme.CibusOrange
-import com.cibus.restaurant.ui.theme.CibusSuccess
+import com.cibus.restaurant.ui.theme.*
 
 data class SimpleMenuItem(
     val name: String,
@@ -82,7 +76,10 @@ fun HomeKitchenOnboardingWizard(
 
     val canProceed = when (currentStep) {
         0 -> true
-        1 -> ownerName.isNotBlank() && phone.length >= 10 && cnic.length == 13 && email.isNotBlank() && password.length >= 6
+        1 -> {
+            val pd = phone.filter { it.isDigit() }
+            ownerName.isNotBlank() && ((pd.length == 11 && pd.startsWith("03")) || (pd.length == 12 && pd.startsWith("92"))) && cnic.length == 13 && email.isNotBlank() && password.length >= 6
+        }
         2 -> kitchenName.isNotBlank() && address.isNotBlank() && sector.isNotBlank()
         3 -> menuItems.isNotEmpty()
         4 -> hygieneComplete
@@ -102,17 +99,13 @@ fun HomeKitchenOnboardingWizard(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(RestBackground)
+            .background(AppleGroupedBackground)
     ) {
         // ── Green Gradient Header ──────────────────────────────────────
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(CibusGreenDark, CibusGreen)
-                    )
-                )
+                .background(CibusGreen)
                 .statusBarsPadding()
                 .padding(horizontal = CibusDimens.spacing16)
                 .padding(vertical = CibusDimens.spacing12)
@@ -242,7 +235,7 @@ fun HomeKitchenOnboardingWizard(
         }
 
         // ── Bottom Bar ─────────────────────────────────────────────────
-        HorizontalDivider(color = RestDivider)
+        HorizontalDivider(color = AppleSeparator)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -357,14 +350,14 @@ private fun HKWelcomeStep(isUrdu: Boolean) {
             text = if (isUrdu) "Ghar se khana becho!" else "Sell Food From Home!",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
-            color = RestTextPrimary,
+            color = AppleLabelPrimary,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(8.dp))
         Text(
             text = if (isUrdu) "Bohat asaan hai — sirf 5 minute mein shuru karein" else "Super easy — get started in just 5 minutes",
             fontSize = CibusDimens.bodySp,
-            color = RestTextSecondary,
+            color = AppleLabelSecondary,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = CibusDimens.spacing24),
         )
@@ -376,7 +369,7 @@ private fun HKWelcomeStep(isUrdu: Boolean) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = CibusDimens.spacing16),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(CibusDimens.cardRadius),
             color = Color.White,
             shadowElevation = 6.dp,
         ) {
@@ -388,7 +381,7 @@ private fun HKWelcomeStep(isUrdu: Boolean) {
                     text = "HOW IT WORKS",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = RestTextTertiary,
+                    color = AppleLabelTertiary,
                     letterSpacing = 0.8.sp,
                 )
 
@@ -428,7 +421,7 @@ private fun HKWelcomeStep(isUrdu: Boolean) {
                     else
                         "No commercial license needed — start selling from your home kitchen hassle-free",
                     fontSize = CibusDimens.captionSp,
-                    color = RestTextSecondary,
+                    color = AppleLabelSecondary,
                 )
             }
         }
@@ -459,12 +452,12 @@ private fun HKPersonalInfoStep(
                 if (isUrdu) "Apni Maloomat" else "Your Details",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
-                color = RestTextPrimary,
+                color = AppleLabelPrimary,
             )
             Text(
                 if (isUrdu) "Hum aapki pehchaan verify karein ge" else "We'll verify your identity to keep things safe",
                 fontSize = CibusDimens.bodySp,
-                color = RestTextSecondary,
+                color = AppleLabelSecondary,
             )
         }
 
@@ -524,7 +517,7 @@ private fun HKPersonalInfoStep(
                     else
                         "CNIC is required by Pakistani law for food business verification. Your data is kept secure.",
                     fontSize = CibusDimens.captionSp,
-                    color = RestTextSecondary,
+                    color = AppleLabelSecondary,
                 )
             }
         }
@@ -559,11 +552,11 @@ private fun HKKitchenInfoStep(
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 if (isUrdu) "Kitchen ki Maloomat" else "Kitchen Details",
-                fontSize = 22.sp, fontWeight = FontWeight.Bold, color = RestTextPrimary,
+                fontSize = 22.sp, fontWeight = FontWeight.Bold, color = AppleLabelPrimary,
             )
             Text(
                 if (isUrdu) "Apne kitchen ke baare mein bataayein" else "Tell us about your home kitchen",
-                fontSize = CibusDimens.bodySp, color = RestTextSecondary,
+                fontSize = CibusDimens.bodySp, color = AppleLabelSecondary,
             )
         }
 
@@ -636,17 +629,17 @@ private fun HKMenuStep(
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 if (isUrdu) "Apna Menu Banayein" else "Create Your Menu",
-                fontSize = 22.sp, fontWeight = FontWeight.Bold, color = RestTextPrimary,
+                fontSize = 22.sp, fontWeight = FontWeight.Bold, color = AppleLabelPrimary,
             )
             Text(
                 if (isUrdu) "Kam az kam 1 item daalein" else "Add at least 1 item to get started",
-                fontSize = CibusDimens.bodySp, color = RestTextSecondary,
+                fontSize = CibusDimens.bodySp, color = AppleLabelSecondary,
             )
         }
 
         // Add item card
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(CibusDimens.cardRadius),
             color = Color.White,
             shadowElevation = 4.dp,
         ) {
@@ -718,11 +711,11 @@ private fun HKMenuStep(
             ) {
                 Text(
                     if (isUrdu) "Aapke Items" else "Your Menu",
-                    fontSize = 16.sp, fontWeight = FontWeight.Bold, color = RestTextPrimary,
+                    fontSize = 16.sp, fontWeight = FontWeight.Bold, color = AppleLabelPrimary,
                 )
                 Text(
                     "${menuItems.size} ${if (menuItems.size == 1) "item" else "items"}",
-                    fontSize = CibusDimens.captionSp, color = RestTextTertiary,
+                    fontSize = CibusDimens.captionSp, color = AppleLabelTertiary,
                 )
             }
 
@@ -761,12 +754,12 @@ private fun HKMenuStep(
                                     item.name,
                                     fontSize = CibusDimens.bodySp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = RestTextPrimary,
+                                    color = AppleLabelPrimary,
                                 )
                                 Text(
                                     item.category,
                                     fontSize = CibusDimens.captionSp,
-                                    color = RestTextTertiary,
+                                    color = AppleLabelTertiary,
                                 )
                             }
 
@@ -786,14 +779,14 @@ private fun HKMenuStep(
                                 Icon(
                                     Icons.Default.Cancel, null,
                                     modifier = Modifier.size(18.dp),
-                                    tint = RestTextTertiary.copy(alpha = 0.6f),
+                                    tint = AppleLabelTertiary.copy(alpha = 0.6f),
                                 )
                             }
                         }
                         if (idx < menuItems.lastIndex) {
                             HorizontalDivider(
                                 modifier = Modifier.padding(start = 68.dp),
-                                color = RestDivider,
+                                color = AppleSeparator,
                             )
                         }
                     }
@@ -825,16 +818,16 @@ private fun HKHygieneStep(
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 if (isUrdu) "Safai ka Checklist" else "Hygiene Checklist",
-                fontSize = 22.sp, fontWeight = FontWeight.Bold, color = RestTextPrimary,
+                fontSize = 22.sp, fontWeight = FontWeight.Bold, color = AppleLabelPrimary,
             )
             Text(
                 if (isUrdu) "Yeh sab zaroori hain — customers ka bharosa" else "All required — builds trust with customers",
-                fontSize = CibusDimens.bodySp, color = RestTextSecondary,
+                fontSize = CibusDimens.bodySp, color = AppleLabelSecondary,
             )
         }
 
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(CibusDimens.cardRadius),
             color = Color.White,
             shadowElevation = 4.dp,
         ) {
@@ -844,25 +837,25 @@ private fun HKHygieneStep(
                     title = if (isUrdu) "Kitchen saaf aur suthri hai" else "Kitchen is clean and tidy",
                     isChecked = cleanKitchen, onCheckedChange = onCleanChange,
                 )
-                HorizontalDivider(modifier = Modifier.padding(start = 60.dp), color = RestDivider)
+                HorizontalDivider(modifier = Modifier.padding(start = 60.dp), color = AppleSeparator)
                 HKChecklistItem(
                     icon = Icons.Default.Inventory2, color = Color(0xFF8B5CF6),
                     title = if (isUrdu) "Khana alag rakhne ka intezam hai" else "Separate food storage available",
                     isChecked = separateStorage, onCheckedChange = onStorageChange,
                 )
-                HorizontalDivider(modifier = Modifier.padding(start = 60.dp), color = RestDivider)
+                HorizontalDivider(modifier = Modifier.padding(start = 60.dp), color = AppleSeparator)
                 HKChecklistItem(
                     icon = Icons.Default.CleanHands, color = Color(0xFF06B6D4),
                     title = if (isUrdu) "Haath dhone ka intezam hai" else "Handwashing facility available",
                     isChecked = handWashing, onCheckedChange = onWashingChange,
                 )
-                HorizontalDivider(modifier = Modifier.padding(start = 60.dp), color = RestDivider)
+                HorizontalDivider(modifier = Modifier.padding(start = 60.dp), color = AppleSeparator)
                 HKChecklistItem(
                     icon = Icons.Default.Eco, color = Color(0xFF22C55E),
                     title = if (isUrdu) "Taaza saman istamaal hota hai" else "Fresh ingredients used",
                     isChecked = freshIngredients, onCheckedChange = onFreshChange,
                 )
-                HorizontalDivider(modifier = Modifier.padding(start = 60.dp), color = RestDivider)
+                HorizontalDivider(modifier = Modifier.padding(start = 60.dp), color = AppleSeparator)
                 HKChecklistItem(
                     icon = Icons.Default.Shield, color = CibusOrange,
                     title = if (isUrdu) "Khana dhak kar rakhte hain" else "Food is properly covered",
@@ -899,7 +892,7 @@ private fun HKHygieneStep(
                         Text(
                             if (isUrdu) "Ab aap shuru kar sakte hain" else "Your kitchen meets our hygiene standards",
                             fontSize = CibusDimens.captionSp,
-                            color = RestTextSecondary,
+                            color = AppleLabelSecondary,
                         )
                     }
                 }
@@ -929,7 +922,7 @@ private fun HKBenefitRow(icon: ImageVector, color: Color, text: String) {
         ) {
             Icon(icon, null, modifier = Modifier.size(18.dp), tint = color)
         }
-        Text(text, fontSize = CibusDimens.bodySp, color = RestTextPrimary)
+        Text(text, fontSize = CibusDimens.bodySp, color = AppleLabelPrimary)
     }
 }
 
@@ -939,7 +932,7 @@ private fun HKSectionLabel(text: String) {
         text = text,
         fontSize = 11.sp,
         fontWeight = FontWeight.Bold,
-        color = RestTextTertiary,
+        color = AppleLabelTertiary,
         letterSpacing = 0.8.sp,
     )
 }
@@ -961,7 +954,7 @@ private fun HKFormField(
         Text(
             label,
             fontSize = CibusDimens.captionSp,
-            color = RestTextSecondary,
+            color = AppleLabelSecondary,
         )
         OutlinedTextField(
             value = value,
@@ -972,17 +965,17 @@ private fun HKFormField(
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
             leadingIcon = icon?.let {
-                { Icon(it, null, Modifier.size(18.dp), tint = RestTextTertiary) }
+                { Icon(it, null, Modifier.size(18.dp), tint = AppleLabelTertiary) }
             },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = CibusGreen,
-                unfocusedBorderColor = RestDivider,
+                unfocusedBorderColor = AppleSeparator,
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
             ),
             textStyle = androidx.compose.ui.text.TextStyle(
                 fontSize = CibusDimens.bodySp,
-                color = RestTextPrimary,
+                color = AppleLabelPrimary,
             ),
         )
     }
@@ -1003,7 +996,7 @@ private fun HKDropdown(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(label, fontSize = CibusDimens.captionSp, color = RestTextSecondary)
+        Text(label, fontSize = CibusDimens.captionSp, color = AppleLabelSecondary)
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = it },
@@ -1014,7 +1007,7 @@ private fun HKDropdown(
                     .menuAnchor(),
                 shape = RoundedCornerShape(CibusDimens.radiusSm),
                 color = Color.White,
-                border = BorderStroke(1.dp, RestDivider),
+                border = BorderStroke(1.dp, AppleSeparator),
             ) {
                 Row(
                     modifier = Modifier
@@ -1026,12 +1019,12 @@ private fun HKDropdown(
                     Text(
                         selected,
                         fontSize = CibusDimens.bodySp,
-                        color = if (selected == "Select") RestTextTertiary else RestTextPrimary,
+                        color = if (selected == "Select") AppleLabelTertiary else AppleLabelPrimary,
                     )
                     Icon(
                         Icons.Default.ExpandMore, null,
                         modifier = Modifier.size(18.dp),
-                        tint = RestTextTertiary,
+                        tint = AppleLabelTertiary,
                     )
                 }
             }
@@ -1046,7 +1039,7 @@ private fun HKDropdown(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text(option, color = RestTextPrimary)
+                                Text(option, color = AppleLabelPrimary)
                                 if (option == selected) {
                                     Icon(
                                         Icons.Default.Check, null,
@@ -1080,7 +1073,7 @@ private fun HKChecklistItem(
         label = "checkBg"
     )
     val checkBorder by animateColorAsState(
-        if (isChecked) CibusGreen else RestDivider,
+        if (isChecked) CibusGreen else AppleSeparator,
         label = "checkBorder"
     )
 
@@ -1106,7 +1099,7 @@ private fun HKChecklistItem(
         Text(
             title,
             fontSize = CibusDimens.bodySp,
-            color = RestTextPrimary,
+            color = AppleLabelPrimary,
             modifier = Modifier.weight(1f),
         )
 

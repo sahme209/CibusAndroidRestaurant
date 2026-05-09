@@ -14,9 +14,11 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -30,17 +32,17 @@ import kotlin.math.sin
 
 object RestGradients {
     val emeraldPremium = Brush.verticalGradient(
-        colors = listOf(RestEmeraldStart, RestEmeraldMid, Color(0xFF04A554), RestEmeraldEnd)
+        colors = listOf(RestEmeraldStart, RestEmeraldMid, Color(0xFF005A3C), RestEmeraldEnd)
     )
     val primaryCTA = Brush.verticalGradient(
-        colors = listOf(Color(0xFF07D172), CibusAccentGreen, Color(0xFF05A858))
+        colors = listOf(Color(0xFF008B5A), CibusAccentGreen, Color(0xFF005A3C))
     )
-    /** 3-stop emerald CTA with specular highlight overlay for premium buttons */
+    /** Refined 3-stop emerald CTA gradient */
     val richCTAGradient = Brush.verticalGradient(
         colorStops = arrayOf(
-            0f to Color(0xFF10D87E),
-            0.45f to Color(0xFF06C167),
-            1.0f to Color(0xFF038A45)
+            0f to Color(0xFF009963),
+            0.5f to Color(0xFF00704A),
+            1.0f to Color(0xFF005A3C)
         )
     )
     /** Specular highlight overlay — draw on top of richCTAGradient for glass-like sheen */
@@ -86,6 +88,26 @@ object RestGradients {
     val glassBorder = Brush.linearGradient(
         colors = listOf(Color.White.copy(alpha = 0.8f), Color.White.copy(alpha = 0.2f), Color.Black.copy(alpha = 0.03f))
     )
+    /** Deep green-to-black gradient for login hero backgrounds */
+    val loginHero = Brush.linearGradient(
+        colorStops = arrayOf(
+            0.0f to LoginGradientDeep,
+            0.25f to LoginGradientMid,
+            0.55f to LoginGradientBrand,
+            0.75f to LoginGradientLight,
+            1.0f to LoginGradientMid
+        ),
+        start = Offset(0f, 0f),
+        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+    )
+    /** Frosted glass effect gradient */
+    val appleGlass = Brush.verticalGradient(
+        colorStops = arrayOf(
+            0f to Color.White.copy(alpha = 0.45f),
+            0.4f to Color.White.copy(alpha = 0.15f),
+            1f to Color.White.copy(alpha = 0.05f)
+        )
+    )
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -94,14 +116,10 @@ object RestGradients {
 
 object RestShadows {
     fun Modifier.restDepthCard(cornerRadius: Dp = 16.dp): Modifier = this
-        .shadow(elevation = 1.dp, shape = RoundedCornerShape(cornerRadius), ambientColor = Color.Black.copy(alpha = 0.02f))
-        .shadow(elevation = 4.dp, shape = RoundedCornerShape(cornerRadius), ambientColor = Color.Black.copy(alpha = 0.05f))
-        .shadow(elevation = 12.dp, shape = RoundedCornerShape(cornerRadius), ambientColor = Color.Black.copy(alpha = 0.03f))
+        .shadow(elevation = 6.dp, shape = RoundedCornerShape(cornerRadius), ambientColor = Color.Black.copy(alpha = 0.08f))
 
     fun Modifier.restLuxeCard(cornerRadius: Dp = 16.dp): Modifier = this
-        .shadow(elevation = 0.5.dp, shape = RoundedCornerShape(cornerRadius), ambientColor = Color.Black.copy(alpha = 0.015f))
-        .shadow(elevation = 3.dp, shape = RoundedCornerShape(cornerRadius), ambientColor = Color.Black.copy(alpha = 0.04f))
-        .shadow(elevation = 10.dp, shape = RoundedCornerShape(cornerRadius), ambientColor = Color.Black.copy(alpha = 0.06f))
+        .shadow(elevation = 8.dp, shape = RoundedCornerShape(cornerRadius), ambientColor = Color.Black.copy(alpha = 0.08f))
 
     fun Modifier.restFloatingPill(): Modifier = this
         .shadow(elevation = 4.dp, shape = RoundedCornerShape(999.dp), ambientColor = Color.Black.copy(alpha = 0.08f))
@@ -109,6 +127,114 @@ object RestShadows {
 
     fun Modifier.restAccentGlow(color: Color = CibusGreen): Modifier = this
         .shadow(elevation = 8.dp, shape = RoundedCornerShape(14.dp), spotColor = color.copy(alpha = 0.28f))
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RESTAURANT LUXE CARD — 4-layer shadow + gradient stroke (light-theme optimised)
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Premium 4-layer shadow stack designed for bright kitchen environments.
+ * Gradient stroke transitions white 0.95 -> 0.25 -> black 0.05 for Apple-depth
+ * glass edge. White background + clip for crisp card rendering.
+ */
+fun Modifier.restaurantLuxeCard(
+    cornerRadius: Dp = 20.dp
+): Modifier {
+    val shape = RoundedCornerShape(cornerRadius)
+    return this
+        .shadow(8.dp, shape, ambientColor = Color.Black.copy(alpha = 0.08f))
+        .clip(shape)
+        .background(Color.White)
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RESTAURANT RICH CTA GRADIENT — 4-stop emerald + specular + dual glow
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Premium CTA gradient matching iOS CibusRichCTAGradient.
+ * 4-stop emerald (#009963 -> #00704A -> #005A3C -> #004A32) with
+ * white 0.18 specular overlay and dual green glow shadows (24dp + 6dp).
+ * Gradient border drawn via drawWithContent + drawRoundRect + Stroke.
+ */
+fun Modifier.restaurantRichCTAGradient(
+    cornerRadius: Dp = 14.dp
+): Modifier {
+    val shape = RoundedCornerShape(cornerRadius)
+    return this
+        .clip(shape)
+        .background(CibusGreen)
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RESTAURANT ANIMATED BORDER — sweep gradient rotating around border
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Sweep gradient rotating around the border for incoming order cards.
+ * 3000ms cycle, emerald palette. Draws via drawWithContent + rotate.
+ */
+@Composable
+fun Modifier.restaurantAnimatedBorder(
+    cornerRadius: Dp = 16.dp,
+    lineWidth: Dp = 1.5.dp,
+    colors: List<Color> = listOf(
+        CibusGreen,
+        RestAccentTeal,
+        CibusGreen.copy(alpha = 0.3f)
+    )
+): Modifier {
+    val infiniteTransition = rememberInfiniteTransition(label = "restBorderRotation")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "restBorderAngle"
+    )
+    return this.drawWithContent {
+        drawContent()
+        rotate(rotation) {
+            val brush = Brush.sweepGradient(
+                colors = colors + colors,
+                center = center
+            )
+            drawRoundRect(
+                brush = brush,
+                cornerRadius = CornerRadius(cornerRadius.toPx()),
+                style = Stroke(width = lineWidth.toPx())
+            )
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RESTAURANT RADIAL VIGNETTE — hero image overlay
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * 5-stop radial gradient for hero images: clear center -> 0.32 black edges.
+ * Optimised for food photography — keeps centre bright, adds cinematic depth.
+ */
+fun Modifier.restaurantRadialVignette(): Modifier = this.drawWithContent {
+    drawContent()
+    val maxDim = maxOf(size.width, size.height)
+    drawRect(
+        brush = Brush.radialGradient(
+            colorStops = arrayOf(
+                0.00f to Color.Transparent,
+                0.35f to Color.Transparent,
+                0.60f to Color.Black.copy(alpha = 0.06f),
+                0.82f to Color.Black.copy(alpha = 0.18f),
+                1.00f to Color.Black.copy(alpha = 0.32f)
+            ),
+            center = center,
+            radius = maxDim * 0.7f
+        )
+    )
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import com.cibus.restaurant.api.AdaptiveOnboardingRequest
 import com.cibus.restaurant.api.RetrofitClient
+import com.cibus.restaurant.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
@@ -143,10 +144,10 @@ fun SimpleOnboardingWizard(
                         Icon(Icons.Default.Close, contentDescription = "Cancel")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = RestBackground)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = AppleGroupedBackground)
             )
         },
-        containerColor = RestBackground
+        containerColor = AppleGroupedBackground
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -174,7 +175,9 @@ fun SimpleOnboardingWizard(
                         submitting = submitting,
                         onBack = { showCompleteSetup = false },
                         onSubmit = {
-                            if (restaurantName.isBlank() || ownerName.isBlank() || city.isBlank() || sector.isBlank() || phone.length < 10 || email.isBlank() || password.length < 6) return@SimpleCompleteSetupContent
+                            val phoneDigits = phone.filter { it.isDigit() }
+                            val phoneOk = (phoneDigits.length == 11 && phoneDigits.startsWith("03")) || (phoneDigits.length == 12 && phoneDigits.startsWith("92"))
+                            if (restaurantName.isBlank() || ownerName.isBlank() || city.isBlank() || sector.isBlank() || !phoneOk || email.isBlank() || password.length < 6) return@SimpleCompleteSetupContent
                             submitting = true
                             submitError = null
                             scope.launch {
@@ -197,7 +200,13 @@ fun SimpleOnboardingWizard(
                                     if (resp.isSuccessful && data != null) {
                                         onCompleted(data.accessToken, data.expiresIn?.toLong() ?: 86400L)
                                     } else {
-                                        submitError = resp.errorBody()?.string()?.take(120) ?: "Please try again."
+                                        val errBody = resp.errorBody()?.string()
+                                        submitError = errBody?.let { b ->
+                                            try {
+                                                com.google.gson.Gson().fromJson(b, com.google.gson.JsonObject::class.java)
+                                                    ?.get("message")?.asString
+                                            } catch (_: Exception) { null }
+                                        } ?: "Please try again."
                                     }
                                 } catch (e: Exception) {
                                     submitError = e.message ?: "Network error. Please try again."
@@ -232,13 +241,13 @@ private fun Step1TakePhoto(onTakePhoto: () -> Unit, onChooseGallery: () -> Unit)
             "Take photo of your menu",
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
-            color = RestTextPrimary,
+            color = AppleLabelPrimary,
             textAlign = TextAlign.Center,
         )
         Text(
             "Apni menu ki photo lo",
             fontSize = 16.sp,
-            color = RestTextSecondary,
+            color = AppleLabelSecondary,
             modifier = Modifier.padding(top = 8.dp),
             textAlign = TextAlign.Center,
         )
@@ -263,7 +272,7 @@ private fun Step1TakePhoto(onTakePhoto: () -> Unit, onChooseGallery: () -> Unit)
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(CibusDimens.cardRadius),
             colors = ButtonDefaults.buttonColors(containerColor = RestGreen),
         ) {
             Text("Take Photo", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
@@ -315,13 +324,13 @@ private fun Step2Processing() {
             "Setting up your restaurant…",
             fontSize = 20.sp,
             fontWeight = FontWeight.SemiBold,
-            color = RestTextPrimary,
+            color = AppleLabelPrimary,
             textAlign = TextAlign.Center,
         )
         Text(
             "Thora intezar karo…",
             fontSize = 16.sp,
-            color = RestTextSecondary,
+            color = AppleLabelSecondary,
             modifier = Modifier.padding(top = 8.dp),
             textAlign = TextAlign.Center,
         )
@@ -355,13 +364,13 @@ private fun Step3Confirmation(
             "Almost there",
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
-            color = RestTextPrimary,
+            color = AppleLabelPrimary,
             textAlign = TextAlign.Center,
         )
         Text(
             "Ab details bharo aur start karo",
             fontSize = 16.sp,
-            color = RestTextSecondary,
+            color = AppleLabelSecondary,
             modifier = Modifier.padding(top = 8.dp),
             textAlign = TextAlign.Center,
         )
@@ -371,7 +380,7 @@ private fun Step3Confirmation(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(CibusDimens.cardRadius),
             colors = ButtonDefaults.buttonColors(containerColor = RestGreen),
         ) {
             Text("Looks good", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
@@ -380,7 +389,7 @@ private fun Step3Confirmation(
         OutlinedButton(
             onClick = onEdit,
             modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(CibusDimens.cardRadius),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = RestGreen),
             border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(RestGreen)),
         ) {
@@ -390,13 +399,13 @@ private fun Step3Confirmation(
         Text(
             "You can edit anytime",
             fontSize = 14.sp,
-            color = RestTextSecondary,
+            color = AppleLabelSecondary,
             textAlign = TextAlign.Center,
         )
         Text(
             "Aap baad mein bhi change kar sakte ho",
             fontSize = 13.sp,
-            color = RestTextTertiary,
+            color = AppleLabelTertiary,
             modifier = Modifier.padding(top = 4.dp),
             textAlign = TextAlign.Center,
         )
@@ -430,8 +439,8 @@ private fun SimpleCompleteSetupContent(
             .padding(24.dp)
             .verticalScroll(rememberScrollState()),
     ) {
-        Text("Almost done", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = RestTextPrimary)
-        Text("2 minutes", fontSize = 14.sp, color = RestTextSecondary, modifier = Modifier.padding(top = 4.dp))
+        Text("Almost done", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = AppleLabelPrimary)
+        Text("2 minutes", fontSize = 14.sp, color = AppleLabelSecondary, modifier = Modifier.padding(top = 4.dp))
         Spacer(modifier = Modifier.height(24.dp))
         if (error != null) {
             Surface(
@@ -455,7 +464,11 @@ private fun SimpleCompleteSetupContent(
             Button(
                 onClick = onSubmit,
                 modifier = Modifier.weight(1f),
-                enabled = !submitting && restaurantName.isNotBlank() && ownerName.isNotBlank() && city.isNotBlank() && sector.isNotBlank() && phone.length >= 10 && email.isNotBlank() && password.length >= 6,
+                enabled = run {
+                    val pd = phone.filter { it.isDigit() }
+                    val pOk = (pd.length == 11 && pd.startsWith("03")) || (pd.length == 12 && pd.startsWith("92"))
+                    !submitting && restaurantName.isNotBlank() && ownerName.isNotBlank() && city.isNotBlank() && sector.isNotBlank() && pOk && email.isNotBlank() && password.length >= 6
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = RestGreen),
             ) {
                 if (submitting) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
@@ -474,7 +487,7 @@ private fun SimpleField(
     isPassword: Boolean = false,
 ) {
     Column(modifier = Modifier.padding(vertical = 6.dp)) {
-        Text(label, fontSize = 14.sp, color = RestTextSecondary)
+        Text(label, fontSize = 14.sp, color = AppleLabelSecondary)
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,

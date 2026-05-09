@@ -19,7 +19,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
@@ -46,6 +45,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false) {
     val context = LocalContext.current
@@ -130,22 +130,66 @@ fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false)
 
     val totalItems = categories.sumOf { it.items.size }
 
-    Box(modifier = Modifier.fillMaxSize().background(CibusSurfaceSecondary)) {
+    var showAddDropdown by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxSize().background(AppleGroupedBackground)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // ── Green gradient hero header ───────────────────────────────────
-            MenuHeroHeader(
-                categoryCount = categories.size,
-                itemCount = totalItems,
-                isLoading = isLoading,
-                onImportClick = { showImportDialog = true },
-                onPhotoScanClick = {
-                    if (AIImportTracker.remainingImports(context) > 0) {
-                        photoLauncher.launch("image/*")
-                    } else {
-                        photoImportMessage = "You've used all 3 AI scans this month. Resets next month."
+            // ── Material3 TopAppBar ──────────────────────────────────────────
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            "Menu",
+                            fontWeight = FontWeight.Bold,
+                            color = CibusGreen
+                        )
+                        if (!isLoading) {
+                            Text(
+                                "${categories.size} categories · $totalItems items",
+                                fontSize = CibusDimens.captionSp,
+                                color = CibusTextOnSurfaceSecondary
+                            )
+                        }
                     }
                 },
-                aiImportsRemaining = aiImportsRemaining,
+                actions = {
+                    Box {
+                        IconButton(onClick = { showAddDropdown = true }) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Add menu items",
+                                tint = CibusGreen,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showAddDropdown,
+                            onDismissRequest = { showAddDropdown = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Scan Menu Photo (AI) [$aiImportsRemaining/3]") },
+                                leadingIcon = { Icon(Icons.Default.CameraAlt, null) },
+                                onClick = {
+                                    showAddDropdown = false
+                                    if (AIImportTracker.remainingImports(context) > 0) {
+                                        photoLauncher.launch("image/*")
+                                    } else {
+                                        photoImportMessage = "You've used all 3 AI scans this month. Resets next month."
+                                    }
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Import Template") },
+                                leadingIcon = { Icon(Icons.Default.AutoAwesome, null) },
+                                onClick = { showAddDropdown = false; showImportDialog = true }
+                            )
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = AppleGroupedBackground,
+                    scrolledContainerColor = AppleGroupedBackground
+                )
             )
 
             // ── Saving indicator strip ───────────────────────────────────────
@@ -279,8 +323,12 @@ fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false)
                                 )
                                 if (r.isSuccessful) {
                                     categories = r.body()?.categories ?: categories
+                                } else {
+                                    errorMsg = "Could not add category. Please try again."
                                 }
-                            } catch (_: Exception) {}
+                            } catch (_: Exception) {
+                                errorMsg = "Network error. Please try again."
+                            }
                         }
                     }
                 )
@@ -293,8 +341,8 @@ fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false)
                         item {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp),
-                                shadowElevation = 3.dp,
+                                shape = RoundedCornerShape(CibusDimens.cardRadius),
+                                shadowElevation = 2.dp,
                                 color = CibusCardBg
                             ) {
                                 Column(modifier = Modifier.padding(CibusDimens.cardPadding)) {
@@ -314,7 +362,9 @@ fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false)
                                                             categories = r.body()?.categories ?: categories
                                                         }
                                                     }
-                                                } catch (_: Exception) {}
+                                                } catch (_: Exception) {
+                                                    errorMsg = "Could not delete category. Please try again."
+                                                }
                                             }
                                         }
                                     )
@@ -323,7 +373,7 @@ fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false)
                                         Spacer(Modifier.height(CibusDimens.spacing8))
                                         HorizontalDivider(
                                             thickness = CibusDimens.dividerThickness,
-                                            color = CibusSurfaceSecondary
+                                            color = AppleSeparator.copy(alpha = 0.5f)
                                         )
                                         Spacer(Modifier.height(CibusDimens.spacing4))
                                         category.items.forEach { item ->
@@ -341,8 +391,12 @@ fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false)
                                                             )
                                                             if (r.isSuccessful) {
                                                                 categories = r.body()?.categories ?: categories
+                                                            } else {
+                                                                errorMsg = "Could not delete item. Please try again."
                                                             }
-                                                        } catch (_: Exception) {}
+                                                        } catch (_: Exception) {
+                                                            errorMsg = "Network error. Could not delete item."
+                                                        }
                                                     }
                                                 },
                                                 onToggleAvailable = {
@@ -417,8 +471,12 @@ fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false)
                                         )
                                         if (r.isSuccessful) {
                                             categories = r.body()?.categories ?: categories
+                                        } else {
+                                            errorMsg = "Could not add category. Please try again."
                                         }
-                                    } catch (_: Exception) {}
+                                    } catch (_: Exception) {
+                                        errorMsg = "Network error. Please try again."
+                                    }
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
@@ -553,8 +611,14 @@ fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false)
                                 )
                             )
                         )
-                        if (r.isSuccessful) categories = r.body()?.categories ?: categories
-                    } catch (_: Exception) {}
+                        if (r.isSuccessful) {
+                            categories = r.body()?.categories ?: categories
+                        } else {
+                            errorMsg = "Could not add item. Please try again."
+                        }
+                    } catch (_: Exception) {
+                        errorMsg = "Network error. Could not add item."
+                    }
                 }
                 showAddItemDialog = false
             },
@@ -579,91 +643,19 @@ fun MenuEditorContent(restaurantId: String, isVenueUnderReview: Boolean = false)
                                     available = available
                                 )
                             )
-                            if (r.isSuccessful) categories = r.body()?.categories ?: categories
-                        } catch (_: Exception) {}
+                            if (r.isSuccessful) {
+                                categories = r.body()?.categories ?: categories
+                            } else {
+                                errorMsg = "Could not update item. Please try again."
+                            }
+                        } catch (_: Exception) {
+                            errorMsg = "Network error. Could not update item."
+                        }
                     }
                     showEditItemDialog = false
                 },
                 onDismiss = { showEditItemDialog = false }
             )
-        }
-    }
-}
-
-// ── Green Gradient Hero Header ───────────────────────────────────────────────
-
-@Composable
-private fun MenuHeroHeader(
-    categoryCount: Int,
-    itemCount: Int,
-    isLoading: Boolean,
-    onImportClick: () -> Unit,
-    onPhotoScanClick: () -> Unit = {},
-    aiImportsRemaining: Int = 3,
-) {
-    var showDropdown by remember { mutableStateOf(false) }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(CibusGreenDark, CibusGreen)
-                )
-            )
-            .padding(
-                start = CibusDimens.screenHorizontal,
-                end = CibusDimens.screenHorizontal,
-                top = CibusDimens.spacing32 + 24.dp, // account for status bar
-                bottom = CibusDimens.spacing24
-            )
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-        ) {
-            Column {
-                Text(
-                    "Menu",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                if (!isLoading) {
-                    Spacer(Modifier.height(CibusDimens.spacing4))
-                    Text(
-                        "$categoryCount categories \u00B7 $itemCount items",
-                        fontSize = CibusDimens.captionSp,
-                        color = Color.White.copy(alpha = 0.7f)
-                    )
-                }
-            }
-            Box {
-                IconButton(onClick = { showDropdown = true }) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "Add menu items",
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-                DropdownMenu(
-                    expanded = showDropdown,
-                    onDismissRequest = { showDropdown = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Scan Menu Photo (AI) [$aiImportsRemaining/3]") },
-                        leadingIcon = { Icon(Icons.Default.CameraAlt, null) },
-                        onClick = { showDropdown = false; onPhotoScanClick() }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Import Template") },
-                        leadingIcon = { Icon(Icons.Default.AutoAwesome, null) },
-                        onClick = { showDropdown = false; onImportClick() }
-                    )
-                }
-            }
         }
     }
 }
@@ -1291,9 +1283,9 @@ private fun EditMenuItemDialog(
                 }
 
                 // Modifier groups section
-                HorizontalDivider(color = CibusTextTertiary.copy(alpha = 0.3f))
+                HorizontalDivider(color = AppleSeparator.copy(alpha = 0.4f))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Modifier Groups", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = RestTextPrimary)
+                    Text("Modifier Groups", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = AppleLabelPrimary)
                     TextButton(onClick = {
                         modifiers = (modifiers + ModifierGroupDto(
                             id = "mg${System.currentTimeMillis()}",
@@ -1348,8 +1340,8 @@ private fun ModifierGroupEditor(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = CibusSurfaceSecondary,
+        shape = RoundedCornerShape(CibusDimens.radiusMd),
+        color = AppleGroupedBackground,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1489,8 +1481,8 @@ fun DaypartMenuSection(categoryNames: List<String>) {
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        shadowElevation = 3.dp,
+        shape = RoundedCornerShape(CibusDimens.cardRadius),
+        shadowElevation = 2.dp,
         color = CibusCardBg
     ) {
         Column(modifier = Modifier.padding(CibusDimens.cardPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {

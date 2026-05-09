@@ -11,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -55,7 +54,7 @@ fun RestaurantPayoutsContent() {
             }
         } else if (wallet == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Could not load wallet data", color = RestTextSecondary)
+                Text("Could not load wallet data", color = AppleLabelSecondary)
             }
         } else {
             when (selectedTab) {
@@ -69,13 +68,13 @@ fun RestaurantPayoutsContent() {
 @Composable
 private fun PayoutOverview(wallet: RestaurantWalletResponse) {
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(CibusDimens.screenHorizontal),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Balance card
-        Surface(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+        Surface(shape = RoundedCornerShape(CibusDimens.cardRadius), modifier = Modifier.fillMaxWidth()) {
             Box(
-                Modifier.background(Brush.horizontalGradient(listOf(CibusGreenDark, CibusGreen)))
+                Modifier.background(CibusGreen)
                     .padding(20.dp)
             ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -104,21 +103,21 @@ private fun PayoutOverview(wallet: RestaurantWalletResponse) {
         if (rate != null && revenue > 0) {
             val commission = revenue * rate
             val net = revenue - commission
-            Surface(shape = RoundedCornerShape(12.dp), color = CibusCardBg, shadowElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
+            Surface(shape = RoundedCornerShape(CibusDimens.cardRadius), color = CibusCardBg, shadowElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Earnings Breakdown (30 days)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
-                    BreakdownRow("Gross Revenue", revenue, RestTextPrimary)
+                    Text("Earnings Breakdown (30 days)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = AppleLabelPrimary)
+                    BreakdownRow("Gross Revenue", revenue, AppleLabelPrimary)
                     BreakdownRow("Platform Fee (${(rate * 100).toInt()}%)", -commission, CibusRed)
-                    HorizontalDivider(color = Color(0xFFE0E0E0))
+                    HorizontalDivider(color = AppleSeparator.copy(alpha = 0.4f))
                     BreakdownRow("Net Earnings", net, CibusGreenDark, bold = true)
                 }
             }
         } else if (revenue > 0) {
-            Surface(shape = RoundedCornerShape(12.dp), color = CibusCardBg, shadowElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
+            Surface(shape = RoundedCornerShape(CibusDimens.cardRadius), color = CibusCardBg, shadowElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Earnings (30 days)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
-                    BreakdownRow("Gross Revenue", revenue, RestTextPrimary)
-                    Text("Commission breakdown will appear once your rate is configured.", fontSize = 12.sp, color = RestTextSecondary)
+                    Text("Earnings (30 days)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = AppleLabelPrimary)
+                    BreakdownRow("Gross Revenue", revenue, AppleLabelPrimary)
+                    Text("Commission breakdown will appear once your rate is configured.", fontSize = 12.sp, color = AppleLabelSecondary)
                 }
             }
         }
@@ -132,7 +131,7 @@ private fun PayoutOverview(wallet: RestaurantWalletResponse) {
 
             if (monthRevenue > 0 || wallet.pendingPayoutsCount > 0 || wallet.completedPayoutsCount > 0) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(CibusDimens.cardRadius),
                     color = CibusCardBg,
                     shadowElevation = 1.dp,
                     modifier = Modifier.fillMaxWidth()
@@ -143,41 +142,41 @@ private fun PayoutOverview(wallet: RestaurantWalletResponse) {
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(Icons.Default.CalendarMonth, null, tint = CibusGreenDark, modifier = Modifier.size(20.dp))
-                            Text("Monthly Summary", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+                            Text("Monthly Summary", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = AppleLabelPrimary)
                         }
 
                         if (monthRevenue > 0) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("30-day revenue", fontSize = 14.sp, color = RestTextSecondary)
-                                Text("Rs ${monthRevenue.toInt()}", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = RestTextPrimary)
+                                Text("30-day revenue", fontSize = 14.sp, color = AppleLabelSecondary)
+                                Text("Rs ${monthRevenue.toInt()}", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = AppleLabelPrimary)
                             }
                         }
 
                         if (estimatedCommission != null) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Estimated commission (${((commRate ?: 0.0) * 100).toInt()}%)", fontSize = 14.sp, color = RestTextSecondary)
+                                Text("Estimated commission (${((commRate ?: 0.0) * 100).toInt()}%)", fontSize = 14.sp, color = AppleLabelSecondary)
                                 Text("-Rs ${estimatedCommission.toInt()}", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = CibusRed)
                             }
                         }
 
                         if (netEstimated != null) {
-                            HorizontalDivider(color = Color(0xFFE0E0E0))
+                            HorizontalDivider(color = AppleSeparator.copy(alpha = 0.4f))
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Net estimated earnings", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
+                                Text("Net estimated earnings", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = AppleLabelPrimary)
                                 Text("Rs ${netEstimated.toInt()}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = CibusGreenDark)
                             }
                         }
 
                         if (wallet.pendingPayoutsCount > 0 || wallet.completedPayoutsCount > 0) {
-                            HorizontalDivider(color = Color(0xFFE0E0E0))
+                            HorizontalDivider(color = AppleSeparator.copy(alpha = 0.4f))
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text("${wallet.pendingPayoutsCount}", fontWeight = FontWeight.Bold, color = CibusAmber)
-                                    Text("Pending payouts", fontSize = 11.sp, color = RestTextSecondary)
+                                    Text("Pending payouts", fontSize = 11.sp, color = AppleLabelSecondary)
                                 }
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text("${wallet.completedPayoutsCount}", fontWeight = FontWeight.Bold, color = CibusGreen)
-                                    Text("Completed payouts", fontSize = 11.sp, color = RestTextSecondary)
+                                    Text("Completed payouts", fontSize = 11.sp, color = AppleLabelSecondary)
                                 }
                             }
                         }
@@ -196,7 +195,7 @@ private fun PayoutOverview(wallet: RestaurantWalletResponse) {
                                 Text(
                                     "Full monthly report available at end of billing cycle",
                                     fontSize = 12.sp,
-                                    color = RestTextSecondary
+                                    color = AppleLabelSecondary
                                 )
                             }
                         }
@@ -208,10 +207,10 @@ private fun PayoutOverview(wallet: RestaurantWalletResponse) {
         if (wallet.pendingPayoutsCount == 0 && wallet.completedPayoutsCount == 0) {
             Box(Modifier.fillMaxWidth().padding(top = 24.dp), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.AccountBalance, null, tint = RestTextSecondary.copy(alpha = 0.4f), modifier = Modifier.size(48.dp))
+                    Icon(Icons.Default.AccountBalance, null, tint = AppleLabelSecondary.copy(alpha = 0.4f), modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(8.dp))
-                    Text("No payout history yet", fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
-                    Text("Revenue from delivered orders will appear here", fontSize = 13.sp, color = RestTextSecondary, textAlign = TextAlign.Center)
+                    Text("No payout history yet", fontWeight = FontWeight.SemiBold, color = AppleLabelPrimary)
+                    Text("Revenue from delivered orders will appear here", fontSize = 13.sp, color = AppleLabelSecondary, textAlign = TextAlign.Center)
                 }
             }
         }
@@ -223,18 +222,18 @@ private fun PayoutOverview(wallet: RestaurantWalletResponse) {
 @Composable
 private fun PayoutTransactions(wallet: RestaurantWalletResponse) {
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(CibusDimens.screenHorizontal),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Recent Transactions", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = RestTextPrimary)
+        Text("Recent Transactions", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = AppleLabelPrimary)
 
         if (wallet.pendingPayoutsCount == 0 && wallet.completedPayoutsCount == 0) {
             Box(Modifier.fillMaxWidth().padding(top = 32.dp), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Receipt, null, tint = RestTextSecondary.copy(alpha = 0.4f), modifier = Modifier.size(48.dp))
+                    Icon(Icons.Default.Receipt, null, tint = AppleLabelSecondary.copy(alpha = 0.4f), modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(8.dp))
-                    Text("No transactions yet", fontWeight = FontWeight.SemiBold, color = RestTextPrimary)
-                    Text("Completed payouts will appear here", fontSize = 13.sp, color = RestTextSecondary)
+                    Text("No transactions yet", fontWeight = FontWeight.SemiBold, color = AppleLabelPrimary)
+                    Text("Completed payouts will appear here", fontSize = 13.sp, color = AppleLabelSecondary)
                 }
             }
         } else {
@@ -273,11 +272,11 @@ private fun PayoutTransactions(wallet: RestaurantWalletResponse) {
 
 @Composable
 private fun PayoutKpi(modifier: Modifier, title: String, value: String, icon: ImageVector, color: Color) {
-    Surface(modifier = modifier, shape = RoundedCornerShape(12.dp), color = CibusCardBg) {
+    Surface(modifier = modifier, shape = RoundedCornerShape(CibusDimens.cardRadius), color = CibusCardBg) {
         Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
-            Text(value, fontWeight = FontWeight.Bold, color = RestTextPrimary)
-            Text(title, fontSize = 11.sp, color = RestTextSecondary, textAlign = TextAlign.Center)
+            Text(value, fontWeight = FontWeight.Bold, color = AppleLabelPrimary)
+            Text(title, fontSize = 11.sp, color = AppleLabelSecondary, textAlign = TextAlign.Center)
         }
     }
 }
@@ -285,7 +284,7 @@ private fun PayoutKpi(modifier: Modifier, title: String, value: String, icon: Im
 @Composable
 private fun BreakdownRow(label: String, amount: Double, color: Color, bold: Boolean = false) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, fontSize = if (bold) 15.sp else 14.sp, fontWeight = if (bold) FontWeight.SemiBold else FontWeight.Normal, color = RestTextSecondary)
+        Text(label, fontSize = if (bold) 15.sp else 14.sp, fontWeight = if (bold) FontWeight.SemiBold else FontWeight.Normal, color = AppleLabelSecondary)
         val sign = if (amount < 0) "-" else ""
         Text("${sign}Rs ${kotlin.math.abs(amount).toInt()}", fontSize = if (bold) 16.sp else 14.sp, fontWeight = if (bold) FontWeight.Bold else FontWeight.Medium, color = color)
     }
@@ -293,14 +292,14 @@ private fun BreakdownRow(label: String, amount: Double, color: Color, bold: Bool
 
 @Composable
 private fun TransactionRow(title: String, subtitle: String, icon: ImageVector, color: Color, status: String) {
-    Surface(shape = RoundedCornerShape(12.dp), color = CibusCardBg, shadowElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
+    Surface(shape = RoundedCornerShape(CibusDimens.cardRadius), color = CibusCardBg, shadowElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Surface(shape = RoundedCornerShape(10.dp), color = color.copy(alpha = 0.12f)) {
                 Icon(icon, null, tint = color, modifier = Modifier.padding(10.dp).size(18.dp))
             }
             Column(Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.Medium, color = RestTextPrimary)
-                Text(subtitle, fontSize = 12.sp, color = RestTextSecondary)
+                Text(title, fontWeight = FontWeight.Medium, color = AppleLabelPrimary)
+                Text(subtitle, fontSize = 12.sp, color = AppleLabelSecondary)
             }
             Surface(shape = RoundedCornerShape(6.dp), color = color.copy(alpha = 0.1f)) {
                 Text(status, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = color, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))

@@ -27,6 +27,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -50,7 +51,7 @@ import android.content.Context
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.platform.LocalContext
 import com.cibus.restaurant.ResL10n
-import com.cibus.restaurant.ui.theme.CibusDimens
+import com.cibus.restaurant.ui.theme.*
 
 private enum class MoreDestination {
     Hub,
@@ -119,6 +120,7 @@ fun RestaurantMoreScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MoreHubList(
     ctx: Context,
@@ -126,39 +128,42 @@ private fun MoreHubList(
     onNavigate: (MoreDestination) -> Unit,
 ) {
     Scaffold(
-        containerColor = RestBackground,
+        containerColor = AppleGroupedBackground,
+        topBar = {
+            LargeTopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            ResL10n.tabMore(ctx),
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            ResL10n.moreHubBrandSubtitle(ctx),
+                            fontSize = CibusDimens.captionSp,
+                            color = AppleLabelSecondary,
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = AppleGroupedBackground,
+                    titleContentColor = AppleLabelPrimary,
+                ),
+            )
+        },
     ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 18.dp),
+                .padding(horizontal = CibusDimens.screenHorizontal),
         ) {
-            // Header
-            item {
-                Column(Modifier.padding(vertical = 18.dp)) {
-                    Text(
-                        ResL10n.tabMore(ctx),
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = RestTextPrimary,
-                    )
-                    Text(
-                        ResL10n.moreHubBrandSubtitle(ctx),
-                        fontSize = CibusDimens.captionSp,
-                        color = RestTextSecondary,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
-            }
-
             // Tools section label
             item {
                 Text(
                     ResL10n.moreSectionTools(ctx),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = RestTextTertiary,
+                    color = AppleLabelTertiary,
                     letterSpacing = 1.sp,
                     modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
                 )
@@ -167,9 +172,9 @@ private fun MoreHubList(
             // Tools card
             item {
                 Surface(
-                    shape = RoundedCornerShape(CibusDimens.radiusLg),
-                    color = RestCardBG,
-                    border = BorderStroke(1.dp, RestDivider),
+                    shape = RoundedCornerShape(CibusDimens.cardRadius),
+                    color = Color.White,
+                    shadowElevation = 0.dp,
                 ) {
                     Column {
                         if (hasChain) {
@@ -180,7 +185,7 @@ private fun MoreHubList(
                                 iconColor = RestGreen,
                                 onClick = { onNavigate(MoreDestination.Chain) },
                             )
-                            HorizontalDivider(color = RestDivider, modifier = Modifier.padding(start = 64.dp))
+                            HorizontalDivider(color = AppleSeparator.copy(alpha = 0.4f), modifier = Modifier.padding(start = 72.dp))
                         }
                         MoreRow(
                             title = ResL10n.moreRowWalletTitle(ctx),
@@ -189,15 +194,15 @@ private fun MoreHubList(
                             iconColor = RestGreen,
                             onClick = { onNavigate(MoreDestination.Payouts) },
                         )
-                        HorizontalDivider(color = RestDivider, modifier = Modifier.padding(start = 64.dp))
+                        HorizontalDivider(color = AppleSeparator.copy(alpha = 0.4f), modifier = Modifier.padding(start = 72.dp))
                         MoreRow(
                             title = ResL10n.moreRowReviewsTitle(ctx),
                             subtitle = ResL10n.moreRowReviewsSubtitle(ctx),
                             icon = Icons.Default.Star,
-                            iconColor = Color(0xFFF59E0B),
+                            iconColor = AppleSystemOrange,
                             onClick = { onNavigate(MoreDestination.Reviews) },
                         )
-                        HorizontalDivider(color = RestDivider, modifier = Modifier.padding(start = 64.dp))
+                        HorizontalDivider(color = AppleSeparator.copy(alpha = 0.4f), modifier = Modifier.padding(start = 72.dp))
                         MoreRow(
                             title = ResL10n.moreRowIssuesTitle(ctx),
                             subtitle = ResL10n.moreRowIssuesSubtitle(ctx),
@@ -205,12 +210,12 @@ private fun MoreHubList(
                             iconColor = Color(0xFFB45309),
                             onClick = { onNavigate(MoreDestination.Issues) },
                         )
-                        HorizontalDivider(color = RestDivider, modifier = Modifier.padding(start = 64.dp))
+                        HorizontalDivider(color = AppleSeparator.copy(alpha = 0.4f), modifier = Modifier.padding(start = 72.dp))
                         MoreRow(
                             title = ResL10n.moreRowInboxTitle(ctx),
                             subtitle = ResL10n.moreRowInboxSubtitle(ctx),
                             icon = Icons.Default.Mail,
-                            iconColor = Color(0xFF3B82F6),
+                            iconColor = AppleSystemBlue,
                             onClick = { onNavigate(MoreDestination.Inbox) },
                         )
                     }
@@ -223,24 +228,24 @@ private fun MoreHubList(
                     ResL10n.moreRowSettingsTitle(ctx),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = RestTextTertiary,
+                    color = AppleLabelTertiary,
                     letterSpacing = 1.sp,
-                    modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp),
+                    modifier = Modifier.padding(start = 4.dp, top = CibusDimens.sectionGap, bottom = 8.dp),
                 )
             }
 
             // Settings card
             item {
                 Surface(
-                    shape = RoundedCornerShape(CibusDimens.radiusLg),
-                    color = RestCardBG,
-                    border = BorderStroke(1.dp, RestDivider),
+                    shape = RoundedCornerShape(CibusDimens.cardRadius),
+                    color = Color.White,
+                    shadowElevation = 0.dp,
                 ) {
                     MoreRow(
                         title = ResL10n.moreRowSettingsTitle(ctx),
                         subtitle = ResL10n.moreRowSettingsSubtitle(ctx),
                         icon = Icons.Default.Settings,
-                        iconColor = RestTextSecondary,
+                        iconColor = AppleLabelSecondary,
                         onClick = { onNavigate(MoreDestination.Settings) },
                     )
                 }
@@ -251,25 +256,24 @@ private fun MoreHubList(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 16.dp),
-                    shape = RoundedCornerShape(CibusDimens.radiusLg),
+                        .padding(top = CibusDimens.spacing16),
+                    shape = RoundedCornerShape(CibusDimens.cardRadius),
                     color = RestGreen.copy(alpha = 0.06f),
-                    border = BorderStroke(1.dp, RestGreen.copy(alpha = 0.15f)),
                 ) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(Modifier.padding(CibusDimens.cardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Business, contentDescription = "Business information", tint = RestGreen, modifier = Modifier.size(18.dp))
                             Text(
                                 ResL10n.moreHubPakistanTipTitle(ctx),
                                 fontSize = CibusDimens.bodySp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = RestTextPrimary,
+                                color = AppleLabelPrimary,
                             )
                         }
                         Text(
                             ResL10n.moreHubPakistanTipBody(ctx),
                             fontSize = CibusDimens.captionSp,
-                            color = RestTextSecondary,
+                            color = AppleLabelSecondary,
                             lineHeight = 18.sp,
                         )
                     }
@@ -293,14 +297,14 @@ private fun MoreRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = CibusDimens.cardPadding, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Box(
             modifier = Modifier
                 .size(42.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(CibusDimens.radiusMd))
                 .background(iconColor.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
@@ -316,12 +320,12 @@ private fun MoreRow(
                 title,
                 fontWeight = FontWeight.Medium,
                 fontSize = CibusDimens.bodySp,
-                color = RestTextPrimary,
+                color = AppleLabelPrimary,
             )
             Text(
                 subtitle,
                 fontSize = CibusDimens.captionSp,
-                color = RestTextSecondary,
+                color = AppleLabelSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -329,7 +333,7 @@ private fun MoreRow(
         Icon(
             Icons.Default.ChevronRight,
             contentDescription = null,
-            tint = RestTextTertiary,
+            tint = AppleLabelTertiary,
             modifier = Modifier.size(18.dp),
         )
     }
@@ -343,7 +347,7 @@ private fun MoreNestedScaffold(
     content: @Composable () -> Unit,
 ) {
     Scaffold(
-        containerColor = RestBackground,
+        containerColor = AppleGroupedBackground,
         topBar = {
             TopAppBar(
                 title = { Text(title, fontWeight = FontWeight.SemiBold) },
@@ -353,9 +357,9 @@ private fun MoreNestedScaffold(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = RestBackground,
-                    titleContentColor = RestTextPrimary,
-                    navigationIconContentColor = RestTextPrimary,
+                    containerColor = AppleGroupedBackground,
+                    titleContentColor = AppleLabelPrimary,
+                    navigationIconContentColor = AppleLabelPrimary,
                 ),
             )
         },

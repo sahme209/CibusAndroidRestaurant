@@ -1,7 +1,5 @@
 package com.cibus.restaurant.ui
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -16,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -42,44 +39,32 @@ fun EntryScreen(
         return
     }
 
-    var appeared by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { appeared = true }
-
-    val heroAlpha by animateFloatAsState(
-        if (appeared) 1f else 0f, tween(500), label = "hero"
-    )
-    val cardAlpha by animateFloatAsState(
-        if (appeared) 1f else 0f, tween(500, delayMillis = 150), label = "card"
-    )
-    val ctaAlpha by animateFloatAsState(
-        if (appeared) 1f else 0f, tween(500, delayMillis = 300), label = "cta"
-    )
-
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppleGroupedBackground)
-            .statusBarsPadding()
+            .background(CibusSurfaceNeutral)
     ) {
-        // Scrollable content
+        AIAuroraBackground(intensity = 0.2f)
+        AIParticleField(particleCount = 18, intensity = 0.35f)
+
         Column(
             modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .fillMaxSize()
+                .statusBarsPadding()
         ) {
-            Spacer(Modifier.height(64.dp))
-
-            // Hero
             Column(
-                modifier = Modifier.graphicsLayer { alpha = heroAlpha },
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                Spacer(Modifier.height(64.dp))
+
                 Box(
                     modifier = Modifier
                         .size(88.dp)
                         .clip(RoundedCornerShape(22.dp))
-                        .background(CibusGreen.copy(alpha = 0.1f)),
+                        .background(CibusGreen.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -98,7 +83,9 @@ fun EntryScreen(
                     textAlign = TextAlign.Center,
                     lineHeight = 34.sp,
                 )
+
                 Spacer(Modifier.height(8.dp))
+
                 Text(
                     ResL10n.entryTagline(ctx),
                     fontSize = 15.sp,
@@ -106,126 +93,135 @@ fun EntryScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 32.dp),
                 )
+
+                Spacer(Modifier.height(40.dp))
+
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 0.dp,
+                ) {
+                    Column(Modifier.padding(vertical = 4.dp)) {
+                        EntryBenefitRow(
+                            Icons.Default.Schedule,
+                            if (ResL10n.isUrdu(ctx)) "Flexible Hours" else "Flexible Hours",
+                            if (ResL10n.isUrdu(ctx)) "Jab chahein kholen, apni marzi" else "Open when you want, on your schedule",
+                            CibusGreenLight,
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 62.dp),
+                            color = AppleSeparator.copy(alpha = 0.3f),
+                            thickness = 0.5.dp,
+                        )
+                        EntryBenefitRow(
+                            Icons.Default.Payments,
+                            if (ResL10n.isUrdu(ctx)) "Secure Payouts" else "Secure Payouts",
+                            if (ResL10n.isUrdu(ctx)) "Transparent fees, hafta-waar settlement" else "Transparent fees, weekly settlements",
+                            CibusSuccess,
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 62.dp),
+                            color = AppleSeparator.copy(alpha = 0.3f),
+                            thickness = 0.5.dp,
+                        )
+                        EntryBenefitRow(
+                            Icons.Default.TrendingUp,
+                            if (ResL10n.isUrdu(ctx)) "Zyada Customers" else "Grow Your Reach",
+                            if (ResL10n.isUrdu(ctx)) "Apne area ke customers se judo" else "Connect with more customers nearby",
+                            CibusAmberLight,
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 62.dp),
+                            color = AppleSeparator.copy(alpha = 0.3f),
+                            thickness = 0.5.dp,
+                        )
+                        EntryBenefitRow(
+                            Icons.Default.FlashOn,
+                            if (ResL10n.isUrdu(ctx)) "Real-Time Tools" else "Real-Time Tools",
+                            if (ResL10n.isUrdu(ctx)) "Orders aate hi manage karein" else "Manage orders as they come in",
+                            CibusGreenLight,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
             }
 
-            Spacer(Modifier.height(40.dp))
+            HorizontalDivider(color = AppleSeparator.copy(alpha = 0.3f), thickness = 0.5.dp)
 
-            // Benefits card
-            Surface(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = CibusDimens.screenHorizontal)
-                    .graphicsLayer { alpha = cardAlpha },
-                shape = RoundedCornerShape(12.dp),
-                color = Color.White,
-                tonalElevation = 0.dp,
+                    .background(CibusSurfaceNeutral)
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 16.dp, bottom = 34.dp)
+                    .navigationBarsPadding(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Column(Modifier.padding(vertical = 4.dp)) {
-                    EntryBenefitRow(
-                        Icons.Default.Schedule,
-                        if (ResL10n.isUrdu(ctx)) "Flexible Hours" else "Flexible Hours",
-                        if (ResL10n.isUrdu(ctx)) "Jab chahein kholen, apni marzi" else "Open when you want, on your schedule",
-                        AppleSystemBlue,
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 62.dp),
-                        color = AppleSeparator.copy(alpha = 0.3f),
-                        thickness = 0.5.dp,
-                    )
-                    EntryBenefitRow(
-                        Icons.Default.Payments,
-                        if (ResL10n.isUrdu(ctx)) "Secure Payouts" else "Secure Payouts",
-                        if (ResL10n.isUrdu(ctx)) "Transparent fees, hafta-waar settlement" else "Transparent fees, weekly settlements",
-                        AppleSystemGreen,
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 62.dp),
-                        color = AppleSeparator.copy(alpha = 0.3f),
-                        thickness = 0.5.dp,
-                    )
-                    EntryBenefitRow(
-                        Icons.Default.TrendingUp,
-                        if (ResL10n.isUrdu(ctx)) "Zyada Customers" else "Grow Your Reach",
-                        if (ResL10n.isUrdu(ctx)) "Apne area ke customers se judo" else "Connect with more customers nearby",
-                        AppleSystemOrange,
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 62.dp),
-                        color = AppleSeparator.copy(alpha = 0.3f),
-                        thickness = 0.5.dp,
-                    )
-                    EntryBenefitRow(
-                        Icons.Default.FlashOn,
-                        if (ResL10n.isUrdu(ctx)) "Real-Time Tools" else "Real-Time Tools",
-                        if (ResL10n.isUrdu(ctx)) "Orders aate hi manage karein" else "Manage orders as they come in",
-                        AppleSystemIndigo,
+                Button(
+                    onClick = onGetStarted,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = RestGreen,
+                    ),
+                ) {
+                    Text(
+                        ResL10n.entryGetStarted(ctx),
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
                     )
                 }
-            }
 
-            Spacer(Modifier.height(24.dp))
-        }
+                Button(
+                    onClick = { showHomeKitchenOnboarding = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = CibusGreen.copy(alpha = 0.10f),
+                        contentColor = CibusGreen,
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                ) {
+                    Icon(Icons.Default.Home, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (ResL10n.isUrdu(ctx)) "Ghar se Khana Becho" else "Start Home Kitchen",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
 
-        // Pinned bottom CTAs
-        HorizontalDivider(color = AppleSeparator.copy(alpha = 0.3f), thickness = 0.5.dp)
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(AppleGroupedBackground)
-                .padding(horizontal = CibusDimens.screenHorizontal)
-                .padding(top = 16.dp, bottom = 34.dp)
-                .navigationBarsPadding()
-                .graphicsLayer { alpha = ctaAlpha },
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            RestaurantPrimaryButton(
-                text = ResL10n.entryGetStarted(ctx),
-                onClick = onGetStarted,
-                isLargeCTA = true,
-            )
-
-            Button(
-                onClick = { showHomeKitchenOnboarding = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = CibusGreen.copy(alpha = 0.10f),
-                    contentColor = CibusGreen,
-                ),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
-            ) {
-                Icon(Icons.Default.Home, null, Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    if (ResL10n.isUrdu(ctx)) "Ghar se Khana Becho" else "Start Home Kitchen",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                )
-            }
-
-            TextButton(onClick = onSignIn) {
-                Text(
-                    ResL10n.entrySignInLink(ctx),
-                    fontSize = 15.sp,
-                    color = CibusGreen,
-                )
+                TextButton(
+                    onClick = onSignIn,
+                    modifier = Modifier.padding(top = 4.dp),
+                ) {
+                    Text(
+                        ResL10n.entrySignInLink(ctx),
+                        fontSize = 15.sp,
+                        color = CibusGreen,
+                    )
+                }
             }
         }
     }
 }
-
-// ── Benefit Row ─────────────────────────────────────────────────────────────
 
 @Composable
 private fun EntryBenefitRow(icon: ImageVector, title: String, subtitle: String, accent: Color) {
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -240,6 +236,7 @@ private fun EntryBenefitRow(icon: ImageVector, title: String, subtitle: String, 
         Spacer(Modifier.width(14.dp))
         Column {
             Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = AppleLabelPrimary)
+            Spacer(Modifier.height(2.dp))
             Text(subtitle, fontSize = 13.sp, color = AppleLabelSecondary)
         }
     }

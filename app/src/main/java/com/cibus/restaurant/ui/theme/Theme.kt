@@ -12,28 +12,31 @@ private val RestaurantDarkColorScheme = darkColorScheme(
     secondary = CibusAccent,
     tertiary = CibusAmberLight,
     background = CibusSurfaceNeutral,
-    surface = CibusSurface,
+    surface = Color(0xFF1C231F),           // green-tinted card surface
     onPrimary = Color.White,
     onBackground = CibusTextPrimary,
     onSurface = CibusTextPrimary,
     onSurfaceVariant = CibusTextSecondary,
+    outline = Color(0xFF38383A),             // Apple dark separator
 )
 
 private val RestaurantLightColorScheme = lightColorScheme(
-    primary = CibusGreen,
+    primary = CibusGreen,                    // unified #00704A
     secondary = CibusGreenLight,
     tertiary = CibusAmber,
-    background = CibusSurfaceSecondary,
-    surface = CibusCardBg,
+    background = AppleGroupedBackground,      // Apple grouped table background (#F2F2F7)
+    surface = AppleElevatedSurface,          // pure white
     onPrimary = Color.White,
     onBackground = CibusTextOnSurface,
     onSurface = CibusTextOnSurface,
     onSurfaceVariant = CibusTextOnSurfaceSecondary,
+    surfaceVariant = AppleWarmGray,          // #F5F5F7
+    outline = AppleSeparator,               // #C6C6C8
 )
 
 @Composable
 fun CibusRestaurantTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) RestaurantDarkColorScheme else RestaurantLightColorScheme

@@ -18,20 +18,18 @@ val CibusOrange = Color(0xFFEA580C)      // orangeAlert
 val CibusOrangeWarm = Color(0xFFF57C00)
 val CibusSuccess = Color(0xFF16A34A)     // success
 
-// ── Surfaces ─────────────────────────────────────────────────────────────────
-val CibusSurfaceSecondary = Color(0xFFF2F2F7)   // iOS secondarySystemBackground
+// ── Surfaces (dark mode — subtle green tint) ────────────────────────────────
+val CibusSurfaceSecondary = Color(0xFF181E1B)   // green-tinted secondary surface
 
-// ── Text ─────────────────────────────────────────────────────────────────────
-/** Dark-theme shell text: light on dark. */
+// ── Text (dark mode — light on dark) ─────────────────────────────────────────
 val CibusTextPrimary = Color(0xFFF5F5F7)
 val CibusTextSecondary = Color(0xFFAEAEB2)
-/** Light-theme text: dark on white (used in card-based views). */
-val CibusTextOnSurface = Color(0xFF1C1C1E)
-val CibusTextOnSurfaceSecondary = Color(0xFF8E8E93)
-val CibusTextTertiary = Color(0xFFC7C7CC)
+val CibusTextOnSurface = Color(0xFFF5F5F7)
+val CibusTextOnSurfaceSecondary = Color(0xFFAEAEB2)
+val CibusTextTertiary = Color(0xFF8E8E93)
 
 // ── Dark surfaces ────────────────────────────────────────────────────────────
-val CibusSurfaceNeutral = Color(0xFF1D1D1F)
+val CibusSurfaceNeutral = Color(0xFF121614)
 
 // ── Apple System Colors ─────────────────────────────────────────────────────
 val AppleSystemGreen = Color(0xFF34C759)
@@ -39,13 +37,14 @@ val AppleSystemBlue = Color(0xFF007AFF)
 val AppleSystemIndigo = Color(0xFF5856D6)
 val AppleSystemOrange = Color(0xFFFF9F0A)
 val AppleSystemRed = Color(0xFFFF3B30)
+val AppleSystemPurple = Color(0xFF7C3AED)
 
-// ── Refined neutral palette ─────────────────────────────────────────────────
-val AppleWarmGray = Color(0xFFF5F5F7)      // maps to iOS systemGroupedBackground
-val AppleLabelPrimary = Color(0xFF1C1C1E)
-val AppleLabelSecondary = Color(0xFF8E8E93)
-val AppleLabelTertiary = Color(0xFFC7C7CC)
-val AppleGroupedBackground = Color(0xFFF2F2F7)
-val AppleElevatedSurface = Color(0xFFFFFFFF)
-val AppleSeparator = Color(0xFFC6C6C8)
+// ── Refined neutral palette (dark mode) ─────────────────────────────────────
+val AppleWarmGray = Color(0xFF161B18)      // green-tinted grouped background
+val AppleLabelPrimary = Color(0xFFFFFFFF)  // white text on dark
+val AppleLabelSecondary = Color(0xFF98989D) // medium gray text
+val AppleLabelTertiary = Color(0xFF48484A)  // subtle text
+val AppleGroupedBackground = Color(0xFF000000) // dark mode grouped background
+val AppleElevatedSurface = Color(0xFF1E2622)   // green-tinted elevated surface
+val AppleSeparator = Color(0xFF38383A)     // dark mode separator
 

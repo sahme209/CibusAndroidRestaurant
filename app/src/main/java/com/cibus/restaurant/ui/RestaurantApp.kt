@@ -125,7 +125,11 @@ fun RestaurantApp() {
 
     NavHost(
         navController = navController,
-        startDestination = RestaurantRoute.Entry.route
+        startDestination = RestaurantRoute.Entry.route,
+        enterTransition = { androidx.compose.animation.EnterTransition.None },
+        exitTransition = { androidx.compose.animation.ExitTransition.None },
+        popEnterTransition = { androidx.compose.animation.EnterTransition.None },
+        popExitTransition = { androidx.compose.animation.ExitTransition.None },
     ) {
         composable(RestaurantRoute.Entry.route) {
             EntryScreen(
